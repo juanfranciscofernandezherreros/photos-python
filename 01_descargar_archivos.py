@@ -53,25 +53,30 @@ def exportar_metadatos_json():
                 if archivo.is_file() and archivo.suffix.lower() in EXTENSIONES_VALIDAS:
                     ruta_str = str(archivo)
 
-                    # Si ya la teníamos registrada y no ha cambiado de tamaño,
-                    # reutilizamos la entrada tal cual (evita recalcular sin motivo)
+                    # Si ya la teníamos registrada, con el mismo tamaño Y la
+                    # misma fecha de modificación, reutilizamos la entrada tal
+                    # cual (evita recalcular sin motivo). Comparar solo el
+                    # tamaño no basta: dos capturas distintas pueden pesar
+                    # exactamente lo mismo.
                     stats = archivo.stat()
                     peso_mb = round(stats.st_size / (1024 * 1024), 2)
                     anterior = metadatos_previos.get(ruta_str)
 
-                    if anterior and anterior.get("tamano_mb") == peso_mb:
+                    if (anterior
+                            and anterior.get("tamano_mb") == peso_mb
+                            and anterior.get("mtime") == stats.st_mtime):
                         metadatos_actuales[ruta_str] = anterior
                         sin_cambios += 1
                         continue
 
                     # Es nueva o ha cambiado: recalculamos sus metadatos
-                    fecha_timestamp = stats.st_mtime
-                    fecha_legible = datetime.fromtimestamp(fecha_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                    fecha_legible = datetime.fromtimestamp(stats.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
 
                     metadatos_actuales[ruta_str] = {
                         "archivo": archivo.name,
                         "formato": archivo.suffix.lower().replace('.', ''),
                         "tamano_mb": peso_mb,
+                        "mtime": stats.st_mtime,
                         "fecha_captura": fecha_legible,
                         "ruta_original": ruta_str
                     }
