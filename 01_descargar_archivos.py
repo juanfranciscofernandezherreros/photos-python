@@ -1,16 +1,19 @@
 import json
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from config import RUTAS_SCREENSHOTS_ORIGEN, ARCHIVO_METADATOS_JSON, EXTENSIONES_VALIDAS, UNIDAD_WEBDAV
 
+MetadatosCaptura = dict[str, Any]
 
-def unidad_webdav_montada():
+
+def unidad_webdav_montada() -> bool:
     """Comprueba si la unidad de red (Z:) está montada y accesible."""
     return Path(f"{UNIDAD_WEBDAV}\\").exists()
 
 
-def cargar_metadatos_existentes():
+def cargar_metadatos_existentes() -> dict[str, MetadatosCaptura]:
     """Carga el JSON de una ejecución anterior, si existe. Devuelve un dict
     indexado por ruta_original para poder comparar rápido contra lo que hay
     ahora mismo en el teléfono."""
@@ -20,14 +23,14 @@ def cargar_metadatos_existentes():
 
     try:
         with open(archivo, 'r', encoding='utf-8') as f:
-            lista_previa = json.load(f)
+            lista_previa: list[MetadatosCaptura] = json.load(f)
         return {item["ruta_original"]: item for item in lista_previa}
     except (json.JSONDecodeError, KeyError):
         print(f"⚠️ '{ARCHIVO_METADATOS_JSON}' existente está corrupto, se regenerará desde cero.\n")
         return {}
 
 
-def exportar_metadatos_json():
+def exportar_metadatos_json() -> None:
     print("Buscando capturas en la unidad Z: y extrayendo metadatos...\n")
 
     # Comprobación temprana: si la unidad de red ni siquiera está montada,
@@ -39,8 +42,8 @@ def exportar_metadatos_json():
 
     # Metadatos de la ejecución anterior, para hacer un merge incremental
     # en vez de sobrescribir el JSON entero cada vez.
-    metadatos_previos = cargar_metadatos_existentes()
-    metadatos_actuales = {}
+    metadatos_previos: dict[str, MetadatosCaptura] = cargar_metadatos_existentes()
+    metadatos_actuales: dict[str, MetadatosCaptura] = {}
     nuevos = 0
     sin_cambios = 0
 

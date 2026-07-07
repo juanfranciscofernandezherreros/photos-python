@@ -5,7 +5,7 @@ from pathlib import Path
 from config import CARPETA_SCREENSHOTS_AGRUPADOS, CARPETA_ZIPS, BORRAR_ORIGINALES_TRAS_COMPRIMIR
 
 
-def zip_es_valido(ruta_zip):
+def zip_es_valido(ruta_zip: Path) -> bool:
     """Comprueba que el .zip se puede abrir y que ninguno de sus archivos
     internos está dañado. testzip() devuelve el nombre del primer archivo
     corrupto que encuentra, o None si todo está bien."""
@@ -16,7 +16,7 @@ def zip_es_valido(ruta_zip):
         return False
 
 
-def comprimir_carpetas_por_dia():
+def comprimir_carpetas_por_dia() -> None:
     carpeta_base = CARPETA_SCREENSHOTS_AGRUPADOS
     carpeta_zips = CARPETA_ZIPS
 
@@ -33,9 +33,9 @@ def comprimir_carpetas_por_dia():
               "   día se eliminarán en cuanto se compruebe que su .zip es válido.\n")
     print("-" * 50)
 
-    zips_creados = 0
-    errores = 0
-    carpetas_borradas = 0
+    zips_creados: int = 0
+    errores: int = 0
+    carpetas_borradas: int = 0
 
     # Recorremos la estructura Año -> Mes -> Día
     for carpeta_ano in carpeta_base.iterdir():

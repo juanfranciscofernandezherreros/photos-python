@@ -8,16 +8,16 @@ from config import ARCHIVO_LOG_ORQUESTADOR
 
 # Carpeta donde vive este propio script. Todas las rutas se anclan aquí,
 # así el orquestador funciona sin importar desde qué carpeta se ejecute.
-CARPETA_SCRIPTS = Path(__file__).resolve().parent
+CARPETA_SCRIPTS: Path = Path(__file__).resolve().parent
 
-PASOS = [
+PASOS: list[Path] = [
     CARPETA_SCRIPTS / "01_descargar_archivos.py",
     CARPETA_SCRIPTS / "02_organizar_por_fecha.py",
     CARPETA_SCRIPTS / "03_comprimir.py",
 ]
 
 
-def configurar_logging():
+def configurar_logging() -> logging.Logger:
     """Registra cada ejecución en un archivo además de en consola. Así, si
     el orquestador corre desatendido (por ejemplo desde el Programador de
     tareas de Windows) y algo falla, queda un rastro que revisar."""
@@ -38,10 +38,10 @@ def configurar_logging():
     return logger
 
 
-log = configurar_logging()
+log: logging.Logger = configurar_logging()
 
 
-def ejecutar_script(ruta_script):
+def ejecutar_script(ruta_script: Path) -> bool:
     """Ejecuta un script de Python y comprueba si hay errores."""
     log.info(f"⏳ ['INICIANDO'] -> {ruta_script.name}")
 
@@ -57,7 +57,7 @@ def ejecutar_script(ruta_script):
     return True
 
 
-def ejecutar_pasos(rutas_a_ejecutar):
+def ejecutar_pasos(rutas_a_ejecutar: list[Path]) -> bool:
     """Comprueba que existan los scripts y los ejecuta en cadena, parando
     en el primer fallo. Devuelve True si todos terminaron bien.
     Compartida entre el modo interactivo y el modo CLI/desatendido."""
@@ -83,7 +83,7 @@ def ejecutar_pasos(rutas_a_ejecutar):
     return True
 
 
-def parsear_argumentos():
+def parsear_argumentos() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Orquestador del pipeline de fotos. Sin argumentos abre el menú interactivo."
     )
@@ -99,7 +99,7 @@ def parsear_argumentos():
     return parser.parse_args()
 
 
-def menu_interactivo():
+def menu_interactivo() -> None:
     while True:
         print("\n" + "=" * 55)
         print("🚀 ORQUESTADOR DE PROCESOS - MENÚ PRINCIPAL")
@@ -119,7 +119,7 @@ def menu_interactivo():
             print("\n👋 Saliendo del orquestador...")
             break
 
-        rutas_a_ejecutar = []
+        rutas_a_ejecutar: list[Path] = []
 
         if opcion == 'T':
             rutas_a_ejecutar = PASOS
@@ -143,10 +143,12 @@ def menu_interactivo():
         ejecutar_pasos(rutas_a_ejecutar)
 
 
-def modo_cli(args):
+def modo_cli(args: argparse.Namespace) -> None:
     """Ejecución no interactiva: para lanzar desde una terminal con flags
     o programada en el Programador de tareas de Windows. Termina el proceso
     con código 0 (éxito) o 1 (fallo) para que el planificador lo detecte."""
+    rutas_a_ejecutar: list[Path]
+
     if args.todo:
         rutas_a_ejecutar = PASOS
     else:

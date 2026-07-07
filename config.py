@@ -12,11 +12,11 @@ from pathlib import Path
 # UNIDAD DE RED WEBDAV (el teléfono montado como Z:)
 # ==========================================
 # Letra de la unidad de red creada con: net use Z: http://<ip_telefono>:8080
-UNIDAD_WEBDAV = "Z:"
+UNIDAD_WEBDAV: str = "Z:"
 
 # Carpetas donde el teléfono suele guardar las capturas de pantalla.
 # Se comprueban en orden; puedes añadir más rutas si tu dispositivo usa otras.
-RUTAS_SCREENSHOTS_ORIGEN = [
+RUTAS_SCREENSHOTS_ORIGEN: list[Path] = [
     Path(rf"{UNIDAD_WEBDAV}\Pictures\Screenshots"),
     Path(rf"{UNIDAD_WEBDAV}\DCIM\Screenshots"),
 ]
@@ -24,28 +24,28 @@ RUTAS_SCREENSHOTS_ORIGEN = [
 # ==========================================
 # CARPETAS EN EL PC (Windows)
 # ==========================================
-CARPETA_BASE_PC = Path(r"C:\Develop")
+CARPETA_BASE_PC: Path = Path(r"C:\Develop")
 
 # 02_organizar_por_fecha.py copia aquí directamente desde Z:, organizando por AAAA/MM/DD
-CARPETA_SCREENSHOTS_AGRUPADOS = CARPETA_BASE_PC / "screenshots_agrupados"
+CARPETA_SCREENSHOTS_AGRUPADOS: Path = CARPETA_BASE_PC / "screenshots_agrupados"
 
 # 03_comprimir.py deja aquí los .zip generados
-CARPETA_ZIPS = CARPETA_SCREENSHOTS_AGRUPADOS / "Comprimidos"
+CARPETA_ZIPS: Path = CARPETA_SCREENSHOTS_AGRUPADOS / "Comprimidos"
 
 # ==========================================
 # ARCHIVOS
 # ==========================================
-ARCHIVO_METADATOS_JSON = "metadatos_screenshots.json"
+ARCHIVO_METADATOS_JSON: str = "metadatos_screenshots.json"
 
 # Log de orchestador.py: útil para revisar qué pasó tras una ejecución
 # desatendida (por ejemplo, lanzada por el Programador de tareas de Windows).
-ARCHIVO_LOG_ORQUESTADOR = "orquestador.log"
+ARCHIVO_LOG_ORQUESTADOR: str = "orquestador.log"
 
 # ==========================================
 # FORMATOS DE IMAGEN VÁLIDOS
 # ==========================================
 # Usado por 01_descargar_archivos.py para filtrar qué archivos son capturas de pantalla.
-EXTENSIONES_VALIDAS = ['.png', '.jpg', '.jpeg', '.webp']
+EXTENSIONES_VALIDAS: list[str] = ['.png', '.jpg', '.jpeg', '.webp']
 
 # ==========================================
 # RENDIMIENTO
@@ -53,7 +53,7 @@ EXTENSIONES_VALIDAS = ['.png', '.jpg', '.jpeg', '.webp']
 # Nº de copias simultáneas en 02_organizar_por_fecha.py. Como el cuello de
 # botella es la latencia de la red WebDAV (no la CPU), varios hilos en
 # paralelo aprovechan el tiempo de espera de unos para copiar con otros.
-NUM_HILOS_COPIA = 8
+NUM_HILOS_COPIA: int = 8
 
 # ==========================================
 # LIMPIEZA DE ESPACIO
@@ -63,4 +63,4 @@ NUM_HILOS_COPIA = 8
 # los originales sin comprimir Y el .zip ocupando espacio a la vez.
 # Por defecto está en False: activa esto solo cuando confíes en el proceso,
 # porque el borrado es irreversible.
-BORRAR_ORIGINALES_TRAS_COMPRIMIR = False
+BORRAR_ORIGINALES_TRAS_COMPRIMIR: bool = False

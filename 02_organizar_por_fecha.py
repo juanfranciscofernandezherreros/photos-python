@@ -3,16 +3,20 @@ import shutil
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from config import ARCHIVO_METADATOS_JSON, CARPETA_SCREENSHOTS_AGRUPADOS, NUM_HILOS_COPIA
 
+MetadatosCaptura = dict[str, Any]
+ResultadoCopia = tuple[str, str, str]  # (estado, nombre_archivo, mensaje)
 
-def procesar_captura(captura, destino_base):
+
+def procesar_captura(captura: MetadatosCaptura, destino_base: Path) -> ResultadoCopia:
     """Copia una única captura a su carpeta AAAA/MM/DD. Se ejecuta en un
     hilo del pool, así que no debe tocar contadores compartidos: devuelve
     el resultado y quien la llama decide qué hacer con él."""
     ruta_origen = Path(captura["ruta_original"])
-    nombre = captura["archivo"]
+    nombre: str = captura["archivo"]
 
     # 1. Comprobamos que la imagen siga existiendo en Z:
     if not ruta_origen.exists():
@@ -42,7 +46,7 @@ def procesar_captura(captura, destino_base):
         return ("error", nombre, f"❌ Error al copiar '{nombre}': {e}")
 
 
-def organizar_capturas_por_fecha():
+def organizar_capturas_por_fecha() -> None:
     """Copia las capturas listadas en el JSON directamente desde Z: a
     CARPETA_SCREENSHOTS_AGRUPADOS/AAAA/MM/DD, en un único paso y en paralelo.
 
@@ -62,7 +66,7 @@ def organizar_capturas_por_fecha():
 
     try:
         with open(ARCHIVO_METADATOS_JSON, 'r', encoding='utf-8') as f:
-            lista_capturas = json.load(f)
+            lista_capturas: list[MetadatosCaptura] = json.load(f)
     except json.JSONDecodeError:
         print(f"❌ Error: El archivo '{ARCHIVO_METADATOS_JSON}' está corrupto o no tiene un formato JSON válido.")
         return
@@ -70,7 +74,7 @@ def organizar_capturas_por_fecha():
         print(f"❌ Ocurrió un error inesperado leyendo el JSON: {e}")
         return
 
-    contadores = {"copiado": 0, "omitido": 0, "no_encontrado": 0, "error": 0}
+    contadores: dict[str, int] = {"copiado": 0, "omitido": 0, "no_encontrado": 0, "error": 0}
 
     # Lanzamos todas las copias al pool de hilos y vamos imprimiendo cada
     # resultado según va terminando (no en el orden original de la lista).
