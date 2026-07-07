@@ -50,3 +50,13 @@ EXTENSIONES_VALIDAS = ['.png', '.jpg', '.jpeg', '.webp']
 # botella es la latencia de la red WebDAV (no la CPU), varios hilos en
 # paralelo aprovechan el tiempo de espera de unos para copiar con otros.
 NUM_HILOS_COPIA = 8
+
+# ==========================================
+# LIMPIEZA DE ESPACIO
+# ==========================================
+# Si es True, 03_comprimir.py borra la carpeta de un día justo después de
+# comprobar que su .zip se generó bien y se puede leer. Así no acabas con
+# los originales sin comprimir Y el .zip ocupando espacio a la vez.
+# Por defecto está en False: activa esto solo cuando confíes en el proceso,
+# porque el borrado es irreversible.
+BORRAR_ORIGINALES_TRAS_COMPRIMIR = False
