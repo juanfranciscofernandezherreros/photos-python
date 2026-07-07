@@ -1,0 +1,14 @@
+# Datos personales generados por el pipeline (contienen rutas y nombres de tus capturas)
+metadatos_screenshots.json
+
+# Cachés de Python
+__pycache__/
+*.pyc
+
+# Entornos virtuales
+.venv/
+venv/
+
+# Archivos de IDE
+.vscode/
+.idea/
