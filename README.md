@@ -33,7 +33,11 @@ Al ejecutar esto, el móvil deja de ser un "dispositivo virtual" y pasa a ser la
 ## 🧰 Requisitos
 
 - Windows 11 (o cualquier Windows con soporte para `net use`)
-- Python 3.9 o superior (solo usa librería estándar, no hay dependencias que instalar)
+- Python 3.9 o superior
+- La librería `rich` (barras de progreso). Instálala con:
+  ```cmd
+  pip install -r requirements.txt
+  ```
 - Una app de servidor WebDAV en el teléfono (por ejemplo, "WebDAV Server" en Play Store) que exponga el almacenamiento del móvil en una IP y puerto de tu red local
 - Teléfono y PC conectados a la misma red Wi-Fi
 
@@ -98,6 +102,7 @@ Antes de esto necesitas que la unidad `Z:` ya esté montada (paso 2 de arriba) �
 ```
 photos-python/
 ├── config.py                    # Rutas y constantes centralizadas
+├── requirements.txt              # Dependencias (rich, para las barras de progreso)
 ├── 01_descargar_archivos.py     # Z: -> metadatos_screenshots.json
 ├── 02_organizar_por_fecha.py    # JSON -> screenshots_agrupados\AAAA\MM\DD (copia única)
 ├── 03_comprimir.py              # screenshots_agrupados -> .zip por día

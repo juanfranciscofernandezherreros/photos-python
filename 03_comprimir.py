@@ -2,6 +2,8 @@ import shutil
 import zipfile
 from pathlib import Path
 
+from rich.progress import track
+
 from config import CARPETA_SCREENSHOTS_AGRUPADOS, CARPETA_ZIPS, BORRAR_ORIGINALES_TRAS_COMPRIMIR
 
 
@@ -37,63 +39,62 @@ def comprimir_carpetas_por_dia() -> None:
     errores: int = 0
     carpetas_borradas: int = 0
 
-    # Recorremos la estructura Año -> Mes -> Día
-    for carpeta_ano in carpeta_base.iterdir():
-        # Ignoramos archivos sueltos y la propia carpeta de Comprimidos
-        if not carpeta_ano.is_dir() or carpeta_ano.name == "Comprimidos":
-            continue
+    # Recopilamos primero todas las carpetas de día (Año -> Mes -> Día) para
+    # conocer el total de antemano y poder mostrar una barra de progreso real.
+    carpetas_dia: list[Path] = [
+        carpeta_dia
+        for carpeta_ano in carpeta_base.iterdir()
+        if carpeta_ano.is_dir() and carpeta_ano.name != "Comprimidos"
+        for carpeta_mes in carpeta_ano.iterdir()
+        if carpeta_mes.is_dir()
+        for carpeta_dia in carpeta_mes.iterdir()
+        if carpeta_dia.is_dir()
+    ]
 
-        for carpeta_mes in carpeta_ano.iterdir():
-            if not carpeta_mes.is_dir():
+    for carpeta_dia in track(carpetas_dia, description="Comprimiendo por día..."):
+        # Extraemos los nombres de las carpetas para formar el nombre del ZIP
+        ano = carpeta_dia.parent.parent.name
+        mes = carpeta_dia.parent.name
+        dia = carpeta_dia.name
+
+        nombre_archivo = f"Capturas_{ano}-{mes}-{dia}"
+        ruta_zip = carpeta_zips / f"{nombre_archivo}.zip"
+        zip_recien_creado = False
+
+        # Comprobamos si el ZIP de ese día ya existe para no repetir trabajo
+        if ruta_zip.exists():
+            print(f"⏭️ Omitido: '{nombre_archivo}.zip' ya existe.")
+        else:
+            try:
+                # shutil.make_archive crea el ZIP automáticamente
+                # Parámetros: ruta destino sin extensión, formato, ruta de la carpeta a comprimir
+                shutil.make_archive(
+                    base_name=str(carpeta_zips / nombre_archivo),
+                    format='zip',
+                    root_dir=str(carpeta_dia)
+                )
+
+                print(f"📦 Comprimido: {ano}\\{mes}\\{dia} -> {nombre_archivo}.zip")
+                zips_creados += 1
+                zip_recien_creado = True
+
+            except Exception as e:
+                print(f"❌ Error al comprimir el día {ano}-{mes}-{dia}: {e}")
+                errores += 1
                 continue
 
-            for carpeta_dia in carpeta_mes.iterdir():
-                if not carpeta_dia.is_dir():
-                    continue
-
-                # Extraemos los nombres de las carpetas para formar el nombre del ZIP
-                ano = carpeta_ano.name
-                mes = carpeta_mes.name
-                dia = carpeta_dia.name
-
-                nombre_archivo = f"Capturas_{ano}-{mes}-{dia}"
-                ruta_zip = carpeta_zips / f"{nombre_archivo}.zip"
-                zip_recien_creado = False
-
-                # Comprobamos si el ZIP de ese día ya existe para no repetir trabajo
-                if ruta_zip.exists():
-                    print(f"⏭️ Omitido: '{nombre_archivo}.zip' ya existe.")
-                else:
-                    try:
-                        # shutil.make_archive crea el ZIP automáticamente
-                        # Parámetros: ruta destino sin extensión, formato, ruta de la carpeta a comprimir
-                        shutil.make_archive(
-                            base_name=str(carpeta_zips / nombre_archivo),
-                            format='zip',
-                            root_dir=str(carpeta_dia)
-                        )
-
-                        print(f"📦 Comprimido: {ano}\\{mes}\\{dia} -> {nombre_archivo}.zip")
-                        zips_creados += 1
-                        zip_recien_creado = True
-
-                    except Exception as e:
-                        print(f"❌ Error al comprimir el día {ano}-{mes}-{dia}: {e}")
-                        errores += 1
-                        continue
-
-                # Borrado opcional: solo si está activado en config.py, y solo
-                # tras verificar que el .zip (nuevo o ya existente) es legible.
-                if BORRAR_ORIGINALES_TRAS_COMPRIMIR:
-                    if zip_es_valido(ruta_zip):
-                        shutil.rmtree(carpeta_dia)
-                        carpetas_borradas += 1
-                        if not zip_recien_creado:
-                            print(f"🗑️ Verificado y borrado el original de: {ano}\\{mes}\\{dia}")
-                    else:
-                        print(f"⚠️ '{nombre_archivo}.zip' no pasó la verificación de integridad; "
-                              f"NO se borra la carpeta original {carpeta_dia}")
-                        errores += 1
+        # Borrado opcional: solo si está activado en config.py, y solo
+        # tras verificar que el .zip (nuevo o ya existente) es legible.
+        if BORRAR_ORIGINALES_TRAS_COMPRIMIR:
+            if zip_es_valido(ruta_zip):
+                shutil.rmtree(carpeta_dia)
+                carpetas_borradas += 1
+                if not zip_recien_creado:
+                    print(f"🗑️ Verificado y borrado el original de: {ano}\\{mes}\\{dia}")
+            else:
+                print(f"⚠️ '{nombre_archivo}.zip' no pasó la verificación de integridad; "
+                      f"NO se borra la carpeta original {carpeta_dia}")
+                errores += 1
 
     print("-" * 50)
     print("RESUMEN DE COMPRESIÓN:")

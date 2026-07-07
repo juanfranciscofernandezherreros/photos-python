@@ -3,6 +3,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from rich.progress import track
+
 from config import RUTAS_SCREENSHOTS_ORIGEN, ARCHIVO_METADATOS_JSON, EXTENSIONES_VALIDAS, UNIDAD_WEBDAV
 
 MetadatosCaptura = dict[str, Any]
@@ -40,6 +42,19 @@ def exportar_metadatos_json() -> None:
         print(f"   Ejecuta 'net use {UNIDAD_WEBDAV} http://<ip_telefono>:8080' y vuelve a intentarlo.")
         return
 
+    # Fase 1: listamos los archivos candidatos en cada carpeta. Enumerar el
+    # árbol de directorios suele ser rápido incluso por red; lo lento viene
+    # después, al pedir el stat() (tamaño y fecha) de cada uno por WebDAV.
+    archivos_encontrados: list[Path] = []
+    for ruta in RUTAS_SCREENSHOTS_ORIGEN:
+        if ruta.exists() and ruta.is_dir():
+            print(f"✅ Extrayendo datos de: {ruta}")
+            archivos_encontrados.extend(
+                a for a in ruta.rglob('*') if a.is_file() and a.suffix.lower() in EXTENSIONES_VALIDAS
+            )
+        else:
+            print(f"⚠️ Subcarpeta no encontrada en la unidad: {ruta}")
+
     # Metadatos de la ejecución anterior, para hacer un merge incremental
     # en vez de sobrescribir el JSON entero cada vez.
     metadatos_previos: dict[str, MetadatosCaptura] = cargar_metadatos_existentes()
@@ -47,45 +62,40 @@ def exportar_metadatos_json() -> None:
     nuevos = 0
     sin_cambios = 0
 
-    for ruta in RUTAS_SCREENSHOTS_ORIGEN:
-        if ruta.exists() and ruta.is_dir():
-            print(f"✅ Extrayendo datos de: {ruta}")
+    # Fase 2: por cada archivo, comparamos con lo que ya sabíamos y
+    # recalculamos si hace falta. La barra de progreso ayuda porque esta
+    # parte puede tardar en colecciones grandes sobre una unidad de red.
+    for archivo in track(archivos_encontrados, description="Analizando capturas..."):
+        ruta_str = str(archivo)
 
-            # Recorremos todas las subcarpetas con rglob
-            for archivo in ruta.rglob('*'):
-                if archivo.is_file() and archivo.suffix.lower() in EXTENSIONES_VALIDAS:
-                    ruta_str = str(archivo)
+        # Si ya la teníamos registrada, con el mismo tamaño Y la
+        # misma fecha de modificación, reutilizamos la entrada tal
+        # cual (evita recalcular sin motivo). Comparar solo el
+        # tamaño no basta: dos capturas distintas pueden pesar
+        # exactamente lo mismo.
+        stats = archivo.stat()
+        peso_mb = round(stats.st_size / (1024 * 1024), 2)
+        anterior = metadatos_previos.get(ruta_str)
 
-                    # Si ya la teníamos registrada, con el mismo tamaño Y la
-                    # misma fecha de modificación, reutilizamos la entrada tal
-                    # cual (evita recalcular sin motivo). Comparar solo el
-                    # tamaño no basta: dos capturas distintas pueden pesar
-                    # exactamente lo mismo.
-                    stats = archivo.stat()
-                    peso_mb = round(stats.st_size / (1024 * 1024), 2)
-                    anterior = metadatos_previos.get(ruta_str)
+        if (anterior
+                and anterior.get("tamano_mb") == peso_mb
+                and anterior.get("mtime") == stats.st_mtime):
+            metadatos_actuales[ruta_str] = anterior
+            sin_cambios += 1
+            continue
 
-                    if (anterior
-                            and anterior.get("tamano_mb") == peso_mb
-                            and anterior.get("mtime") == stats.st_mtime):
-                        metadatos_actuales[ruta_str] = anterior
-                        sin_cambios += 1
-                        continue
+        # Es nueva o ha cambiado: recalculamos sus metadatos
+        fecha_legible = datetime.fromtimestamp(stats.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
 
-                    # Es nueva o ha cambiado: recalculamos sus metadatos
-                    fecha_legible = datetime.fromtimestamp(stats.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
-
-                    metadatos_actuales[ruta_str] = {
-                        "archivo": archivo.name,
-                        "formato": archivo.suffix.lower().replace('.', ''),
-                        "tamano_mb": peso_mb,
-                        "mtime": stats.st_mtime,
-                        "fecha_captura": fecha_legible,
-                        "ruta_original": ruta_str
-                    }
-                    nuevos += 1
-        else:
-            print(f"⚠️ Subcarpeta no encontrada en la unidad: {ruta}")
+        metadatos_actuales[ruta_str] = {
+            "archivo": archivo.name,
+            "formato": archivo.suffix.lower().replace('.', ''),
+            "tamano_mb": peso_mb,
+            "mtime": stats.st_mtime,
+            "fecha_captura": fecha_legible,
+            "ruta_original": ruta_str
+        }
+        nuevos += 1
 
     # Cualquier ruta que estaba en el JSON anterior pero ya no aparece en el
     # teléfono se considera borrada y no se arrastra al nuevo JSON.

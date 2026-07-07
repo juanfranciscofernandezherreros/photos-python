@@ -5,6 +5,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn, TimeRemainingColumn
+
 from config import ARCHIVO_METADATOS_JSON, CARPETA_SCREENSHOTS_AGRUPADOS, NUM_HILOS_COPIA
 
 MetadatosCaptura = dict[str, Any]
@@ -76,15 +78,29 @@ def organizar_capturas_por_fecha() -> None:
 
     contadores: dict[str, int] = {"copiado": 0, "omitido": 0, "no_encontrado": 0, "error": 0}
 
-    # Lanzamos todas las copias al pool de hilos y vamos imprimiendo cada
-    # resultado según va terminando (no en el orden original de la lista).
-    with ThreadPoolExecutor(max_workers=NUM_HILOS_COPIA) as pool:
-        futuros = [pool.submit(procesar_captura, captura, destino_base) for captura in lista_capturas]
+    # Lanzamos todas las copias al pool de hilos y actualizamos una barra de
+    # progreso según van terminando (no en el orden original de la lista).
+    # progress.console.print() se usa en vez de print() normal para que los
+    # mensajes se intercalen correctamente por encima de la barra, sin
+    # corromper su renderizado (varios hilos escribiendo a la vez).
+    with Progress(
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("{task.completed}/{task.total}"),
+        TimeElapsedColumn(),
+        TextColumn("restante:"),
+        TimeRemainingColumn(),
+    ) as progress:
+        tarea = progress.add_task("Organizando capturas", total=len(lista_capturas))
 
-        for futuro in as_completed(futuros):
-            estado, _nombre, mensaje = futuro.result()
-            print(mensaje)
-            contadores[estado] += 1
+        with ThreadPoolExecutor(max_workers=NUM_HILOS_COPIA) as pool:
+            futuros = [pool.submit(procesar_captura, captura, destino_base) for captura in lista_capturas]
+
+            for futuro in as_completed(futuros):
+                estado, _nombre, mensaje = futuro.result()
+                progress.console.print(mensaje)
+                contadores[estado] += 1
+                progress.advance(tarea)
 
     print("-" * 50)
     print("RESUMEN DE LA ORGANIZACIÓN:")
