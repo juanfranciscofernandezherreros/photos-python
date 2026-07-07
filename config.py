@@ -37,6 +37,10 @@ CARPETA_ZIPS = CARPETA_SCREENSHOTS_AGRUPADOS / "Comprimidos"
 # ==========================================
 ARCHIVO_METADATOS_JSON = "metadatos_screenshots.json"
 
+# Log de orchestador.py: útil para revisar qué pasó tras una ejecución
+# desatendida (por ejemplo, lanzada por el Programador de tareas de Windows).
+ARCHIVO_LOG_ORQUESTADOR = "orquestador.log"
+
 # ==========================================
 # FORMATOS DE IMAGEN VÁLIDOS
 # ==========================================
