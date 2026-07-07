@@ -42,3 +42,11 @@ ARCHIVO_METADATOS_JSON = "metadatos_screenshots.json"
 # ==========================================
 # Usado por 01_descargar_archivos.py para filtrar qué archivos son capturas de pantalla.
 EXTENSIONES_VALIDAS = ['.png', '.jpg', '.jpeg', '.webp']
+
+# ==========================================
+# RENDIMIENTO
+# ==========================================
+# Nº de copias simultáneas en 02_organizar_por_fecha.py. Como el cuello de
+# botella es la latencia de la red WebDAV (no la CPU), varios hilos en
+# paralelo aprovechan el tiempo de espera de unos para copiar con otros.
+NUM_HILOS_COPIA = 8
