@@ -2,27 +2,32 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Carpeta donde vive este propio script. Todas las rutas se anclan aquí,
+# así el orquestador funciona sin importar desde qué carpeta se ejecute.
+CARPETA_SCRIPTS = Path(__file__).resolve().parent
+
 def ejecutar_script(ruta_script):
     """Ejecuta un script de Python y comprueba si hay errores."""
-    print(f"\n⏳ ['INICIANDO'] -> {ruta_script}")
+    print(f"\n⏳ ['INICIANDO'] -> {ruta_script.name}")
     
-    # Ejecutamos el script
-    resultado = subprocess.run([sys.executable, ruta_script])
+    # Ejecutamos el script (cwd fijado a la carpeta de scripts por si alguno
+    # usa rutas relativas, como el JSON de metadatos)
+    resultado = subprocess.run([sys.executable, str(ruta_script)], cwd=CARPETA_SCRIPTS)
     
     if resultado.returncode != 0:
-        print(f"\n❌ ['ERROR'] -> Fallo al ejecutar {ruta_script}.")
+        print(f"\n❌ ['ERROR'] -> Fallo al ejecutar {ruta_script.name}.")
         return False
         
-    print(f"✅ ['COMPLETADO'] -> {ruta_script}")
+    print(f"✅ ['COMPLETADO'] -> {ruta_script.name}")
     return True
 
 def orquestador_principal():
-    # Lista de scripts disponibles (Añadida la coma faltante)
+    # Lista de scripts disponibles, como rutas absolutas ancladas a esta carpeta
     pasos = [
-        "01_descargar_archivos.py",
-        "02_organizar_fotos.py",      
-        "03_agrupar.py",
-        "04_comprimir.py"
+        CARPETA_SCRIPTS / "01_descargar_archivos.py",
+        CARPETA_SCRIPTS / "02_organizar_fotos.py",
+        CARPETA_SCRIPTS / "03_agrupar.py",
+        CARPETA_SCRIPTS / "04_comprimir.py",
     ]
     
     while True:
@@ -32,7 +37,7 @@ def orquestador_principal():
         
         # Mostramos las opciones numeradas automáticamente
         for i, paso in enumerate(pasos, 1):
-            print(f"  [{i}] - {paso}")
+            print(f"  [{i}] - {paso.name}")
             
         print("-" * 55)
         print("  [T] - Ejecutar TODO en orden")
@@ -78,7 +83,7 @@ def orquestador_principal():
         # 1. Comprobación de seguridad: Verificar que los archivos existen antes de empezar
         archivos_faltantes = False
         for paso in rutas_a_ejecutar:
-            if not Path(paso).exists():
+            if not paso.exists():
                 print(f"⚠️ ['ADVERTENCIA'] -> No se encuentra el archivo: {paso}")
                 archivos_faltantes = True
         
