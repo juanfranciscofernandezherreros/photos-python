@@ -25,9 +25,8 @@ def orquestador_principal():
     # Lista de scripts disponibles, como rutas absolutas ancladas a esta carpeta
     pasos = [
         CARPETA_SCRIPTS / "01_descargar_archivos.py",
-        CARPETA_SCRIPTS / "02_organizar_fotos.py",
-        CARPETA_SCRIPTS / "03_agrupar.py",
-        CARPETA_SCRIPTS / "04_comprimir.py",
+        CARPETA_SCRIPTS / "02_organizar_por_fecha.py",
+        CARPETA_SCRIPTS / "03_comprimir.py",
     ]
     
     while True:

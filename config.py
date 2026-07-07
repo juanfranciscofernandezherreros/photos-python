@@ -26,13 +26,10 @@ RUTAS_SCREENSHOTS_ORIGEN = [
 # ==========================================
 CARPETA_BASE_PC = Path(r"C:\Develop")
 
-# 02_organizar_fotos.py copia aquí los archivos tal cual, sin subcarpetas
-CARPETA_SCREENSHOTS = CARPETA_BASE_PC / "screenshots"
-
-# 03_agrupar.py copia aquí organizando por AAAA/MM/DD
+# 02_organizar_por_fecha.py copia aquí directamente desde Z:, organizando por AAAA/MM/DD
 CARPETA_SCREENSHOTS_AGRUPADOS = CARPETA_BASE_PC / "screenshots_agrupados"
 
-# 04_comprimir.py deja aquí los .zip generados
+# 03_comprimir.py deja aquí los .zip generados
 CARPETA_ZIPS = CARPETA_SCREENSHOTS_AGRUPADOS / "Comprimidos"
 
 # ==========================================
@@ -43,5 +40,5 @@ ARCHIVO_METADATOS_JSON = "metadatos_screenshots.json"
 # ==========================================
 # FORMATOS DE IMAGEN VÁLIDOS
 # ==========================================
-# Usado por 01, 02 y 03 para filtrar qué archivos son capturas de pantalla.
+# Usado por 01_descargar_archivos.py para filtrar qué archivos son capturas de pantalla.
 EXTENSIONES_VALIDAS = ['.png', '.jpg', '.jpeg', '.webp']

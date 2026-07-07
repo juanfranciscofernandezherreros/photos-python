@@ -63,11 +63,10 @@ Si tu teléfono guarda las capturas en una ruta distinta a `Pictures\Screenshots
    python orchestador.py
    ```
 
-4. En el menú, elige **T** para ejecutar todo el pipeline en orden, o el número de un paso concreto (por ejemplo `1` para solo descargar metadatos). Los cuatro pasos son:
+4. En el menú, elige **T** para ejecutar todo el pipeline en orden, o el número de un paso concreto (por ejemplo `1` para solo descargar metadatos). Los tres pasos son:
    - **1 — Descargar**: escanea `Z:` y genera `metadatos_screenshots.json`
-   - **2 — Organizar**: copia las capturas listadas en el JSON a `C:\Develop\screenshots`
-   - **3 — Agrupar**: reorganiza esas copias en subcarpetas `AAAA\MM\DD`
-   - **4 — Comprimir**: genera un `.zip` por cada carpeta de día
+   - **2 — Organizar por fecha**: copia las capturas listadas en el JSON directamente desde `Z:` a `C:\Develop\screenshots_agrupados\AAAA\MM\DD`
+   - **3 — Comprimir**: genera un `.zip` por cada carpeta de día
 
 5. Cuando termines, puedes desmontar la unidad de red (opcional):
    ```cmd
@@ -80,9 +79,8 @@ Si tu teléfono guarda las capturas en una ruta distinta a `Pictures\Screenshots
 photos-python/
 ├── config.py                    # Rutas y constantes centralizadas
 ├── 01_descargar_archivos.py     # Z: -> metadatos_screenshots.json
-├── 02_organizar_fotos.py        # JSON -> C:\Develop\screenshots
-├── 03_agrupar.py                # screenshots -> screenshots_agrupados\AAAA\MM\DD
-├── 04_comprimir.py              # screenshots_agrupados -> .zip por día
+├── 02_organizar_por_fecha.py    # JSON -> screenshots_agrupados\AAAA\MM\DD (copia única)
+├── 03_comprimir.py              # screenshots_agrupados -> .zip por día
 ├── orchestador.py                # Menú interactivo para ejecutar los pasos anteriores
 └── metadatos_screenshots.json   # Generado automáticamente, no se sube al repo
 ```
