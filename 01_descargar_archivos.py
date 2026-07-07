@@ -1,11 +1,24 @@
 import json
 from datetime import datetime
+from pathlib import Path
 
-from config import RUTAS_SCREENSHOTS_ORIGEN, ARCHIVO_METADATOS_JSON, EXTENSIONES_VALIDAS
+from config import RUTAS_SCREENSHOTS_ORIGEN, ARCHIVO_METADATOS_JSON, EXTENSIONES_VALIDAS, UNIDAD_WEBDAV
+
+
+def unidad_webdav_montada():
+    """Comprueba si la unidad de red (Z:) está montada y accesible."""
+    return Path(f"{UNIDAD_WEBDAV}\\").exists()
 
 
 def exportar_metadatos_json():
     print("Buscando capturas en la unidad Z: y extrayendo metadatos...\n")
+
+    # Comprobación temprana: si la unidad de red ni siquiera está montada,
+    # avisamos claramente en vez de dejar que parezca "no hay capturas".
+    if not unidad_webdav_montada():
+        print(f"❌ La unidad {UNIDAD_WEBDAV} no está montada o no es accesible.")
+        print(f"   Ejecuta 'net use {UNIDAD_WEBDAV} http://<ip_telefono>:8080' y vuelve a intentarlo.")
+        return
 
     lista_metadatos = []
     contador_total = 0
@@ -41,7 +54,7 @@ def exportar_metadatos_json():
                     lista_metadatos.append(datos_imagen)
                     contador_total += 1
         else:
-            print(f"⚠️ No disponible (¿está montada la unidad de red?): {ruta}")
+            print(f"⚠️ Subcarpeta no encontrada en la unidad: {ruta}")
 
     # Si encontramos al menos una captura, creamos el archivo JSON
     if contador_total > 0:
