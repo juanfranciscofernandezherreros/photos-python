@@ -4,6 +4,7 @@ import sys
 from typing import Callable
 
 from .config import ARCHIVO_LOG_ORQUESTADOR
+from .mantener_despierto import evitar_suspension
 from . import descargar, organizar, comprimir
 
 # Cada paso es (nombre a mostrar, función a llamar). Ya no se lanzan
@@ -64,20 +65,24 @@ def ejecutar_paso(nombre: str, funcion: Callable[[], None]) -> bool:
 def ejecutar_pasos(pasos_a_ejecutar: list[PasoPipeline]) -> bool:
     """Ejecuta los pasos en cadena, parando en el primer fallo. Devuelve
     True si todos terminaron bien. Compartida entre el modo interactivo y
-    el modo CLI/desatendido."""
-    log.info("=" * 55)
-    log.info("⚙️ INICIANDO EJECUCIÓN")
-    log.info("=" * 55)
+    el modo CLI/desatendido.
 
-    for nombre, funcion in pasos_a_ejecutar:
-        if not ejecutar_paso(nombre, funcion):
-            log.error("🛑 Se detuvo la orquestación en cadena debido a un error previo.")
-            return False
+    Todo el bloque corre dentro de evitar_suspension() para que Windows no
+    se suspenda a mitad de una sincronización larga."""
+    with evitar_suspension():
+        log.info("=" * 55)
+        log.info("⚙️ INICIANDO EJECUCIÓN")
+        log.info("=" * 55)
 
-    log.info("=" * 55)
-    log.info("🎉 TODOS LOS PASOS SELECCIONADOS SE HAN EJECUTADO CORRECTAMENTE")
-    log.info("=" * 55)
-    return True
+        for nombre, funcion in pasos_a_ejecutar:
+            if not ejecutar_paso(nombre, funcion):
+                log.error("🛑 Se detuvo la orquestación en cadena debido a un error previo.")
+                return False
+
+        log.info("=" * 55)
+        log.info("🎉 TODOS LOS PASOS SELECCIONADOS SE HAN EJECUTADO CORRECTAMENTE")
+        log.info("=" * 55)
+        return True
 
 
 def parsear_argumentos() -> argparse.Namespace:

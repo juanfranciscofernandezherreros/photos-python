@@ -48,15 +48,31 @@ def exportar_metadatos_json() -> None:
     # después, al pedir el stat() (tamaño y fecha) de cada uno por WebDAV.
     # cargar_carpetas_guardadas() usa la selección hecha con
     # `photos-sync-carpetas` si existe, o si no, las de config.py.
+    #
+    # IMPORTANTE: cada comprobación de archivo va en su propio try/except.
+    # Sobre una unidad de red WebDAV, un solo archivo con un glitch de
+    # conexión no debe tirar todo el listado — sin esto, un único archivo
+    # problemático en miles hacía fallar el escaneo completo sin avisar.
     archivos_encontrados: list[Path] = []
+    errores_listado = 0
+
     for ruta in cargar_carpetas_guardadas():
-        if ruta.exists() and ruta.is_dir():
-            print(f"✅ Extrayendo datos de: {ruta}")
-            archivos_encontrados.extend(
-                a for a in ruta.rglob('*') if a.is_file() and a.suffix.lower() in EXTENSIONES_VALIDAS
-            )
-        else:
+        if not (ruta.exists() and ruta.is_dir()):
             print(f"⚠️ Subcarpeta no encontrada en la unidad: {ruta}")
+            continue
+
+        print(f"✅ Extrayendo datos de: {ruta}")
+        try:
+            for candidato in ruta.rglob('*'):
+                try:
+                    if candidato.is_file() and candidato.suffix.lower() in EXTENSIONES_VALIDAS:
+                        archivos_encontrados.append(candidato)
+                except OSError as e:
+                    print(f"   ⚠️ No se pudo comprobar '{candidato.name}': {e}")
+                    errores_listado += 1
+        except OSError as e:
+            print(f"   ❌ Error listando '{ruta}': {e}")
+            errores_listado += 1
 
     # Metadatos de la ejecución anterior, para hacer un merge incremental
     # en vez de sobrescribir el JSON entero cada vez.
@@ -64,41 +80,53 @@ def exportar_metadatos_json() -> None:
     metadatos_actuales: dict[str, MetadatosCaptura] = {}
     nuevos = 0
     sin_cambios = 0
+    errores_analisis = 0
 
     # Fase 2: por cada archivo, comparamos con lo que ya sabíamos y
     # recalculamos si hace falta. La barra de progreso ayuda porque esta
     # parte puede tardar en colecciones grandes sobre una unidad de red.
+    #
+    # Igual que en la fase 1: si stat() falla para un archivo (borrado a
+    # mitad de proceso, glitch de red), lo saltamos y seguimos con el
+    # resto — antes, un solo fallo aquí tiraba todo el análisis sin
+    # guardar nada de lo ya procesado.
     for archivo in track(archivos_encontrados, description="Analizando capturas..."):
         ruta_str = str(archivo)
 
-        # Si ya la teníamos registrada, con el mismo tamaño Y la
-        # misma fecha de modificación, reutilizamos la entrada tal
-        # cual (evita recalcular sin motivo). Comparar solo el
-        # tamaño no basta: dos capturas distintas pueden pesar
-        # exactamente lo mismo.
-        stats = archivo.stat()
-        peso_mb = round(stats.st_size / (1024 * 1024), 2)
-        anterior = metadatos_previos.get(ruta_str)
+        try:
+            # Si ya la teníamos registrada, con el mismo tamaño Y la
+            # misma fecha de modificación, reutilizamos la entrada tal
+            # cual (evita recalcular sin motivo). Comparar solo el
+            # tamaño no basta: dos capturas distintas pueden pesar
+            # exactamente lo mismo.
+            stats = archivo.stat()
+            peso_mb = round(stats.st_size / (1024 * 1024), 2)
+            anterior = metadatos_previos.get(ruta_str)
 
-        if (anterior
-                and anterior.get("tamano_mb") == peso_mb
-                and anterior.get("mtime") == stats.st_mtime):
-            metadatos_actuales[ruta_str] = anterior
-            sin_cambios += 1
+            if (anterior
+                    and anterior.get("tamano_mb") == peso_mb
+                    and anterior.get("mtime") == stats.st_mtime):
+                metadatos_actuales[ruta_str] = anterior
+                sin_cambios += 1
+                continue
+
+            # Es nueva o ha cambiado: recalculamos sus metadatos
+            fecha_legible = datetime.fromtimestamp(stats.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+
+            metadatos_actuales[ruta_str] = {
+                "archivo": archivo.name,
+                "formato": archivo.suffix.lower().replace('.', ''),
+                "tamano_mb": peso_mb,
+                "mtime": stats.st_mtime,
+                "fecha_captura": fecha_legible,
+                "ruta_original": ruta_str
+            }
+            nuevos += 1
+
+        except OSError as e:
+            print(f"   ⚠️ No se pudo leer '{archivo.name}', se omite: {e}")
+            errores_analisis += 1
             continue
-
-        # Es nueva o ha cambiado: recalculamos sus metadatos
-        fecha_legible = datetime.fromtimestamp(stats.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
-
-        metadatos_actuales[ruta_str] = {
-            "archivo": archivo.name,
-            "formato": archivo.suffix.lower().replace('.', ''),
-            "tamano_mb": peso_mb,
-            "mtime": stats.st_mtime,
-            "fecha_captura": fecha_legible,
-            "ruta_original": ruta_str
-        }
-        nuevos += 1
 
     # Cualquier ruta que estaba en el JSON anterior pero ya no aparece en el
     # teléfono se considera borrada y no se arrastra al nuevo JSON.
@@ -123,9 +151,14 @@ def exportar_metadatos_json() -> None:
         print(f"   - Sin cambios: {sin_cambios}")
         if eliminados > 0:
             print(f"   - Eliminadas del teléfono (quitadas del JSON): {eliminados}")
+        total_errores = errores_listado + errores_analisis
+        if total_errores > 0:
+            print(f"   - ⚠️ Archivos omitidos por error de lectura: {total_errores} (revisa los avisos de arriba)")
         print(f"📁 Puedes abrir el archivo: {ARCHIVO_METADATOS_JSON}")
     else:
         print("❌ No se encontraron capturas para exportar.")
+        if errores_listado + errores_analisis > 0:
+            print(f"   ({errores_listado + errores_analisis} archivos fallaron al leerse — revisa los avisos de arriba)")
 
 
 if __name__ == "__main__":
