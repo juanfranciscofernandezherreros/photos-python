@@ -58,7 +58,23 @@ UNIDAD_WEBDAV = "Z:"                  # Letra de unidad que usarás en net use
 CARPETA_BASE_PC = Path(r"C:\Develop") # Dónde quieres que se guarden tus fotos organizadas
 ```
 
-Si tu teléfono guarda las capturas en una ruta distinta a `Pictures\Screenshots` o `DCIM\Screenshots`, añádela a `RUTAS_SCREENSHOTS_ORIGEN` en ese mismo archivo.
+Si tu teléfono guarda las capturas en una ruta distinta a `Pictures\Screenshots` o `DCIM\Screenshots`, añádela a `RUTAS_SCREENSHOTS_ORIGEN` en ese mismo archivo — o, más cómodo, usa el selector gráfico de abajo.
+
+## 🖱️ Elegir carpetas con el selector gráfico
+
+En vez de editar `config.py` a mano, puedes elegir visualmente qué carpetas del teléfono escanear:
+
+```cmd
+photos-sync-carpetas
+```
+
+Se abre una ventana donde puedes añadir carpetas (navegando por la unidad `Z:` con el explorador de Windows) o quitar las que no quieras. Al guardar, la selección queda en `carpetas_screenshots.json` (en la carpeta desde la que lo ejecutes) y **sustituye** a las rutas por defecto de `config.py` — no hace falta tocar el código.
+
+También puedes abrirlo desde el menú interactivo de `photos-sync`, opción **C**.
+
+Si no guardas ninguna selección, el pipeline usa las rutas por defecto de `config.py` como hasta ahora — este paso es opcional.
+
+> **Nota:** el modo desatendido (`--todo`, `--pasos`, o desde el Programador de tareas) nunca necesita esta ventana ni tkinter — solo lee el JSON si ya existe.
 
 ## ▶️ Uso paso a paso
 
@@ -75,7 +91,7 @@ Si tu teléfono guarda las capturas en una ruta distinta a `Pictures\Screenshots
    photos-sync
    ```
 
-4. En el menú, elige **T** para ejecutar todo el pipeline en orden, o el número de un paso concreto (por ejemplo `1` para solo descargar metadatos). Los tres pasos son:
+4. En el menú, elige **T** para ejecutar todo el pipeline en orden, **C** para elegir carpetas con el selector gráfico, o el número de un paso concreto (por ejemplo `1` para solo descargar metadatos). Los tres pasos son:
    - **1 — Descargar**: escanea `Z:` y genera `metadatos_screenshots.json`
    - **2 — Organizar por fecha**: copia las capturas listadas en el JSON directamente desde `Z:` a `C:\Develop\screenshots_agrupados\AAAA\MM\DD`
    - **3 — Comprimir**: genera un `.zip` por cada carpeta de día
@@ -115,6 +131,8 @@ photos-python/
 └── photos_sync/                 # El paquete instalable
     ├── __init__.py
     ├── config.py                # Rutas y constantes centralizadas
+    ├── carpetas.py              # Lógica de selección de carpetas (sin tkinter)
+    ├── selector_carpetas.py     # Ventana gráfica: `photos-sync-carpetas`
     ├── descargar.py             # Z: -> metadatos_screenshots.json
     ├── organizar.py             # JSON -> screenshots_agrupados\AAAA\MM\DD (copia única)
     ├── comprimir.py             # screenshots_agrupados -> .zip por día
@@ -127,23 +145,3 @@ python -m photos_sync.descargar
 ```
 
 Los archivos generados en tiempo de ejecución (`metadatos_screenshots.json`, `orquestador.log`) se crean en la carpeta desde la que ejecutes `photos-sync`, no dentro del paquete — no se suben al repositorio.
-
-& "C:\Program Files\PyManager\python.exe" -m pip install -e .
-
-[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Users\juanf\AppData\Local\Python\pythoncore-3.14-64\Scripts", "User")
-
-photos-sync --help
-
----
-
-C:\Users\juanf>photos-sync --help
-usage: photos-sync [-h] [--todo | --pasos 1,2,3]
-
-Pipeline de fotos: descarga, organiza y comprime capturas desde Z:. Sin argumentos abre el menú interactivo.
-
-options:
-  -h, --help     show this help message and exit
-  --todo         Ejecuta los 3 pasos en orden (equivalente a la opción T del menú).
-  --pasos 1,2,3  Ejecuta solo los pasos indicados, separados por comas (ej: --pasos 1,3).
-
-C:\Users\juanf>

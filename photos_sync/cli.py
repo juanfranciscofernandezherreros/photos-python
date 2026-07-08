@@ -98,6 +98,20 @@ def parsear_argumentos() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def abrir_selector_carpetas() -> None:
+    """Lanza la ventana gráfica de selección de carpetas. El import de
+    tkinter es diferido (va aquí dentro, no arriba del archivo) para que
+    `photos-sync --todo` en modo desatendido nunca necesite tkinter."""
+    try:
+        from .selector_carpetas import main as selector_main
+    except ImportError:
+        print("\n❌ No se pudo cargar tkinter. En Windows normalmente viene con Python; "
+              "si falta, reinstala Python marcando 'tcl/tk and IDLE'.")
+        return
+
+    selector_main()
+
+
 def menu_interactivo() -> None:
     while True:
         print("\n" + "=" * 55)
@@ -108,15 +122,20 @@ def menu_interactivo() -> None:
             print(f"  [{i}] - {nombre}")
 
         print("-" * 55)
+        print("  [C] - Configurar carpetas a escanear")
         print("  [T] - Ejecutar TODO en orden")
         print("  [S] - Salir")
         print("=" * 55)
 
-        opcion = input("\nElige una opción (ej: 1, 1,3, T o S): ").strip().upper()
+        opcion = input("\nElige una opción (ej: 1, 1,3, C, T o S): ").strip().upper()
 
         if opcion == 'S':
             print("\n👋 Saliendo...")
             break
+
+        if opcion == 'C':
+            abrir_selector_carpetas()
+            continue
 
         pasos_a_ejecutar: list[PasoPipeline] = []
 
@@ -133,7 +152,7 @@ def menu_interactivo() -> None:
                     else:
                         print(f"\n⚠️ Ignorando opción '{indice}': Fuera de rango.")
             except ValueError:
-                print("\n❌ Entrada no válida. Por favor, usa números, 'T' para todo o 'S' para salir.")
+                print("\n❌ Entrada no válida. Por favor, usa números, 'C', 'T' para todo o 'S' para salir.")
                 continue
 
         if not pasos_a_ejecutar:

@@ -21,6 +21,7 @@ dev = [
 
 [project.scripts]
 photos-sync = "photos_sync.cli:main"
+photos-sync-carpetas = "photos_sync.selector_carpetas:main"
 
 [tool.setuptools.packages.find]
 include = ["photos_sync*"]

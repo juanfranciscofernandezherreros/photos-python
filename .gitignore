@@ -1,6 +1,9 @@
 # Datos personales generados por el pipeline (contienen rutas y nombres de tus capturas)
 metadatos_screenshots.json
 
+# Selección de carpetas hecha con el selector gráfico (photos-sync-carpetas)
+carpetas_screenshots.json
+
 # Log de ejecuciones del orquestador
 orquestador.log
 

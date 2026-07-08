@@ -41,6 +41,12 @@ ARCHIVO_METADATOS_JSON: str = "metadatos_screenshots.json"
 # desatendida (por ejemplo, lanzada por el Programador de tareas de Windows).
 ARCHIVO_LOG_ORQUESTADOR: str = "orquestador.log"
 
+# Selección de carpetas hecha con el selector gráfico (photos-sync-carpetas).
+# Si este archivo existe en la carpeta de trabajo, sustituye a
+# RUTAS_SCREENSHOTS_ORIGEN de arriba. Si no existe, se usan las de arriba
+# como valor por defecto.
+ARCHIVO_CARPETAS_SELECCIONADAS: str = "carpetas_screenshots.json"
+
 # ==========================================
 # FORMATOS DE IMAGEN VÁLIDOS
 # ==========================================

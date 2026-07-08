@@ -5,7 +5,8 @@ from typing import Any
 
 from rich.progress import track
 
-from .config import RUTAS_SCREENSHOTS_ORIGEN, ARCHIVO_METADATOS_JSON, EXTENSIONES_VALIDAS, UNIDAD_WEBDAV
+from .carpetas import cargar_carpetas_guardadas
+from .config import ARCHIVO_METADATOS_JSON, EXTENSIONES_VALIDAS, UNIDAD_WEBDAV
 
 MetadatosCaptura = dict[str, Any]
 
@@ -45,8 +46,10 @@ def exportar_metadatos_json() -> None:
     # Fase 1: listamos los archivos candidatos en cada carpeta. Enumerar el
     # árbol de directorios suele ser rápido incluso por red; lo lento viene
     # después, al pedir el stat() (tamaño y fecha) de cada uno por WebDAV.
+    # cargar_carpetas_guardadas() usa la selección hecha con
+    # `photos-sync-carpetas` si existe, o si no, las de config.py.
     archivos_encontrados: list[Path] = []
-    for ruta in RUTAS_SCREENSHOTS_ORIGEN:
+    for ruta in cargar_carpetas_guardadas():
         if ruta.exists() and ruta.is_dir():
             print(f"✅ Extrayendo datos de: {ruta}")
             archivos_encontrados.extend(
