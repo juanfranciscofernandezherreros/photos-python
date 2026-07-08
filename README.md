@@ -127,3 +127,23 @@ python -m photos_sync.descargar
 ```
 
 Los archivos generados en tiempo de ejecución (`metadatos_screenshots.json`, `orquestador.log`) se crean en la carpeta desde la que ejecutes `photos-sync`, no dentro del paquete — no se suben al repositorio.
+
+& "C:\Program Files\PyManager\python.exe" -m pip install -e .
+
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Users\juanf\AppData\Local\Python\pythoncore-3.14-64\Scripts", "User")
+
+photos-sync --help
+
+---
+
+C:\Users\juanf>photos-sync --help
+usage: photos-sync [-h] [--todo | --pasos 1,2,3]
+
+Pipeline de fotos: descarga, organiza y comprime capturas desde Z:. Sin argumentos abre el menú interactivo.
+
+options:
+  -h, --help     show this help message and exit
+  --todo         Ejecuta los 3 pasos en orden (equivalente a la opción T del menú).
+  --pasos 1,2,3  Ejecuta solo los pasos indicados, separados por comas (ej: --pasos 1,3).
+
+C:\Users\juanf>
