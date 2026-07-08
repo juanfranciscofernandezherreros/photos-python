@@ -4,7 +4,7 @@ from pathlib import Path
 
 from rich.progress import track
 
-from config import CARPETA_SCREENSHOTS_AGRUPADOS, CARPETA_ZIPS, BORRAR_ORIGINALES_TRAS_COMPRIMIR
+from .config import CARPETA_SCREENSHOTS_AGRUPADOS, CARPETA_ZIPS, BORRAR_ORIGINALES_TRAS_COMPRIMIR
 
 
 def zip_es_valido(ruta_zip: Path) -> bool:

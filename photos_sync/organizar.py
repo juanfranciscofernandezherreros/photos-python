@@ -7,7 +7,7 @@ from typing import Any
 
 from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn, TimeRemainingColumn
 
-from config import ARCHIVO_METADATOS_JSON, CARPETA_SCREENSHOTS_AGRUPADOS, NUM_HILOS_COPIA
+from .config import ARCHIVO_METADATOS_JSON, CARPETA_SCREENSHOTS_AGRUPADOS, NUM_HILOS_COPIA
 
 MetadatosCaptura = dict[str, Any]
 ResultadoCopia = tuple[str, str, str]  # (estado, nombre_archivo, mensaje)

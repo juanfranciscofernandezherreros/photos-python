@@ -1,9 +1,19 @@
 # Datos personales generados por el pipeline (contienen rutas y nombres de tus capturas)
 metadatos_screenshots.json
 
+# Log de ejecuciones del orquestador
+orquestador.log
+
 # Cachés de Python
 __pycache__/
 *.pyc
+.mypy_cache/
+.pytest_cache/
+
+# Artefactos de empaquetado (pip install -e .)
+*.egg-info/
+build/
+dist/
 
 # Entornos virtuales
 .venv/

@@ -5,7 +5,7 @@ from typing import Any
 
 from rich.progress import track
 
-from config import RUTAS_SCREENSHOTS_ORIGEN, ARCHIVO_METADATOS_JSON, EXTENSIONES_VALIDAS, UNIDAD_WEBDAV
+from .config import RUTAS_SCREENSHOTS_ORIGEN, ARCHIVO_METADATOS_JSON, EXTENSIONES_VALIDAS, UNIDAD_WEBDAV
 
 MetadatosCaptura = dict[str, Any]
 
