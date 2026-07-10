@@ -16,7 +16,7 @@ def cargar_carpetas_guardadas() -> list[Path]:
             return list(RUTAS_SCREENSHOTS_ORIGEN)
         return [Path(r) for r in rutas_guardadas]
     except (json.JSONDecodeError, TypeError):
-        print(f"⚠️ '{ARCHIVO_CARPETAS_SELECCIONADAS}' está corrupto, usando las carpetas por defecto de config.py.")
+        print(f"⚠️ '{ARCHIVO_CARPETAS_SELECCIONADAS}' is corrupt, using default folders from config.py.")
         return list(RUTAS_SCREENSHOTS_ORIGEN)
 
 

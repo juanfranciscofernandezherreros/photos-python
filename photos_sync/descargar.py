@@ -25,16 +25,16 @@ def cargar_metadatos_existentes() -> dict[str, MetadatosCaptura]:
             lista_previa: list[MetadatosCaptura] = json.load(f)
         return {item["ruta_original"]: item for item in lista_previa}
     except (json.JSONDecodeError, KeyError):
-        print(f"⚠️ '{ARCHIVO_METADATOS_JSON}' existente está corrupto, se regenerará desde cero.\n")
+        print(f"⚠️ Existing '{ARCHIVO_METADATOS_JSON}' is corrupt, it will be regenerated from scratch.\n")
         return {}
 
 
 def exportar_metadatos_json() -> None:
-    print("Buscando capturas en la unidad Z: y extrayendo metadatos...\n")
+    print("Searching for screenshots on Z: drive and extracting metadata...\n")
 
     if not unidad_webdav_montada():
-        print(f"❌ La unidad {UNIDAD_WEBDAV} no está montada o no es accesible.")
-        print(f"   Ejecuta 'net use {UNIDAD_WEBDAV} http://<ip_telefono>:8080' y vuelve a intentarlo.")
+        print(f"❌ Drive {UNIDAD_WEBDAV} is not mounted or accessible.")
+        print(f"   Execute 'net use {UNIDAD_WEBDAV} http://<phone_ip>:8080' and try again.")
         return
 
     archivos_encontrados: list[Path] = []
@@ -42,20 +42,20 @@ def exportar_metadatos_json() -> None:
 
     for ruta in cargar_carpetas_guardadas():
         if not (ruta.exists() and ruta.is_dir()):
-            print(f"⚠️ Subcarpeta no encontrada en la unidad: {ruta}")
+            print(f"⚠️ Subfolder not found on drive: {ruta}")
             continue
 
-        print(f"✅ Extrayendo datos de: {ruta}")
+        print(f"✅ Extracting data from: {ruta}")
         try:
             for candidato in ruta.rglob('*'):
                 try:
                     if candidato.is_file() and candidato.suffix.lower() in EXTENSIONES_VALIDAS:
                         archivos_encontrados.append(candidato)
                 except OSError as e:
-                    print(f"   ⚠️ No se pudo comprobar '{candidato.name}': {e}")
+                    print(f"   ⚠️ Could not check '{candidato.name}': {e}")
                     errores_listado += 1
         except OSError as e:
-            print(f"   ❌ Error listando '{ruta}': {e}")
+            print(f"   ❌ Error listing '{ruta}': {e}")
             errores_listado += 1
 
     metadatos_previos: dict[str, MetadatosCaptura] = cargar_metadatos_existentes()
@@ -64,7 +64,7 @@ def exportar_metadatos_json() -> None:
     sin_cambios = 0
     errores_analisis = 0
 
-    for archivo in track(archivos_encontrados, description="Analizando capturas..."):
+    for archivo in track(archivos_encontrados, description="Analyzing screenshots..."):
         ruta_str = str(archivo)
 
         try:
@@ -92,7 +92,7 @@ def exportar_metadatos_json() -> None:
             nuevos += 1
 
         except OSError as e:
-            print(f"   ⚠️ No se pudo leer '{archivo.name}', se omite: {e}")
+            print(f"   ⚠️ Could not read '{archivo.name}', skipping: {e}")
             errores_analisis += 1
             continue
 
@@ -108,19 +108,19 @@ def exportar_metadatos_json() -> None:
             json.dump(lista_metadatos, f, indent=4, ensure_ascii=False)
 
         print("-" * 50)
-        print(f"✅ ¡Éxito! El JSON tiene ahora {contador_total} capturas.")
-        print(f"   - Nuevas o actualizadas: {nuevos}")
-        print(f"   - Sin cambios: {sin_cambios}")
+        print(f"✅ Success! The JSON now contains {contador_total} screenshots.")
+        print(f"   - New or updated: {nuevos}")
+        print(f"   - Unchanged: {sin_cambios}")
         if eliminados > 0:
-            print(f"   - Eliminadas del teléfono (quitadas del JSON): {eliminados}")
+            print(f"   - Deleted from phone (removed from JSON): {eliminados}")
         total_errores = errores_listado + errores_analisis
         if total_errores > 0:
-            print(f"   - ⚠️ Archivos omitidos por error de lectura: {total_errores} (revisa los avisos de arriba)")
-        print(f"📁 Puedes abrir el archivo: {ARCHIVO_METADATOS_JSON}")
+            print(f"   - ⚠️ Files skipped due to read error: {total_errores} (check warnings above)")
+        print(f"📁 You can open the file: {ARCHIVO_METADATOS_JSON}")
     else:
-        print("❌ No se encontraron capturas para exportar.")
+        print("❌ No screenshots found to export.")
         if errores_listado + errores_analisis > 0:
-            print(f"   ({errores_listado + errores_analisis} archivos fallaron al leerse — revisa los avisos de arriba)")
+            print(f"   ({errores_listado + errores_analisis} files failed to read — check warnings above)")
 
 
 if __name__ == "__main__":

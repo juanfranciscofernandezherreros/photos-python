@@ -20,15 +20,15 @@ def comprimir_carpetas_por_dia() -> None:
     carpeta_zips = CARPETA_ZIPS
 
     if not carpeta_base.exists():
-        print(f"❌ Error: La carpeta '{carpeta_base}' no existe.")
+        print(f"❌ Error: Folder '{carpeta_base}' does not exist.")
         return
 
     carpeta_zips.mkdir(parents=True, exist_ok=True)
 
-    print(f"Buscando carpetas de días en: {carpeta_base.resolve()}...\n")
+    print(f"Searching for day folders in: {carpeta_base.resolve()}...\n")
     if BORRAR_ORIGINALES_TRAS_COMPRIMIR:
-        print("⚠️ BORRAR_ORIGINALES_TRAS_COMPRIMIR está activado: las carpetas de\n"
-              "   día se eliminarán en cuanto se compruebe que su .zip es válido.\n")
+        print("⚠️ BORRAR_ORIGINALES_TRAS_COMPRIMIR is enabled: day folders will be\n"
+              "   deleted once their .zip file is verified as valid.\n")
     print("-" * 50)
 
     zips_creados: int = 0
@@ -45,7 +45,7 @@ def comprimir_carpetas_por_dia() -> None:
         if carpeta_dia.is_dir()
     ]
 
-    for carpeta_dia in track(carpetas_dia, description="Comprimiendo por día..."):
+    for carpeta_dia in track(carpetas_dia, description="Compressing by day..."):
         ano = carpeta_dia.parent.parent.name
         mes = carpeta_dia.parent.name
         dia = carpeta_dia.name
@@ -55,7 +55,7 @@ def comprimir_carpetas_por_dia() -> None:
         zip_recien_creado = False
 
         if ruta_zip.exists():
-            print(f"⏭️ Omitido: '{nombre_archivo}.zip' ya existe.")
+            print(f"⏭️ Skipped: '{nombre_archivo}.zip' already exists.")
         else:
             try:
                 shutil.make_archive(
@@ -64,12 +64,12 @@ def comprimir_carpetas_por_dia() -> None:
                     root_dir=str(carpeta_dia)
                 )
 
-                print(f"📦 Comprimido: {ano}\\{mes}\\{dia} -> {nombre_archivo}.zip")
+                print(f"📦 Compressed: {ano}\\{mes}\\{dia} -> {nombre_archivo}.zip")
                 zips_creados += 1
                 zip_recien_creado = True
 
             except Exception as e:
-                print(f"❌ Error al comprimir el día {ano}-{mes}-{dia}: {e}")
+                print(f"❌ Error compressing day {ano}-{mes}-{dia}: {e}")
                 errores += 1
                 continue
 
@@ -78,21 +78,21 @@ def comprimir_carpetas_por_dia() -> None:
                 shutil.rmtree(carpeta_dia)
                 carpetas_borradas += 1
                 if not zip_recien_creado:
-                    print(f"🗑️ Verificado y borrado el original de: {ano}\\{mes}\\{dia}")
+                    print(f"🗑️ Verified and deleted original for: {ano}\\{mes}\\{dia}")
             else:
-                print(f"⚠️ '{nombre_archivo}.zip' no pasó la verificación de integridad; "
-                      f"NO se borra la carpeta original {carpeta_dia}")
+                print(f"⚠️ '{nombre_archivo}.zip' failed integrity verification; "
+                      f"original folder {carpeta_dia} NOT deleted")
                 errores += 1
 
     print("-" * 50)
-    print("RESUMEN DE COMPRESIÓN:")
-    print(f"  - Nuevos archivos ZIP creados: {zips_creados}")
+    print("COMPRESSION SUMMARY:")
+    print(f"  - New ZIP files created: {zips_creados}")
     if BORRAR_ORIGINALES_TRAS_COMPRIMIR:
-        print(f"  - Carpetas originales borradas tras verificar: {carpetas_borradas}")
+        print(f"  - Original folders deleted after verification: {carpetas_borradas}")
     if errores > 0:
-        print(f"  - Errores encontrados: {errores}")
+        print(f"  - Errors found: {errores}")
 
-    print(f"\n📁 Tus archivos comprimidos están listos en: {carpeta_zips.resolve()}")
+    print(f"\n📁 Your compressed files are ready in: {carpeta_zips.resolve()}")
 
 
 if __name__ == "__main__":

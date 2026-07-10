@@ -18,7 +18,7 @@ def procesar_captura(captura: MetadatosCaptura, destino_base: Path) -> Resultado
     nombre: str = captura["archivo"]
 
     if not ruta_origen.exists():
-        return ("no_encontrado", nombre, f"⚠️ No encontrado en Z: (¿Se borró?): {ruta_origen}")
+        return ("not_found", nombre, f"⚠️ Not found on Z: (Was it deleted?): {ruta_origen}")
 
     try:
         fecha = datetime.strptime(captura["fecha_captura"], '%Y-%m-%d %H:%M:%S')
@@ -29,37 +29,37 @@ def procesar_captura(captura: MetadatosCaptura, destino_base: Path) -> Resultado
         ruta_destino = carpeta_destino / nombre
 
         if ruta_destino.exists():
-            return ("omitido", nombre, f"⏭️ Omitido (ya organizada): {nombre}")
+            return ("skipped", nombre, f"⏭️ Skipped (already organized): {nombre}")
 
         shutil.copy2(ruta_origen, ruta_destino)
-        return ("copiado", nombre, f"📂 {nombre}  ->  {ano}/{mes}/{dia}/")
+        return ("copied", nombre, f"📂 {nombre}  ->  {ano}/{mes}/{dia}/")
 
     except Exception as e:
-        return ("error", nombre, f"❌ Error al copiar '{nombre}': {e}")
+        return ("error", nombre, f"❌ Error copying '{nombre}': {e}")
 
 
 def organizar_capturas_por_fecha() -> None:
     destino_base = CARPETA_SCREENSHOTS_AGRUPADOS
 
     if not Path(ARCHIVO_METADATOS_JSON).exists():
-        print(f"❌ Error: No se encontró el archivo '{ARCHIVO_METADATOS_JSON}' en esta carpeta.")
+        print(f"❌ Error: File '{ARCHIVO_METADATOS_JSON}' not found in this folder.")
         return
 
-    print(f"Leyendo '{ARCHIVO_METADATOS_JSON}'...\n")
-    print(f"Organizando capturas en: {destino_base.resolve()} (usando {NUM_HILOS_COPIA} hilos)")
+    print(f"Reading '{ARCHIVO_METADATOS_JSON}'...\n")
+    print(f"Organizing screenshots in: {destino_base.resolve()} (using {NUM_HILOS_COPIA} threads)")
     print("-" * 50)
 
     try:
         with open(ARCHIVO_METADATOS_JSON, 'r', encoding='utf-8') as f:
             lista_capturas: list[MetadatosCaptura] = json.load(f)
     except json.JSONDecodeError:
-        print(f"❌ Error: El archivo '{ARCHIVO_METADATOS_JSON}' está corrupto o no tiene un formato JSON válido.")
+        print(f"❌ Error: File '{ARCHIVO_METADATOS_JSON}' is corrupt or not a valid JSON format.")
         return
     except Exception as e:
-        print(f"❌ Ocurrió un error inesperado leyendo el JSON: {e}")
+        print(f"❌ An unexpected error occurred while reading the JSON: {e}")
         return
 
-    contadores: dict[str, int] = {"copiado": 0, "omitido": 0, "no_encontrado": 0, "error": 0}
+    contadores: dict[str, int] = {"copied": 0, "skipped": 0, "not_found": 0, "error": 0}
 
     with Progress(
         TextColumn("[progress.description]{task.description}"),
@@ -69,7 +69,7 @@ def organizar_capturas_por_fecha() -> None:
         TextColumn("restante:"),
         TimeRemainingColumn(),
     ) as progress:
-        tarea = progress.add_task("Organizando capturas", total=len(lista_capturas))
+        tarea = progress.add_task("Organizing screenshots", total=len(lista_capturas))
 
         with ThreadPoolExecutor(max_workers=NUM_HILOS_COPIA) as pool:
             futuros = [pool.submit(procesar_captura, captura, destino_base) for captura in lista_capturas]
@@ -81,15 +81,15 @@ def organizar_capturas_por_fecha() -> None:
                 progress.advance(tarea)
 
     print("-" * 50)
-    print("RESUMEN DE LA ORGANIZACIÓN:")
-    print(f"  - Archivos copiados y agrupados: {contadores['copiado']}")
-    print(f"  - Archivos omitidos (ya existían): {contadores['omitido']}")
-    errores_totales = contadores['no_encontrado'] + contadores['error']
+    print("ORGANIZATION SUMMARY:")
+    print(f"  - Files copied and grouped: {contadores['copied']}")
+    print(f"  - Files skipped (already existed): {contadores['skipped']}")
+    errores_totales = contadores['not_found'] + contadores['error']
     if errores_totales > 0:
-        print(f"  - Errores de lectura/escritura: {errores_totales}")
+        print(f"  - Read/write errors: {errores_totales}")
 
-    if contadores['copiado'] > 0:
-        print("\n✅ ¡Tus capturas se han copiado y ordenado correctamente!")
+    if contadores['copied'] > 0:
+        print("\n✅ Your screenshots have been copied and organized successfully!")
 
 
 if __name__ == "__main__":

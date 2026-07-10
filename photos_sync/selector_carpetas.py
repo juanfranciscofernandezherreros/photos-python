@@ -9,7 +9,7 @@ from .config import ARCHIVO_CARPETAS_SELECCIONADAS, UNIDAD_WEBDAV
 class SelectorCarpetas(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("photos-sync — Selección de carpetas")
+        self.title("photos-sync — Folder Selection")
         self.geometry("560x360")
         self.resizable(False, False)
 
@@ -17,7 +17,7 @@ class SelectorCarpetas(tk.Tk):
 
         tk.Label(
             self,
-            text="Carpetas del teléfono donde buscar capturas de pantalla:",
+            text="Phone folders to scan for screenshots:",
             font=("Segoe UI", 10, "bold"),
         ).pack(anchor="w", padx=12, pady=(12, 4))
 
@@ -36,10 +36,10 @@ class SelectorCarpetas(tk.Tk):
         marco_botones = tk.Frame(self)
         marco_botones.pack(fill="x", padx=12, pady=12)
 
-        tk.Button(marco_botones, text="➕ Añadir carpeta...", command=self._anadir_carpeta).pack(side="left")
-        tk.Button(marco_botones, text="➖ Quitar seleccionada", command=self._quitar_carpeta).pack(side="left", padx=8)
-        tk.Button(marco_botones, text="💾 Guardar y cerrar", command=self._guardar_y_cerrar).pack(side="right")
-        tk.Button(marco_botones, text="Cancelar", command=self.destroy).pack(side="right", padx=8)
+        tk.Button(marco_botones, text="➕ Add folder...", command=self._anadir_carpeta).pack(side="left")
+        tk.Button(marco_botones, text="➖ Remove selected", command=self._quitar_carpeta).pack(side="left", padx=8)
+        tk.Button(marco_botones, text="💾 Save and close", command=self._guardar_y_cerrar).pack(side="right")
+        tk.Button(marco_botones, text="Cancel", command=self.destroy).pack(side="right", padx=8)
 
     def _refrescar_lista(self) -> None:
         self.lista.delete(0, tk.END)
@@ -51,14 +51,14 @@ class SelectorCarpetas(tk.Tk):
         inicio = str(carpeta_z) if carpeta_z.exists() else str(Path.home())
 
         carpeta = filedialog.askdirectory(
-            title="Elige una carpeta del teléfono", initialdir=inicio, parent=self
+            title="Choose a phone folder", initialdir=inicio, parent=self
         )
         if not carpeta:
             return
 
         ruta = Path(carpeta)
         if ruta in self.carpetas:
-            messagebox.showinfo("Ya está en la lista", f"'{ruta}' ya estaba seleccionada.", parent=self)
+            messagebox.showinfo("Already in list", f"'{ruta}' was already selected.", parent=self)
             return
 
         self.carpetas.append(ruta)
@@ -68,7 +68,7 @@ class SelectorCarpetas(tk.Tk):
         seleccion = self.lista.curselection()
         if not seleccion:
             messagebox.showinfo(
-                "Nada seleccionado", "Elige primero una carpeta de la lista para quitarla.", parent=self
+                "Nothing selected", "Please select a folder from the list to remove it first.", parent=self
             )
             return
 
@@ -78,16 +78,16 @@ class SelectorCarpetas(tk.Tk):
     def _guardar_y_cerrar(self) -> None:
         if not self.carpetas:
             continuar = messagebox.askyesno(
-                "Sin carpetas seleccionadas",
-                "No has seleccionado ninguna carpeta, así que el pipeline no "
-                "encontrará capturas.\n¿Guardar igualmente?",
+                "No folders selected",
+                "You have not selected any folders, so the pipeline will not "
+                "find any screenshots.\nSave anyway?",
                 parent=self,
             )
             if not continuar:
                 return
 
         guardar_carpetas(self.carpetas)
-        messagebox.showinfo("Guardado", f"Selección guardada en '{ARCHIVO_CARPETAS_SELECCIONADAS}'.", parent=self)
+        messagebox.showinfo("Saved", f"Selection saved to '{ARCHIVO_CARPETAS_SELECCIONADAS}'.", parent=self)
         self.destroy()
 
 
