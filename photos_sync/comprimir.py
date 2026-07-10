@@ -8,9 +8,6 @@ from .config import CARPETA_SCREENSHOTS_AGRUPADOS, CARPETA_ZIPS, BORRAR_ORIGINAL
 
 
 def zip_es_valido(ruta_zip: Path) -> bool:
-    """Comprueba que el .zip se puede abrir y que ninguno de sus archivos
-    internos está dañado. testzip() devuelve el nombre del primer archivo
-    corrupto que encuentra, o None si todo está bien."""
     try:
         with zipfile.ZipFile(ruta_zip, 'r') as zf:
             return zf.testzip() is None
@@ -26,7 +23,6 @@ def comprimir_carpetas_por_dia() -> None:
         print(f"❌ Error: La carpeta '{carpeta_base}' no existe.")
         return
 
-    # Creamos la carpeta donde se guardarán los ZIP finales
     carpeta_zips.mkdir(parents=True, exist_ok=True)
 
     print(f"Buscando carpetas de días en: {carpeta_base.resolve()}...\n")
@@ -39,8 +35,6 @@ def comprimir_carpetas_por_dia() -> None:
     errores: int = 0
     carpetas_borradas: int = 0
 
-    # Recopilamos primero todas las carpetas de día (Año -> Mes -> Día) para
-    # conocer el total de antemano y poder mostrar una barra de progreso real.
     carpetas_dia: list[Path] = [
         carpeta_dia
         for carpeta_ano in carpeta_base.iterdir()
@@ -52,7 +46,6 @@ def comprimir_carpetas_por_dia() -> None:
     ]
 
     for carpeta_dia in track(carpetas_dia, description="Comprimiendo por día..."):
-        # Extraemos los nombres de las carpetas para formar el nombre del ZIP
         ano = carpeta_dia.parent.parent.name
         mes = carpeta_dia.parent.name
         dia = carpeta_dia.name
@@ -61,13 +54,10 @@ def comprimir_carpetas_por_dia() -> None:
         ruta_zip = carpeta_zips / f"{nombre_archivo}.zip"
         zip_recien_creado = False
 
-        # Comprobamos si el ZIP de ese día ya existe para no repetir trabajo
         if ruta_zip.exists():
             print(f"⏭️ Omitido: '{nombre_archivo}.zip' ya existe.")
         else:
             try:
-                # shutil.make_archive crea el ZIP automáticamente
-                # Parámetros: ruta destino sin extensión, formato, ruta de la carpeta a comprimir
                 shutil.make_archive(
                     base_name=str(carpeta_zips / nombre_archivo),
                     format='zip',
@@ -83,8 +73,6 @@ def comprimir_carpetas_por_dia() -> None:
                 errores += 1
                 continue
 
-        # Borrado opcional: solo si está activado en config.py, y solo
-        # tras verificar que el .zip (nuevo o ya existente) es legible.
         if BORRAR_ORIGINALES_TRAS_COMPRIMIR:
             if zip_es_valido(ruta_zip):
                 shutil.rmtree(carpeta_dia)

@@ -1,15 +1,3 @@
-"""
-Ventana gráfica para elegir qué carpetas del teléfono (montado como unidad
-de red) se escanean en busca de capturas de pantalla.
-
-La selección se guarda en un JSON en la carpeta de trabajo actual (el cwd),
-no dentro del paquete instalado — así puedes tener distintas selecciones
-en distintas carpetas de trabajo sin tocar el código fuente.
-
-Ejecútalo con:
-    photos-sync-carpetas
-o desde el menú interactivo de `photos-sync` (opción C).
-"""
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox
@@ -19,9 +7,6 @@ from .config import ARCHIVO_CARPETAS_SELECCIONADAS, UNIDAD_WEBDAV
 
 
 class SelectorCarpetas(tk.Tk):
-    """Ventana principal: lista las carpetas elegidas y permite añadir o
-    quitar mediante el explorador de archivos nativo de Windows."""
-
     def __init__(self) -> None:
         super().__init__()
         self.title("photos-sync — Selección de carpetas")
@@ -62,8 +47,6 @@ class SelectorCarpetas(tk.Tk):
             self.lista.insert(tk.END, str(carpeta))
 
     def _anadir_carpeta(self) -> None:
-        # Arrancamos el explorador en la unidad de red configurada (ej. Z:\),
-        # así se navega directamente por el teléfono en vez de por el PC.
         carpeta_z = Path(f"{UNIDAD_WEBDAV}\\")
         inicio = str(carpeta_z) if carpeta_z.exists() else str(Path.home())
 
@@ -109,7 +92,6 @@ class SelectorCarpetas(tk.Tk):
 
 
 def main() -> None:
-    """Punto de entrada del comando `photos-sync-carpetas` (ver pyproject.toml)."""
     app = SelectorCarpetas()
     app.mainloop()
 

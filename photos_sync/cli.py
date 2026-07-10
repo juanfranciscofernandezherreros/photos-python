@@ -7,9 +7,6 @@ from .config import ARCHIVO_LOG_ORQUESTADOR
 from .mantener_despierto import evitar_suspension
 from . import descargar, organizar, comprimir
 
-# Cada paso es (nombre a mostrar, función a llamar). Ya no se lanzan
-# scripts sueltos con subprocess: al ser un paquete instalado, el CLI
-# importa y llama directamente a las funciones de cada módulo.
 PasoPipeline = tuple[str, Callable[[], None]]
 
 PASOS: list[PasoPipeline] = [
@@ -20,13 +17,6 @@ PASOS: list[PasoPipeline] = [
 
 
 def configurar_logging() -> logging.Logger:
-    """Registra cada ejecución en un archivo además de en consola. Así, si
-    el orquestador corre desatendido (por ejemplo desde el Programador de
-    tareas de Windows) y algo falla, queda un rastro que revisar.
-
-    El archivo de log se crea en la carpeta desde la que se ejecuta el
-    comando (el cwd), igual que metadatos_screenshots.json — piensa en esa
-    carpeta como el "espacio de trabajo" del pipeline."""
     logger = logging.getLogger("photos_sync")
     logger.setLevel(logging.INFO)
     logger.handlers.clear()
@@ -48,8 +38,6 @@ log: logging.Logger = configurar_logging()
 
 
 def ejecutar_paso(nombre: str, funcion: Callable[[], None]) -> bool:
-    """Ejecuta la función de un paso y atrapa cualquier excepción, para que
-    un fallo en un paso no tumbe el proceso completo sin dejar rastro."""
     log.info(f"⏳ ['INICIANDO'] -> {nombre}")
 
     try:
@@ -63,12 +51,6 @@ def ejecutar_paso(nombre: str, funcion: Callable[[], None]) -> bool:
 
 
 def ejecutar_pasos(pasos_a_ejecutar: list[PasoPipeline]) -> bool:
-    """Ejecuta los pasos en cadena, parando en el primer fallo. Devuelve
-    True si todos terminaron bien. Compartida entre el modo interactivo y
-    el modo CLI/desatendido.
-
-    Todo el bloque corre dentro de evitar_suspension() para que Windows no
-    se suspenda a mitad de una sincronización larga."""
     with evitar_suspension():
         log.info("=" * 55)
         log.info("⚙️ INICIANDO EJECUCIÓN")
@@ -104,9 +86,6 @@ def parsear_argumentos() -> argparse.Namespace:
 
 
 def abrir_selector_carpetas() -> None:
-    """Lanza la ventana gráfica de selección de carpetas. El import de
-    tkinter es diferido (va aquí dentro, no arriba del archivo) para que
-    `photos-sync --todo` en modo desatendido nunca necesite tkinter."""
     try:
         from .selector_carpetas import main as selector_main
     except ImportError:
@@ -167,9 +146,6 @@ def menu_interactivo() -> None:
 
 
 def modo_cli(args: argparse.Namespace) -> None:
-    """Ejecución no interactiva: para lanzar desde una terminal con flags
-    o programada en el Programador de tareas de Windows. Termina el proceso
-    con código 0 (éxito) o 1 (fallo) para que el planificador lo detecte."""
     pasos_a_ejecutar: list[PasoPipeline]
 
     if args.todo:
@@ -197,7 +173,6 @@ def modo_cli(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
-    """Punto de entrada del comando `photos-sync` (ver pyproject.toml)."""
     argumentos = parsear_argumentos()
 
     if argumentos.todo or argumentos.pasos:
