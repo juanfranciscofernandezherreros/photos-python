@@ -7,6 +7,7 @@ from typing import Any
 
 from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn, TimeRemainingColumn
 
+from .carpetas import cargar_destino_guardado
 from .config import ARCHIVO_METADATOS_JSON, CARPETA_SCREENSHOTS_AGRUPADOS, NUM_HILOS_COPIA
 
 MetadatosCaptura = dict[str, Any]
@@ -29,8 +30,6 @@ def procesar_captura(captura: MetadatosCaptura, destino_base: Path) -> Resultado
         ruta_destino = carpeta_destino / nombre
 
         if ruta_destino.exists():
-            # Ya estaba copiado en un pase anterior; nos aseguramos de que el
-            # metadato quede igualmente registrado con su destino real.
             captura["ruta_destino"] = str(ruta_destino)
             return ("skipped", nombre, f"⏭️ Skipped (already organized): {nombre}")
 
@@ -43,7 +42,9 @@ def procesar_captura(captura: MetadatosCaptura, destino_base: Path) -> Resultado
 
 
 def organizar_capturas_por_fecha() -> None:
-    destino_base = CARPETA_SCREENSHOTS_AGRUPADOS
+    # AQUÍ ESTÁ EL CAMBIO PRINCIPAL: Leemos el JSON en lugar de la variable estática
+    destino_str = cargar_destino_guardado()
+    destino_base = Path(destino_str) if destino_str else CARPETA_SCREENSHOTS_AGRUPADOS
 
     if not Path(ARCHIVO_METADATOS_JSON).exists():
         print(f"❌ Error: File '{ARCHIVO_METADATOS_JSON}' not found in this folder.")
@@ -84,9 +85,6 @@ def organizar_capturas_por_fecha() -> None:
                 contadores[estado] += 1
                 progress.advance(tarea)
 
-    # Volvemos a guardar el JSON de metadatos: cada captura procesada ya lleva
-    # su "ruta_destino" (además de "ruta_original"), así siempre se puede
-    # localizar dónde acabó cada archivo.
     try:
         with open(ARCHIVO_METADATOS_JSON, 'w', encoding='utf-8') as f:
             json.dump(lista_capturas, f, indent=4, ensure_ascii=False)

@@ -6,6 +6,7 @@ from typing import Any
 
 from rich.progress import track
 
+from .carpetas import cargar_destino_guardado
 from .config import (
     ARCHIVO_METADATOS_JSON,
     CARPETA_SCREENSHOTS_AGRUPADOS,
@@ -47,8 +48,6 @@ def guardar_metadatos(lista_capturas: list[MetadatosCaptura]) -> None:
 
 
 def marcar_ruta_zip(lista_capturas: list[MetadatosCaptura], carpeta_dia: Path, ruta_zip: Path) -> None:
-    """Anota en cada metadato la ruta del .zip donde acabó, para poder
-    localizar el archivo aunque su carpeta original ya haya sido borrada."""
     for captura in lista_capturas:
         ruta_destino = captura.get("ruta_destino")
         if ruta_destino and Path(ruta_destino).parent == carpeta_dia:
@@ -56,8 +55,14 @@ def marcar_ruta_zip(lista_capturas: list[MetadatosCaptura], carpeta_dia: Path, r
 
 
 def comprimir_carpetas_por_dia() -> None:
-    carpeta_base = CARPETA_SCREENSHOTS_AGRUPADOS
-    carpeta_zips = CARPETA_ZIPS
+    # AQUÍ ESTÁ EL CAMBIO: Cargamos el destino dinámico para los zips
+    destino_str = cargar_destino_guardado()
+    if destino_str:
+        carpeta_base = Path(destino_str)
+        carpeta_zips = carpeta_base / "Comprimidos"
+    else:
+        carpeta_base = CARPETA_SCREENSHOTS_AGRUPADOS
+        carpeta_zips = CARPETA_ZIPS
 
     if not carpeta_base.exists():
         print(f"❌ Error: Folder '{carpeta_base}' does not exist.")
