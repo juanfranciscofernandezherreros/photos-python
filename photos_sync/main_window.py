@@ -111,6 +111,13 @@ class MainWindow(QMainWindow):
         self.btn_todo.clicked.connect(lambda: self._ejecutar(PASOS))
         layout.addWidget(self.btn_todo)
 
+        # --- Botón Cerrar ---
+        btn_salir = QPushButton("❌ Finalizar el programa")
+        btn_salir.setStyleSheet("background-color: #ff5555; color: white; font-weight: bold;")
+        btn_salir.clicked.connect(self.close)
+        layout.addWidget(btn_salir)
+
+
         # --- Progreso ---
         self.barra_progreso = QProgressBar()
         self.barra_progreso.setRange(0, 0)  # indeterminada
