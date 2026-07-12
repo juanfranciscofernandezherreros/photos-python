@@ -17,6 +17,8 @@ CARPETA_ZIPS: Path = CARPETA_SCREENSHOTS_AGRUPADOS / "Comprimidos"
 
 ARCHIVO_METADATOS_JSON: str = "metadatos_screenshots.json"
 
+ARCHIVO_RESUMEN_DIAS: str = "resumen_por_dia.json"
+
 ARCHIVO_LOG_ORQUESTADOR: str = "orquestador.log"
 
 ARCHIVO_CARPETAS_SELECCIONADAS: str = "carpetas_screenshots.json"
