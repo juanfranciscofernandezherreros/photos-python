@@ -10,79 +10,61 @@ from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn, Ti
 from .config import ARCHIVO_METADATOS_JSON, CARPETA_SCREENSHOTS_AGRUPADOS, NUM_HILOS_COPIA
 
 MetadatosCaptura = dict[str, Any]
-ResultadoCopia = tuple[str, str, str]  # (estado, nombre_archivo, mensaje)
+ResultadoCopia = tuple[str, str, str]
 
 
 def procesar_captura(captura: MetadatosCaptura, destino_base: Path) -> ResultadoCopia:
-    """Copia una única captura a su carpeta AAAA/MM/DD. Se ejecuta en un
-    hilo del pool, así que no debe tocar contadores compartidos: devuelve
-    el resultado y quien la llama decide qué hacer con él."""
     ruta_origen = Path(captura["ruta_original"])
     nombre: str = captura["archivo"]
 
-    # 1. Comprobamos que la imagen siga existiendo en Z:
     if not ruta_origen.exists():
-        return ("no_encontrado", nombre, f"⚠️ No encontrado en Z: (¿Se borró?): {ruta_origen}")
+        return ("not_found", nombre, f"⚠️ Not found on Z: (Was it deleted?): {ruta_origen}")
 
     try:
-        # Usamos la fecha ya calculada en el paso 1 (fecha_captura),
-        # así no hace falta volver a leer el archivo por su fecha.
         fecha = datetime.strptime(captura["fecha_captura"], '%Y-%m-%d %H:%M:%S')
         ano, mes, dia = fecha.strftime('%Y'), fecha.strftime('%m'), fecha.strftime('%d')
 
         carpeta_destino = destino_base / ano / mes / dia
-        # exist_ok=True hace esto seguro aunque varios hilos creen la misma
-        # carpeta de destino al mismo tiempo.
         carpeta_destino.mkdir(parents=True, exist_ok=True)
         ruta_destino = carpeta_destino / nombre
 
-        # 2. Comprobamos si ya la habíamos copiado antes para no duplicar trabajo
         if ruta_destino.exists():
-            return ("omitido", nombre, f"⏭️ Omitido (ya organizada): {nombre}")
+            # Ya estaba copiado en un pase anterior; nos aseguramos de que el
+            # metadato quede igualmente registrado con su destino real.
+            captura["ruta_destino"] = str(ruta_destino)
+            return ("skipped", nombre, f"⏭️ Skipped (already organized): {nombre}")
 
-        # shutil.copy2 copia el archivo y mantiene la fecha de creación intacta
         shutil.copy2(ruta_origen, ruta_destino)
-        return ("copiado", nombre, f"📂 {nombre}  ->  {ano}/{mes}/{dia}/")
+        captura["ruta_destino"] = str(ruta_destino)
+        return ("copied", nombre, f"📂 {nombre}  ->  {ano}/{mes}/{dia}/")
 
     except Exception as e:
-        return ("error", nombre, f"❌ Error al copiar '{nombre}': {e}")
+        return ("error", nombre, f"❌ Error copying '{nombre}': {e}")
 
 
 def organizar_capturas_por_fecha() -> None:
-    """Copia las capturas listadas en el JSON directamente desde Z: a
-    CARPETA_SCREENSHOTS_AGRUPADOS/AAAA/MM/DD, en un único paso y en paralelo.
-
-    Antes esto se hacía en dos copias secuenciales (Z: -> screenshots ->
-    screenshots_agrupados). Ahora cada foto se copia una sola vez, y varias
-    copias corren a la vez para aprovechar los tiempos de espera de la red.
-    """
     destino_base = CARPETA_SCREENSHOTS_AGRUPADOS
 
     if not Path(ARCHIVO_METADATOS_JSON).exists():
-        print(f"❌ Error: No se encontró el archivo '{ARCHIVO_METADATOS_JSON}' en esta carpeta.")
+        print(f"❌ Error: File '{ARCHIVO_METADATOS_JSON}' not found in this folder.")
         return
 
-    print(f"Leyendo '{ARCHIVO_METADATOS_JSON}'...\n")
-    print(f"Organizando capturas en: {destino_base.resolve()} (usando {NUM_HILOS_COPIA} hilos)")
+    print(f"Reading '{ARCHIVO_METADATOS_JSON}'...\n")
+    print(f"Organizing screenshots in: {destino_base.resolve()} (using {NUM_HILOS_COPIA} threads)")
     print("-" * 50)
 
     try:
         with open(ARCHIVO_METADATOS_JSON, 'r', encoding='utf-8') as f:
             lista_capturas: list[MetadatosCaptura] = json.load(f)
     except json.JSONDecodeError:
-        print(f"❌ Error: El archivo '{ARCHIVO_METADATOS_JSON}' está corrupto o no tiene un formato JSON válido.")
+        print(f"❌ Error: File '{ARCHIVO_METADATOS_JSON}' is corrupt or not a valid JSON format.")
         return
     except Exception as e:
-        print(f"❌ Ocurrió un error inesperado leyendo el JSON: {e}")
+        print(f"❌ An unexpected error occurred while reading the JSON: {e}")
         return
 
-    contadores: dict[str, int] = {"copiado": 0, "omitido": 0, "no_encontrado": 0, "error": 0}
+    contadores: dict[str, int] = {"copied": 0, "skipped": 0, "not_found": 0, "error": 0}
 
-    # Lanzamos todas las copias al pool de hilos y actualizamos una barra de
-    # progreso según van terminando (no en el orden original de la lista).
-    # progress.console.print() se usa en vez de print() normal para que los
-    # mensajes se intercalen correctamente por encima de la barra, sin
-    # corromper su renderizado (varios hilos escribiendo a la vez).
     with Progress(
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
@@ -91,7 +73,7 @@ def organizar_capturas_por_fecha() -> None:
         TextColumn("restante:"),
         TimeRemainingColumn(),
     ) as progress:
-        tarea = progress.add_task("Organizando capturas", total=len(lista_capturas))
+        tarea = progress.add_task("Organizing screenshots", total=len(lista_capturas))
 
         with ThreadPoolExecutor(max_workers=NUM_HILOS_COPIA) as pool:
             futuros = [pool.submit(procesar_captura, captura, destino_base) for captura in lista_capturas]
@@ -102,16 +84,25 @@ def organizar_capturas_por_fecha() -> None:
                 contadores[estado] += 1
                 progress.advance(tarea)
 
-    print("-" * 50)
-    print("RESUMEN DE LA ORGANIZACIÓN:")
-    print(f"  - Archivos copiados y agrupados: {contadores['copiado']}")
-    print(f"  - Archivos omitidos (ya existían): {contadores['omitido']}")
-    errores_totales = contadores['no_encontrado'] + contadores['error']
-    if errores_totales > 0:
-        print(f"  - Errores de lectura/escritura: {errores_totales}")
+    # Volvemos a guardar el JSON de metadatos: cada captura procesada ya lleva
+    # su "ruta_destino" (además de "ruta_original"), así siempre se puede
+    # localizar dónde acabó cada archivo.
+    try:
+        with open(ARCHIVO_METADATOS_JSON, 'w', encoding='utf-8') as f:
+            json.dump(lista_capturas, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"⚠️ Could not update '{ARCHIVO_METADATOS_JSON}' with destination paths: {e}")
 
-    if contadores['copiado'] > 0:
-        print("\n✅ ¡Tus capturas se han copiado y ordenado correctamente!")
+    print("-" * 50)
+    print("ORGANIZATION SUMMARY:")
+    print(f"  - Files copied and grouped: {contadores['copied']}")
+    print(f"  - Files skipped (already existed): {contadores['skipped']}")
+    errores_totales = contadores['not_found'] + contadores['error']
+    if errores_totales > 0:
+        print(f"  - Read/write errors: {errores_totales}")
+
+    if contadores['copied'] > 0:
+        print("\n✅ Your screenshots have been copied and organized successfully!")
 
 
 if __name__ == "__main__":
