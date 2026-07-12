@@ -11,6 +11,7 @@ requires-python = ">=3.9"
 license = { text = "MIT" }
 dependencies = [
     "rich>=13.0",
+    "PyQt6>=6.6",
 ]
 
 [project.optional-dependencies]
@@ -21,6 +22,7 @@ dev = [
 
 [project.scripts]
 photos-sync = "photos_sync.cli:main"
+photos-sync-gui = "photos_sync.main_window:main"
 photos-sync-carpetas = "photos_sync.selector_carpetas:main"
 photos-sync-resumen = "photos_sync.resumen:generar_resumen_por_dia"
 

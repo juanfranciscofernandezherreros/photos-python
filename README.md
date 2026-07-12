@@ -45,7 +45,7 @@ El proyecto es un paquete instalable. Desde la carpeta raíz del repositorio (do
 pip install -e .
 ```
 
-Esto instala la librería `rich` (única dependencia) y registra el comando `photos-sync` en tu terminal — puedes ejecutarlo desde cualquier carpeta a partir de ahora.
+Esto instala `rich` y `PyQt6` (las dos dependencias) y registra los comandos `photos-sync` y `photos-sync-gui` en tu terminal — puedes ejecutarlos desde cualquier carpeta a partir de ahora.
 
 `-e` es instalación "editable": si luego modificas el código fuente, los cambios se aplican al momento sin tener que reinstalar.
 
@@ -60,21 +60,15 @@ CARPETA_BASE_PC = Path(r"C:\Develop") # Dónde quieres que se guarden tus fotos 
 
 Si tu teléfono guarda las capturas en una ruta distinta a `Pictures\Screenshots` o `DCIM\Screenshots`, añádela a `RUTAS_SCREENSHOTS_ORIGEN` en ese mismo archivo — o, más cómodo, usa el selector gráfico de abajo.
 
-## 🖱️ Elegir carpetas con el selector gráfico
+## 🖼️ Todo se maneja desde una ventana gráfica
 
-En vez de editar `config.py` a mano, puedes elegir visualmente qué carpetas del teléfono escanear:
+Ya no hay menús de texto ni que escribir números en la terminal: `photos-sync` (o `python app.py`) abre una única ventana con:
 
-```cmd
-photos-sync-carpetas
-```
+- Un botón **⚙️ Configurar carpetas de origen/destino**, que abre el selector gráfico de siempre (navegando por la unidad `Z:` con el explorador de Windows). Al guardar, la selección queda en `carpetas_screenshots.json` y `destino_guardado.json` (en la carpeta desde la que ejecutes la app) y **sustituye** a las rutas por defecto de `config.py`.
+- Un botón por cada paso del pipeline (Descargar, Organizar, Comprimir, Contar por día) y un botón **▶ Ejecutar TODO**.
+- Un panel de **registro** integrado en la propia ventana: todo lo que antes se imprimía en la terminal (progreso, avisos, errores, resúmenes) aparece ahí, en vivo, mientras el proceso corre en segundo plano sin congelar la ventana.
 
-Se abre una ventana donde puedes añadir carpetas (navegando por la unidad `Z:` con el explorador de Windows) o quitar las que no quieras. Al guardar, la selección queda en `carpetas_screenshots.json` (en la carpeta desde la que lo ejecutes) y **sustituye** a las rutas por defecto de `config.py` — no hace falta tocar el código.
-
-También puedes abrirlo desde el menú interactivo de `photos-sync`, opción **C**.
-
-Si no guardas ninguna selección, el pipeline usa las rutas por defecto de `config.py` como hasta ahora — este paso es opcional.
-
-> **Nota:** el modo desatendido (`--todo`, `--pasos`, o desde el Programador de tareas) nunca necesita esta ventana ni tkinter — solo lee el JSON si ya existe.
+Si no guardas ninguna selección de carpetas, el pipeline usa las rutas por defecto de `config.py` — ese paso sigue siendo opcional.
 
 ## ▶️ Uso paso a paso
 
@@ -86,15 +80,17 @@ Si no guardas ninguna selección, el pipeline usa las rutas por defecto de `conf
    ```
    Comprueba que aparece una unidad `Z:` nueva en "Este equipo".
 
-3. **Ejecuta el pipeline** desde la carpeta donde quieras que se guarden `metadatos_screenshots.json` y el log (tu "carpeta de trabajo" — puede ser cualquiera, no hace falta estar dentro del repositorio):
+3. **Abre la aplicación** desde la carpeta donde quieras que se guarden `metadatos_screenshots.json` y el resto de archivos generados (tu "carpeta de trabajo" — puede ser cualquiera, no hace falta estar dentro del repositorio):
    ```cmd
    photos-sync
    ```
+   (equivalente a `photos-sync-gui`, o `python app.py` si trabajas desde el propio repositorio)
 
-4. En el menú, elige **T** para ejecutar todo el pipeline en orden, **C** para elegir carpetas con el selector gráfico, o el número de un paso concreto (por ejemplo `1` para solo descargar metadatos). Los tres pasos son:
+4. En la ventana, configura las carpetas si aún no lo has hecho y pulsa **▶ Ejecutar TODO**, o los botones de cada paso por separado si prefieres ir uno a uno. Los pasos son:
    - **1 — Descargar**: escanea `Z:` y genera `metadatos_screenshots.json`
-   - **2 — Organizar por fecha**: copia las capturas listadas en el JSON directamente desde `Z:` a `C:\Develop\screenshots_agrupados\AAAA\MM\DD`
+   - **2 — Organizar por fecha**: copia las capturas listadas en el JSON a `destino\AAAA\MM\DD`
    - **3 — Comprimir**: genera un `.zip` por cada carpeta de día
+   - **4 — Contar por día**: genera `resumen_por_dia.json` con el nº de fotos por día
 
 5. Cuando termines, puedes desmontar la unidad de red (opcional):
    ```cmd
@@ -103,10 +99,10 @@ Si no guardas ninguna selección, el pipeline usa las rutas por defecto de `conf
 
 ## 🤖 Uso desatendido (CLI y Programador de tareas)
 
-Además del menú interactivo, `photos-sync` acepta argumentos de línea de comandos, pensados para lanzarlo sin intervención manual:
+Además de la ventana gráfica, `photos-sync` acepta argumentos de línea de comandos pensados para lanzarlo sin intervención manual y sin abrir ninguna ventana:
 
 ```cmd
-photos-sync --todo          # Ejecuta los 3 pasos en orden
+photos-sync --todo          # Ejecuta los 4 pasos en orden
 photos-sync --pasos 1,3     # Ejecuta solo los pasos indicados
 ```
 
@@ -126,17 +122,21 @@ Antes de esto necesitas que la unidad `Z:` ya esté montada (paso 2 de arriba) �
 ```
 photos-python/
 ├── pyproject.toml               # Metadatos del paquete y dependencias (pip install -e .)
+├── app.py                       # Punto de entrada directo de la GUI (python app.py)
 ├── README.md
 ├── .gitignore
 └── photos_sync/                 # El paquete instalable
     ├── __init__.py
     ├── config.py                # Rutas y constantes centralizadas
-    ├── carpetas.py              # Lógica de selección de carpetas (sin tkinter)
-    ├── selector_carpetas.py     # Ventana gráfica: `photos-sync-carpetas`
+    ├── carpetas.py              # Lógica de selección de carpetas (sin PyQt6)
+    ├── selector_carpetas.py     # Ventana de configuración: `photos-sync-carpetas`
+    ├── main_window.py           # Ventana principal: `photos-sync-gui` (botones + log)
     ├── descargar.py             # Z: -> metadatos_screenshots.json
-    ├── organizar.py             # JSON -> screenshots_agrupados\AAAA\MM\DD (copia única)
+    ├── organizar.py             # JSON -> screenshots_agrupados\AAAA\MM\DD
     ├── comprimir.py             # screenshots_agrupados -> .zip por día
-    └── cli.py                   # Punto de entrada del comando `photos-sync`
+    ├── resumen.py                # JSON -> resumen_por_dia.json
+    ├── mantener_despierto.py     # Evita que Windows suspenda el PC mientras corre el pipeline
+    └── cli.py                   # Punto de entrada del comando `photos-sync` (GUI o --todo/--pasos)
 ```
 
 Cada módulo también se puede ejecutar de forma independiente para pruebas puntuales:

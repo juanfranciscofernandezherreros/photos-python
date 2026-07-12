@@ -61,3 +61,20 @@ class SelectorCarpetas(QMainWindow):
             if ruta in self.carpetas_origen: self.carpetas_origen.remove(ruta)
         guardar_carpetas(self.carpetas_origen)
         self._refrescar()
+
+
+def main() -> None:
+    """Punto de entrada independiente: `photos-sync-carpetas` en la terminal,
+    o `python -m photos_sync.selector_carpetas`. Abre solo esta ventana,
+    sin lanzar el pipeline."""
+    import sys
+    from PyQt6.QtWidgets import QApplication
+
+    app = QApplication.instance() or QApplication(sys.argv)
+    ventana = SelectorCarpetas()
+    ventana.show()
+    app.exec()
+
+
+if __name__ == "__main__":
+    main()

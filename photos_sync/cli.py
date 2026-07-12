@@ -72,7 +72,7 @@ def parsear_argumentos() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="photos-sync",
         description="Photos pipeline: downloads, organizes, and compresses screenshots from Z:. "
-                     "Without arguments, opens the interactive menu."
+                     "Without arguments, opens the graphical window."
     )
     grupo = parser.add_mutually_exclusive_group()
     grupo.add_argument(
@@ -86,64 +86,16 @@ def parsear_argumentos() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def abrir_selector_carpetas() -> None:
+def abrir_interfaz_grafica() -> None:
+    """Lanza la ventana principal (PyQt6) con botones para cada paso y un
+    panel de log integrado. Sustituye al antiguo menú de texto."""
     try:
-        from .selector_carpetas import main as selector_main
+        from .main_window import main as gui_main
     except ImportError:
-        print("\n❌ Could not load tkinter. On Windows, it usually comes with Python; "
-              "if missing, reinstall Python checking 'tcl/tk and IDLE'.")
+        print("\n❌ Could not load PyQt6. Install it with: pip install PyQt6")
         return
 
-    selector_main()
-
-
-def menu_interactivo() -> None:
-    while True:
-        print("\n" + "=" * 55)
-        print("🚀 PHOTOS-SYNC - MAIN MENU")
-        print("=" * 55)
-
-        for i, (nombre, _fn) in enumerate(PASOS, 1):
-            print(f"  [{i}] - {nombre}")
-
-        print("-" * 55)
-        print("  [C] - Configure folders to scan")
-        print("  [T] - Execute ALL in order")
-        print("  [S] - Exit")
-        print("=" * 55)
-
-        opcion = input("\nChoose an option (e.g., 1, 1,3, C, T or S): ").strip().upper()
-
-        if opcion == 'S':
-            print("\n👋 Exiting...")
-            break
-
-        if opcion == 'C':
-            abrir_selector_carpetas()
-            continue
-
-        pasos_a_ejecutar: list[PasoPipeline] = []
-
-        if opcion == 'T':
-            pasos_a_ejecutar = PASOS
-        else:
-            try:
-                entradas = opcion.replace(' ', ',').split(',')
-                indices = [int(x.strip()) for x in entradas if x.strip()]
-
-                for indice in indices:
-                    if 1 <= indice <= len(PASOS):
-                        pasos_a_ejecutar.append(PASOS[indice - 1])
-                    else:
-                        print(f"\n⚠️ Ignoring option '{indice}': Out of range.")
-            except ValueError:
-                print("\n❌ Invalid input. Please use numbers, 'C', 'T' for all, or 'S' to exit.")
-                continue
-
-        if not pasos_a_ejecutar:
-            continue
-
-        ejecutar_pasos(pasos_a_ejecutar)
+    gui_main()
 
 
 def modo_cli(args: argparse.Namespace) -> None:
@@ -177,9 +129,12 @@ def main() -> None:
     argumentos = parsear_argumentos()
 
     if argumentos.todo or argumentos.pasos:
+        # Modo desatendido (Programador de tareas de Windows, sin pantalla):
+        # se queda en consola/log a propósito, no abre ninguna ventana.
         modo_cli(argumentos)
     else:
-        menu_interactivo()
+        # Uso normal e interactivo: siempre la interfaz gráfica.
+        abrir_interfaz_grafica()
 
 
 if __name__ == "__main__":

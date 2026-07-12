@@ -1,15 +1,15 @@
 """
 Lectura y escritura de la selección de carpetas a escanear.
 
-Deliberadamente sin ningún import de tkinter: este módulo lo usa tanto la
+Deliberadamente sin ningún import de PyQt6: este módulo lo usa tanto la
 ventana gráfica (selector_carpetas.py) como el propio pipeline
 (descargar.py). Así, ejecutar `photos-sync --todo` en un servidor sin
-interfaz gráfica nunca necesita cargar tkinter.
+interfaz gráfica nunca necesita cargar PyQt6.
 """
 import json
 from pathlib import Path
 
-from .config import ARCHIVO_CARPETAS_SELECCIONADAS, RUTAS_SCREENSHOTS_ORIGEN
+from .config import ARCHIVO_CARPETAS_SELECCIONADAS, ARCHIVO_DESTINO_JSON, RUTAS_SCREENSHOTS_ORIGEN
 
 
 def cargar_carpetas_guardadas() -> list[Path]:
@@ -35,9 +35,6 @@ def guardar_carpetas(carpetas: list[Path]) -> None:
     with open(ARCHIVO_CARPETAS_SELECCIONADAS, 'w', encoding='utf-8') as f:
         json.dump([str(c) for c in carpetas], f, indent=4, ensure_ascii=False)
 
-import json
-from pathlib import Path
-from .config import ARCHIVO_DESTINO_JSON
 
 def cargar_destino_guardado() -> str | None:
     """
