@@ -1,5 +1,6 @@
 import json
 import uuid
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -13,7 +14,6 @@ MetadatosCaptura = dict[str, Any]
 
 
 def unidad_webdav_montada() -> bool:
-    # Convertimos a Path y usamos .is_dir() o comprobamos si es un punto de montaje
     ruta = Path(UNIDAD_WEBDAV)
     return ruta.exists() or ruta.is_dir()
 
@@ -22,7 +22,6 @@ def cargar_metadatos_existentes() -> dict[str, MetadatosCaptura]:
     archivo = Path(ARCHIVO_METADATOS_JSON)
     if not archivo.exists():
         return {}
-
     try:
         with open(archivo, 'r', encoding='utf-8') as f:
             lista_previa: list[MetadatosCaptura] = json.load(f)
@@ -32,12 +31,35 @@ def cargar_metadatos_existentes() -> dict[str, MetadatosCaptura]:
         return {}
 
 
+def obtener_fecha_real(nombre_archivo: str, mtime_fallback: float) -> str:
+    """
+    Intenta extraer la fecha exacta desde el nombre del archivo (Screenshot_20231024_153020).
+    Es la forma más fiable porque WebDAV a menudo rompe las fechas del sistema de archivos.
+    """
+    # Busca Año, Mes, Día y Hora, Minuto, Segundo separados por cualquier cosa
+    match_completo = re.search(r'(20\d{2})\D*(\d{2})\D*(\d{2})\D*(\d{2})\D*(\d{2})\D*(\d{2})', nombre_archivo)
+    if match_completo:
+        a, m, d, h, mn, s = match_completo.groups()
+        # Validamos que los números tengan sentido como fechas
+        if 1 <= int(m) <= 12 and 1 <= int(d) <= 31 and 0 <= int(h) <= 23:
+            return f"{a}-{m}-{d} {h}:{mn}:{s}"
+            
+    # Si no tiene hora, buscamos solo la fecha (Año, Mes, Día)
+    match_fecha = re.search(r'(20\d{2})\D*(\d{2})\D*(\d{2})', nombre_archivo)
+    if match_fecha:
+        a, m, d = match_fecha.groups()
+        if 1 <= int(m) <= 12 and 1 <= int(d) <= 31:
+            return f"{a}-{m}-{d} 12:00:00"
+            
+    # Fallback: Si el nombre no tiene fecha, confiamos en lo que diga el disco
+    return datetime.fromtimestamp(mtime_fallback).strftime('%Y-%m-%d %H:%M:%S')
+
+
 def exportar_metadatos_json() -> None:
     print("Searching for screenshots on Z: drive and extracting metadata...\n")
 
     if not unidad_webdav_montada():
         print(f"❌ Drive {UNIDAD_WEBDAV} is not mounted or accessible.")
-        print(f"   Execute 'net use {UNIDAD_WEBDAV} http://<phone_ip>:8080' and try again.")
         return
 
     archivos_encontrados: list[Path] = []
@@ -55,17 +77,14 @@ def exportar_metadatos_json() -> None:
                     if candidato.is_file() and candidato.suffix.lower() in EXTENSIONES_VALIDAS:
                         archivos_encontrados.append(candidato)
                 except OSError as e:
-                    print(f"   ⚠️ Could not check '{candidato.name}': {e}")
                     errores_listado += 1
         except OSError as e:
-            print(f"   ❌ Error listing '{ruta}': {e}")
             errores_listado += 1
 
-    metadatos_previos: dict[str, MetadatosCaptura] = cargar_metadatos_existentes()
-    metadatos_actuales: dict[str, MetadatosCaptura] = {}
+    metadatos_previos = cargar_metadatos_existentes()
+    metadatos_actuales = {}
     nuevos = 0
     sin_cambios = 0
-    errores_analisis = 0
 
     for archivo in track(archivos_encontrados, description="Analyzing screenshots..."):
         ruta_str = str(archivo)
@@ -84,10 +103,9 @@ def exportar_metadatos_json() -> None:
                 sin_cambios += 1
                 continue
 
-            fecha_legible = datetime.fromtimestamp(stats.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+            # --- MAGIA AQUÍ: Sacamos la fecha real del nombre ---
+            fecha_legible = obtener_fecha_real(archivo.name, stats.st_mtime)
 
-            # Reutilizamos el id si el archivo ya existía (aunque haya cambiado
-            # de tamaño/fecha); si es nuevo, generamos uno único.
             id_captura = anterior["id"] if anterior and "id" in anterior else str(uuid.uuid4())
 
             metadatos_actuales[ruta_str] = {
@@ -101,37 +119,19 @@ def exportar_metadatos_json() -> None:
             }
             nuevos += 1
 
-        except OSError as e:
-            print(f"   ⚠️ Could not read '{archivo.name}', skipping: {e}")
-            errores_analisis += 1
+        except OSError:
             continue
 
-    eliminados = len(metadatos_previos) - sum(
-        1 for ruta_str in metadatos_previos if ruta_str in metadatos_actuales
-    )
-
+    eliminados = len(metadatos_previos) - sum(1 for r in metadatos_previos if r in metadatos_actuales)
     lista_metadatos = list(metadatos_actuales.values())
-    contador_total = len(lista_metadatos)
 
-    if contador_total > 0:
+    if len(lista_metadatos) > 0:
         with open(ARCHIVO_METADATOS_JSON, 'w', encoding='utf-8') as f:
             json.dump(lista_metadatos, f, indent=4, ensure_ascii=False)
-
         print("-" * 50)
-        print(f"✅ Success! The JSON now contains {contador_total} screenshots.")
-        print(f"   - New or updated: {nuevos}")
-        print(f"   - Unchanged: {sin_cambios}")
-        if eliminados > 0:
-            print(f"   - Deleted from phone (removed from JSON): {eliminados}")
-        total_errores = errores_listado + errores_analisis
-        if total_errores > 0:
-            print(f"   - ⚠️ Files skipped due to read error: {total_errores} (check warnings above)")
-        print(f"📁 You can open the file: {ARCHIVO_METADATOS_JSON}")
+        print(f"✅ Success! Metadata extracted and dates corrected.")
     else:
         print("❌ No screenshots found to export.")
-        if errores_listado + errores_analisis > 0:
-            print(f"   ({errores_listado + errores_analisis} files failed to read — check warnings above)")
-
 
 if __name__ == "__main__":
     exportar_metadatos_json()

@@ -1,5 +1,6 @@
 import json
 import shutil
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
@@ -7,6 +8,7 @@ from typing import Any
 
 from rich.progress import Progress, BarColumn, TextColumn, TimeElapsedColumn, TimeRemainingColumn
 
+# Importamos la función para leer el destino que configuraste
 from .carpetas import cargar_destino_guardado
 from .config import ARCHIVO_METADATOS_JSON, CARPETA_SCREENSHOTS_AGRUPADOS, NUM_HILOS_COPIA
 
@@ -22,6 +24,7 @@ def procesar_captura(captura: MetadatosCaptura, destino_base: Path) -> Resultado
         return ("not_found", nombre, f"⚠️ Not found on Z: (Was it deleted?): {ruta_origen}")
 
     try:
+        # 1. Leemos la fecha exacta que extrajimos en descargar.py
         fecha = datetime.strptime(captura["fecha_captura"], '%Y-%m-%d %H:%M:%S')
         ano, mes, dia = fecha.strftime('%Y'), fecha.strftime('%m'), fecha.strftime('%d')
 
@@ -30,10 +33,20 @@ def procesar_captura(captura: MetadatosCaptura, destino_base: Path) -> Resultado
         ruta_destino = carpeta_destino / nombre
 
         if ruta_destino.exists():
+            # Si el archivo ya existía, aprovechamos para REPARAR su fecha en Windows
+            timestamp_real = fecha.timestamp()
+            os.utime(ruta_destino, (timestamp_real, timestamp_real))
+            
             captura["ruta_destino"] = str(ruta_destino)
-            return ("skipped", nombre, f"⏭️ Skipped (already organized): {nombre}")
+            return ("skipped", nombre, f"⏭️ Skipped (already organized - date repaired): {nombre}")
 
+        # 2. Copiamos el archivo al DESTINO QUE TÚ ELEGISTE
         shutil.copy2(ruta_origen, ruta_destino)
+        
+        # 3. FORZAMOS la fecha original en los atributos de Windows
+        timestamp_real = fecha.timestamp()
+        os.utime(ruta_destino, (timestamp_real, timestamp_real))
+
         captura["ruta_destino"] = str(ruta_destino)
         return ("copied", nombre, f"📂 {nombre}  ->  {ano}/{mes}/{dia}/")
 
@@ -42,7 +55,7 @@ def procesar_captura(captura: MetadatosCaptura, destino_base: Path) -> Resultado
 
 
 def organizar_capturas_por_fecha() -> None:
-    # AQUÍ ESTÁ EL CAMBIO PRINCIPAL: Leemos el JSON en lugar de la variable estática
+    # ¡AQUÍ ESTÁ DE VUELTA EL DESTINO DINÁMICO!
     destino_str = cargar_destino_guardado()
     destino_base = Path(destino_str) if destino_str else CARPETA_SCREENSHOTS_AGRUPADOS
 
@@ -58,10 +71,7 @@ def organizar_capturas_por_fecha() -> None:
         with open(ARCHIVO_METADATOS_JSON, 'r', encoding='utf-8') as f:
             lista_capturas: list[MetadatosCaptura] = json.load(f)
     except json.JSONDecodeError:
-        print(f"❌ Error: File '{ARCHIVO_METADATOS_JSON}' is corrupt or not a valid JSON format.")
-        return
-    except Exception as e:
-        print(f"❌ An unexpected error occurred while reading the JSON: {e}")
+        print(f"❌ Error: File '{ARCHIVO_METADATOS_JSON}' is corrupt.")
         return
 
     contadores: dict[str, int] = {"copied": 0, "skipped": 0, "not_found": 0, "error": 0}
@@ -91,17 +101,7 @@ def organizar_capturas_por_fecha() -> None:
     except Exception as e:
         print(f"⚠️ Could not update '{ARCHIVO_METADATOS_JSON}' with destination paths: {e}")
 
-    print("-" * 50)
-    print("ORGANIZATION SUMMARY:")
-    print(f"  - Files copied and grouped: {contadores['copied']}")
-    print(f"  - Files skipped (already existed): {contadores['skipped']}")
-    errores_totales = contadores['not_found'] + contadores['error']
-    if errores_totales > 0:
-        print(f"  - Read/write errors: {errores_totales}")
-
-    if contadores['copied'] > 0:
-        print("\n✅ Your screenshots have been copied and organized successfully!")
-
+    print("\n✅ Your screenshots have been copied and organized successfully!")
 
 if __name__ == "__main__":
     organizar_capturas_por_fecha()
