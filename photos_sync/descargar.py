@@ -13,7 +13,9 @@ MetadatosCaptura = dict[str, Any]
 
 
 def unidad_webdav_montada() -> bool:
-    return Path(f"{UNIDAD_WEBDAV}\\").exists()
+    # Convertimos a Path y usamos .is_dir() o comprobamos si es un punto de montaje
+    ruta = Path(UNIDAD_WEBDAV)
+    return ruta.exists() or ruta.is_dir()
 
 
 def cargar_metadatos_existentes() -> dict[str, MetadatosCaptura]:
