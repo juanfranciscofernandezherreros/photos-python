@@ -6,6 +6,9 @@ resumen_por_dia.json
 carpetas_screenshots.json
 destino_guardado.json
 
+# Conexiones WebDAV guardadas (contiene IPs de tu red local)
+conexiones_webdav.json
+
 # Log de ejecuciones del orquestador
 orquestador.log
 

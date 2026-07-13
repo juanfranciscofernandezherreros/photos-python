@@ -8,14 +8,10 @@ from typing import Any
 from rich.progress import track
 
 from .carpetas import cargar_carpetas_guardadas
-from .config import ARCHIVO_METADATOS_JSON, EXTENSIONES_VALIDAS, UNIDAD_WEBDAV
+from .config import ARCHIVO_METADATOS_JSON, EXTENSIONES_VALIDAS
+from . import conexion
 
 MetadatosCaptura = dict[str, Any]
-
-
-def unidad_webdav_montada() -> bool:
-    ruta = Path(UNIDAD_WEBDAV)
-    return ruta.exists() or ruta.is_dir()
 
 
 def cargar_metadatos_existentes() -> dict[str, MetadatosCaptura]:
@@ -56,16 +52,25 @@ def obtener_fecha_real(nombre_archivo: str, mtime_fallback: float) -> str:
 
 
 def exportar_metadatos_json() -> None:
-    print("Searching for screenshots on Z: drive and extracting metadata...\n")
+    print("Searching for screenshots on connected drives and extracting metadata...\n")
 
-    if not unidad_webdav_montada():
-        print(f"❌ Drive {UNIDAD_WEBDAV} is not mounted or accessible.")
+    carpetas_a_escanear = cargar_carpetas_guardadas()
+    if not carpetas_a_escanear:
+        print("❌ No connection or folder configured yet. Use 'Conexión WebDAV' in the "
+              "main window to connect a phone first.")
         return
+
+    conexiones_guardadas = conexion.cargar_conexiones()
+    if conexiones_guardadas:
+        for c in conexiones_guardadas:
+            estado = "✅ mounted" if conexion.esta_montada(c["letra"]) else "⚠️ NOT mounted right now"
+            print(f"  {c['letra']} ({c.get('alias', c['letra'])} — {c.get('ip')}:{c.get('puerto')}): {estado}")
+        print()
 
     archivos_encontrados: list[Path] = []
     errores_listado = 0
 
-    for ruta in cargar_carpetas_guardadas():
+    for ruta in carpetas_a_escanear:
         if not (ruta.exists() and ruta.is_dir()):
             print(f"⚠️ Subfolder not found on drive: {ruta}")
             continue

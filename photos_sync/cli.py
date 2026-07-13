@@ -10,7 +10,7 @@ from . import descargar, organizar, comprimir, resumen
 PasoPipeline = tuple[str, Callable[[], None]]
 
 PASOS: list[PasoPipeline] = [
-    ("Download metadata (Z: -> JSON)", descargar.exportar_metadatos_json),
+    ("Download metadata (connected drives -> JSON)", descargar.exportar_metadatos_json),
     ("Organize by date (JSON -> grouped/YYYY/MM/DD)", organizar.organizar_capturas_por_fecha),
     ("Compress by day (grouped -> .zip)", comprimir.comprimir_carpetas_por_dia),
     ("Count photos by day (JSON -> resumen_por_dia.json)", resumen.generar_resumen_por_dia),
@@ -71,8 +71,8 @@ def ejecutar_pasos(pasos_a_ejecutar: list[PasoPipeline]) -> bool:
 def parsear_argumentos() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="photos-sync",
-        description="Photos pipeline: downloads, organizes, and compresses screenshots from Z:. "
-                     "Without arguments, opens the graphical window."
+        description="Photos pipeline: downloads, organizes, and compresses screenshots from your "
+                     "connected phones (see 'Conexión WebDAV'). Without arguments, opens the graphical window."
     )
     grupo = parser.add_mutually_exclusive_group()
     grupo.add_argument(

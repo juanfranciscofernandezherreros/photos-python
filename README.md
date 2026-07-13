@@ -51,51 +51,42 @@ Esto instala `rich` y `PyQt6` (las dos dependencias) y registra los comandos `ph
 
 ## ⚙️ Configuración inicial
 
-Todas las rutas del proyecto viven en `photos_sync/config.py`. Antes de la primera ejecución, revisa y ajusta:
+Ya no hace falta editar ningún archivo a mano. `photos_sync/config.py` solo guarda rutas técnicas (dónde se guardan las fotos organizadas, nombres de archivos JSON, etc.):
 
 ```python
-UNIDAD_WEBDAV = "Z:"                  # Letra de unidad que usarás en net use
-CARPETA_BASE_PC = Path(r"C:\Develop") # Dónde quieres que se guarden tus fotos organizadas
+CARPETA_BASE_PC = Path(r"C:\Develop")  # Dónde quieres que se guarden tus fotos organizadas
 ```
 
-Si tu teléfono guarda las capturas en una ruta distinta a `Pictures\Screenshots` o `DCIM\Screenshots`, añádela a `RUTAS_SCREENSHOTS_ORIGEN` en ese mismo archivo — o, más cómodo, usa el selector gráfico de abajo.
+La conexión con el móvil (IP, puerto y letra de unidad) se hace **desde la propia ventana**, en el panel "📡 Conexión WebDAV" — ver más abajo.
 
 ## 🖼️ Todo se maneja desde una ventana gráfica
 
-Ya no hay menús de texto ni que escribir números en la terminal: `photos-sync` (o `python app.py`) abre una única ventana con:
+Ya no hay menús de texto, ni que escribir números en la terminal, ni que ejecutar `net use` a mano en otra ventana: `photos-sync` (o `python app.py`) abre una única ventana con:
 
-- Un botón **⚙️ Configurar carpetas de origen/destino**, que abre el selector gráfico de siempre (navegando por la unidad `Z:` con el explorador de Windows). Al guardar, la selección queda en `carpetas_screenshots.json` y `destino_guardado.json` (en la carpeta desde la que ejecutes la app) y **sustituye** a las rutas por defecto de `config.py`.
+- **📡 Conexión WebDAV**: eliges la **letra de unidad** en un desplegable (D: a Z:, evitando las reservadas A/B/C), pones la **IP** y el **puerto** que muestra la app WebDAV del móvil, y un nombre opcional para identificarlo. Al pulsar **🔗 Conectar**, la app ejecuta por ti exactamente `net use LETRA: http://IP:PUERTO` — no hace falta abrir CMD. Puedes conectar **varios móviles a la vez**, cada uno en su propia letra; todos aparecen en la lista con su estado (🟢 conectado / 🔴 no disponible), y **🔌 Desconectar seleccionada** ejecuta el `net use /delete` correspondiente.
+- **⚙️ Configurar carpetas de origen/destino**: el selector gráfico de siempre. Si no seleccionas nada aquí, el pipeline usa automáticamente `Pictures\Screenshots` y `DCIM\Screenshots` de **cada** móvil que hayas conectado arriba — ya no hay ninguna letra fija en el código.
 - Un botón por cada paso del pipeline (Descargar, Organizar, Comprimir, Contar por día) y un botón **▶ Ejecutar TODO**.
-- Un panel de **registro** integrado en la propia ventana: todo lo que antes se imprimía en la terminal (progreso, avisos, errores, resúmenes) aparece ahí, en vivo, mientras el proceso corre en segundo plano sin congelar la ventana.
-
-Si no guardas ninguna selección de carpetas, el pipeline usa las rutas por defecto de `config.py` — ese paso sigue siendo opcional.
+- Un panel de **registro** integrado en la propia ventana: todo lo que antes se imprimía en la terminal aparece ahí, en vivo, mientras el proceso corre en segundo plano sin congelar la ventana.
 
 ## ▶️ Uso paso a paso
 
-1. **Abre la app WebDAV en tu teléfono** y anota la IP y puerto que muestra (ej. `192.168.1.133:8080`).
+1. **Abre la app WebDAV en tu teléfono** y anota la IP y puerto que muestra (ej. `192.168.1.133:8080`). Si vas a sincronizar varios móviles, anota la IP y puerto de cada uno.
 
-2. **Monta la unidad de red en Windows** (PowerShell o CMD):
-   ```cmd
-   net use Z: http://192.168.1.133:8080
-   ```
-   Comprueba que aparece una unidad `Z:` nueva en "Este equipo".
-
-3. **Abre la aplicación** desde la carpeta donde quieras que se guarden `metadatos_screenshots.json` y el resto de archivos generados (tu "carpeta de trabajo" — puede ser cualquiera, no hace falta estar dentro del repositorio):
+2. **Abre la aplicación** desde la carpeta donde quieras que se guarden `metadatos_screenshots.json` y el resto de archivos generados (tu "carpeta de trabajo" — puede ser cualquiera, no hace falta estar dentro del repositorio):
    ```cmd
    photos-sync
    ```
    (equivalente a `photos-sync-gui`, o `python app.py` si trabajas desde el propio repositorio)
 
-4. En la ventana, configura las carpetas si aún no lo has hecho y pulsa **▶ Ejecutar TODO**, o los botones de cada paso por separado si prefieres ir uno a uno. Los pasos son:
-   - **1 — Descargar**: escanea `Z:` y genera `metadatos_screenshots.json`
+3. En el panel **📡 Conexión WebDAV**, elige una letra libre (por ejemplo `Z:`), escribe la IP y el puerto del móvil y pulsa **🔗 Conectar**. Repite con otra letra (`Y:`, `X:`...) por cada móvil adicional.
+
+4. Configura las carpetas de destino si aún no lo has hecho (o déjalo así, y usará las rutas por defecto de cada móvil conectado) y pulsa **▶ Ejecutar TODO**, o los botones de cada paso por separado si prefieres ir uno a uno:
+   - **1 — Descargar**: escanea todos los móviles conectados y genera `metadatos_screenshots.json`
    - **2 — Organizar por fecha**: copia las capturas listadas en el JSON a `destino\AAAA\MM\DD`
    - **3 — Comprimir**: genera un `.zip` por cada carpeta de día
    - **4 — Contar por día**: genera `resumen_por_dia.json` con el nº de fotos por día
 
-5. Cuando termines, puedes desmontar la unidad de red (opcional):
-   ```cmd
-   net use Z: /delete
-   ```
+5. Cuando termines, selecciona el móvil en la lista y pulsa **🔌 Desconectar seleccionada** (opcional).
 
 ## 🤖 Uso desatendido (CLI y Programador de tareas)
 
@@ -128,6 +119,7 @@ photos-python/
 └── photos_sync/                 # El paquete instalable
     ├── __init__.py
     ├── config.py                # Rutas y constantes centralizadas
+    ├── conexion.py               # Conexiones WebDAV: letra + IP + puerto, net use (una o varias)
     ├── carpetas.py              # Lógica de selección de carpetas (sin PyQt6)
     ├── selector_carpetas.py     # Ventana de configuración: `photos-sync-carpetas`
     ├── main_window.py           # Ventana principal: `photos-sync-gui` (botones + log)

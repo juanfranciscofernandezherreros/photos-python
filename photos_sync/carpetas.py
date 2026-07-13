@@ -9,25 +9,27 @@ interfaz gráfica nunca necesita cargar PyQt6.
 import json
 from pathlib import Path
 
-from .config import ARCHIVO_CARPETAS_SELECCIONADAS, ARCHIVO_DESTINO_JSON, RUTAS_SCREENSHOTS_ORIGEN
+from .config import ARCHIVO_CARPETAS_SELECCIONADAS, ARCHIVO_DESTINO_JSON
+from . import conexion
 
 
 def cargar_carpetas_guardadas() -> list[Path]:
-    """Devuelve las carpetas a escanear: las guardadas por el selector
-    gráfico si existen, o si no, las de config.py por defecto."""
+    """Devuelve las carpetas a escanear: las guardadas explícitamente por
+    el selector gráfico si existen, o si no, las carpetas típicas de
+    capturas de cada móvil que tengas conectado (ver conexion.py)."""
     archivo = Path(ARCHIVO_CARPETAS_SELECCIONADAS)
     if not archivo.exists():
-        return list(RUTAS_SCREENSHOTS_ORIGEN)
+        return conexion.rutas_origen_por_defecto()
 
     try:
         with open(archivo, 'r', encoding='utf-8') as f:
             rutas_guardadas: list[str] = json.load(f)
         if not rutas_guardadas:
-            return list(RUTAS_SCREENSHOTS_ORIGEN)
+            return conexion.rutas_origen_por_defecto()
         return [Path(r) for r in rutas_guardadas]
     except (json.JSONDecodeError, TypeError):
-        print(f"⚠️ '{ARCHIVO_CARPETAS_SELECCIONADAS}' está corrupto, usando las carpetas por defecto de config.py.")
-        return list(RUTAS_SCREENSHOTS_ORIGEN)
+        print(f"⚠️ '{ARCHIVO_CARPETAS_SELECCIONADAS}' está corrupto, usando las carpetas por defecto de cada móvil conectado.")
+        return conexion.rutas_origen_por_defecto()
 
 
 def guardar_carpetas(carpetas: list[Path]) -> None:
