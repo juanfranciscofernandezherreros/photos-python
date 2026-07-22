@@ -2,6 +2,54 @@
 
 Este proyecto es un ecosistema de scripts en Python diseñado para automatizar la extracción, organización y compresión de capturas de pantalla (screenshots) desde un Nothing Phone (o cualquier dispositivo Android) hacia un PC con Windows 11.
 
+## 🐧 Conexión SSH a un servidor Linux (origen y/o destino)
+
+Además de las conexiones WebDAV a móviles, `photos-sync` puede conectarse a
+**cualquier servidor Linux por SSH/SFTP** (no monta nada como unidad de
+red: habla directamente por SFTP, así que funciona igual en Windows,
+Linux o macOS).
+
+Un servidor SSH guardado puede usarse como:
+
+- **origen**: se escanea igual que una carpeta de un móvil, y sus fotos se
+  descargan al organizar por fecha.
+- **destino**: al terminar de organizar localmente, el paso opcional
+  *"Subir organizado a servidor SSH"* sube la carpeta `AAAA/MM/DD`
+  resultante a ese servidor (sin volver a subir lo que ya esté allí con el
+  mismo tamaño).
+- **ambos**: las dos cosas a la vez.
+
+### Requisito adicional
+
+```cmd
+pip install paramiko
+```
+(o `pip install -e ".[ssh]"` desde la raíz del repositorio)
+
+### Desde la ventana gráfica
+
+En el panel **🐧 Conexión SSH**: rellena nombre, host, puerto, usuario,
+ruta remota y (opcionalmente) la ruta a una clave privada; elige el rol
+("origen", "destino" o "ambos"); pulsa **🔍 Probar conexión** para
+verificarlo (la contraseña, si la usas para probar, nunca se guarda en
+disco) y **💾 Guardar**. El pipeline la usará automáticamente a partir de
+ahí. También puedes elegir un servidor SSH guardado como destino desde
+"⚙️ Configurar carpetas de origen/destino" → "🐧 Servidor SSH guardado".
+
+### Desde la terminal (sin GUI, útil en servidores)
+
+```cmd
+photos-sync --ssh-add NAS 192.168.1.50 22 juan /home/juan/fotos --ssh-key ~/.ssh/id_rsa --ssh-rol ambos
+photos-sync --ssh-list
+photos-sync --ssh-test NAS
+photos-sync --ssh-remove NAS
+```
+
+Autenticación: si pasas `--ssh-key`, se usa esa clave privada; si no, se
+intenta el agente SSH y las claves por defecto del usuario. Por contraseña
+solo se puede probar la conexión desde la ventana gráfica (nunca se
+persiste en el JSON de conexiones).
+
 ## 🚀 El Problema que Resuelve
 
 Por defecto, Windows conecta los teléfonos Android mediante el protocolo **MTP (Media Transfer Protocol)**. Esto monta el dispositivo como un "reproductor multimedia" sin asignarle una letra de unidad física (como `C:\` o `Z:\`). Debido a esto, los lenguajes de programación como Python no pueden leer los archivos del móvil de forma nativa utilizando rutas estándar.
@@ -120,15 +168,17 @@ photos-python/
     ├── __init__.py
     ├── config.py                # Rutas y constantes centralizadas
     ├── conexion.py               # Conexiones WebDAV: letra + IP + puerto, net use (una o varias)
+    ├── ssh_conexion.py           # Conexiones SSH/SFTP a servidores Linux (origen y/o destino)
     ├── carpetas.py              # Lógica de selección de carpetas (sin PyQt6)
     ├── selector_carpetas.py     # Ventana de configuración: `photos-sync-carpetas`
     ├── main_window.py           # Ventana principal: `photos-sync-gui` (botones + log)
-    ├── descargar.py             # Z: -> metadatos_screenshots.json
-    ├── organizar.py             # JSON -> screenshots_agrupados\AAAA\MM\DD
+    ├── descargar.py             # Z: / servidor SSH -> metadatos_screenshots.json
+    ├── organizar.py             # JSON -> screenshots_agrupados\AAAA\MM\DD (copia local o vía SFTP)
+    ├── subir_ssh.py             # screenshots_agrupados -> servidor SSH destino (opcional)
     ├── comprimir.py             # screenshots_agrupados -> .zip por día
     ├── resumen.py                # JSON -> resumen_por_dia.json
     ├── mantener_despierto.py     # Evita que Windows suspenda el PC mientras corre el pipeline
-    └── cli.py                   # Punto de entrada del comando `photos-sync` (GUI o --todo/--pasos)
+    └── cli.py                   # Punto de entrada del comando `photos-sync` (GUI, --todo/--pasos o --ssh-*)
 ```
 
 Cada módulo también se puede ejecutar de forma independiente para pruebas puntuales:

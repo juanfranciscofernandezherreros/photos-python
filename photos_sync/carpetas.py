@@ -40,27 +40,74 @@ def guardar_carpetas(carpetas: list[Path]) -> None:
 
 def cargar_destino_guardado() -> str | None:
     """
-    Carga la ruta de destino guardada en el archivo JSON.
-    Devuelve None si el archivo no existe o está corrupto.
+    Carga la ruta de destino LOCAL guardada en el archivo JSON.
+    Devuelve None si el archivo no existe, está corrupto, o si el destino
+    configurado es en realidad un servidor SSH (ver cargar_destino_config()).
+
+    Se mantiene por compatibilidad: organizar.py y comprimir.py la usan tal
+    cual para decidir la carpeta local donde se organiza/comprime siempre
+    (incluso si luego, además, se sube esa misma carpeta a un servidor SSH).
     """
-    archivo = Path(ARCHIVO_DESTINO_JSON)
-    if not archivo.exists():
-        return None
-        
-    try:
-        with open(archivo, 'r', encoding='utf-8') as f:
-            datos = json.load(f)
-            return datos.get("destino")
-    except (json.JSONDecodeError, KeyError, OSError):
-        return None
+    config = cargar_destino_config()
+    if config.get("tipo") == "local":
+        return config.get("ruta")
+    return None
+
 
 def guardar_destino(ruta: str) -> None:
     """
-    Guarda la ruta de destino seleccionada en un archivo JSON.
+    Guarda la ruta de destino LOCAL seleccionada en un archivo JSON.
     """
-    datos = {"destino": ruta}
+    datos = {"tipo": "local", "ruta": ruta}
     try:
         with open(ARCHIVO_DESTINO_JSON, 'w', encoding='utf-8') as f:
             json.dump(datos, f, indent=4, ensure_ascii=False)
     except OSError as e:
         print(f"❌ Error al guardar el destino: {e}")
+
+
+def cargar_destino_config() -> dict:
+    """
+    Carga la configuración de destino completa: {"tipo": "local", "ruta": ...}
+    o {"tipo": "ssh", "alias": ...} si el destino elegido es un servidor
+    Linux por SSH (ver ssh_conexion.py). Devuelve {} si no hay nada
+    configurado o el archivo está corrupto.
+
+    Nota: por compatibilidad con versiones anteriores del proyecto, un
+    fichero antiguo con el formato {"destino": "ruta"} se sigue leyendo
+    correctamente como destino local.
+    """
+    archivo = Path(ARCHIVO_DESTINO_JSON)
+    if not archivo.exists():
+        return {}
+
+    try:
+        with open(archivo, 'r', encoding='utf-8') as f:
+            datos = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+    if not isinstance(datos, dict):
+        return {}
+
+    if datos.get("tipo") in ("local", "ssh"):
+        return datos
+    if "destino" in datos:  # formato antiguo, antes de añadir soporte SSH
+        return {"tipo": "local", "ruta": datos["destino"]}
+    return {}
+
+
+def guardar_destino_ssh(alias: str) -> None:
+    """
+    Configura el destino como un servidor Linux ya guardado en
+    ssh_conexion.py (identificado por su alias), en vez de una carpeta
+    local. La organización local (organizar.py) sigue haciéndose en la
+    carpeta por defecto/local que ya hubiera configurada; el paso extra
+    'subir_ssh.py' es quien envía lo organizado a este servidor.
+    """
+    datos = {"tipo": "ssh", "alias": alias}
+    try:
+        with open(ARCHIVO_DESTINO_JSON, 'w', encoding='utf-8') as f:
+            json.dump(datos, f, indent=4, ensure_ascii=False)
+    except OSError as e:
+        print(f"❌ Error al guardar el destino SSH: {e}")

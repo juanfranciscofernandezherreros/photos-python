@@ -2,14 +2,14 @@ import json
 import uuid
 import re
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from rich.progress import track
 
 from .carpetas import cargar_carpetas_guardadas
 from .config import ARCHIVO_METADATOS_JSON, EXTENSIONES_VALIDAS
-from . import conexion
+from . import conexion, ssh_conexion
 
 MetadatosCaptura = dict[str, Any]
 
@@ -51,13 +51,46 @@ def obtener_fecha_real(nombre_archivo: str, mtime_fallback: float) -> str:
     return datetime.fromtimestamp(mtime_fallback).strftime('%Y-%m-%d %H:%M:%S')
 
 
+def escanear_servidor_ssh(conexion_ssh: ssh_conexion.ConexionSSH) -> list[dict[str, Any]]:
+    """Se conecta por SFTP a un servidor Linux configurado como origen (o
+    'ambos') y devuelve una lista de "candidatos" con la misma forma que
+    los ficheros locales, pero marcados con ssh_alias/ssh_ruta_remota para
+    que organizar.py sepa que hay que descargarlos por SFTP en vez de
+    copiarlos con shutil."""
+    alias = conexion_ssh["alias"]
+    ruta_remota = conexion_ssh["ruta_remota"]
+
+    try:
+        with ssh_conexion.ClienteSSH(conexion_ssh) as cliente:
+            archivos = cliente.listar_archivos_recursivo(ruta_remota, EXTENSIONES_VALIDAS)
+    except Exception as e:
+        print(f"⚠️ No se pudo escanear el servidor SSH '{alias}' ({conexion_ssh['host']}): {e}")
+        return []
+
+    candidatos = []
+    for archivo in archivos:
+        nombre = PurePosixPath(archivo["ruta"]).name
+        candidatos.append({
+            "ruta_str": f"ssh://{alias}{archivo['ruta']}",
+            "archivo": nombre,
+            "formato": PurePosixPath(nombre).suffix.lower().replace('.', ''),
+            "tamano_mb": round(archivo["tamano"] / (1024 * 1024), 2),
+            "mtime": archivo["mtime"],
+            "ssh_alias": alias,
+            "ssh_ruta_remota": archivo["ruta"],
+        })
+    return candidatos
+
+
 def exportar_metadatos_json() -> None:
     print("Searching for screenshots on connected drives and extracting metadata...\n")
 
     carpetas_a_escanear = cargar_carpetas_guardadas()
-    if not carpetas_a_escanear:
-        print("❌ No connection or folder configured yet. Use 'Conexión WebDAV' in the "
-              "main window to connect a phone first.")
+    servidores_ssh_origen = ssh_conexion.conexiones_por_rol("origen")
+
+    if not carpetas_a_escanear and not servidores_ssh_origen:
+        print("❌ No connection or folder configured yet. Use 'Conexión WebDAV' or "
+              "'Conexión SSH' in the main window to connect a phone or a Linux server first.")
         return
 
     conexiones_guardadas = conexion.cargar_conexiones()
@@ -85,6 +118,19 @@ def exportar_metadatos_json() -> None:
                     errores_listado += 1
         except OSError as e:
             errores_listado += 1
+
+    # --- Servidores Linux por SSH configurados como origen ---
+    candidatos_ssh: list[dict[str, Any]] = []
+    if servidores_ssh_origen:
+        if not ssh_conexion.paramiko_disponible():
+            print("⚠️ Hay servidores SSH configurados como origen, pero falta 'paramiko'. "
+                  "Instálalo con: pip install paramiko\n")
+        else:
+            for c in servidores_ssh_origen:
+                print(f"✅ Extracting data from SSH server: {c['alias']} "
+                      f"({c['usuario']}@{c['host']}:{c['ruta_remota']})")
+                candidatos_ssh.extend(escanear_servidor_ssh(c))
+            print()
 
     metadatos_previos = cargar_metadatos_existentes()
     metadatos_actuales = {}
@@ -126,6 +172,36 @@ def exportar_metadatos_json() -> None:
 
         except OSError:
             continue
+
+    for candidato in track(candidatos_ssh, description="Analyzing screenshots on SSH servers..."):
+        ruta_str = candidato["ruta_str"]
+        peso_mb = candidato["tamano_mb"]
+        anterior = metadatos_previos.get(ruta_str)
+
+        if (anterior
+                and anterior.get("tamano_mb") == peso_mb
+                and anterior.get("mtime") == candidato["mtime"]):
+            if "id" not in anterior:
+                anterior["id"] = str(uuid.uuid4())
+            metadatos_actuales[ruta_str] = anterior
+            sin_cambios += 1
+            continue
+
+        fecha_legible = obtener_fecha_real(candidato["archivo"], candidato["mtime"])
+        id_captura = anterior["id"] if anterior and "id" in anterior else str(uuid.uuid4())
+
+        metadatos_actuales[ruta_str] = {
+            "id": id_captura,
+            "archivo": candidato["archivo"],
+            "formato": candidato["formato"],
+            "tamano_mb": peso_mb,
+            "mtime": candidato["mtime"],
+            "fecha_captura": fecha_legible,
+            "ruta_original": ruta_str,
+            "ssh_alias": candidato["ssh_alias"],
+            "ssh_ruta_remota": candidato["ssh_ruta_remota"],
+        }
+        nuevos += 1
 
     eliminados = len(metadatos_previos) - sum(1 for r in metadatos_previos if r in metadatos_actuales)
     lista_metadatos = list(metadatos_actuales.values())

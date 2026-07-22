@@ -9,6 +9,7 @@ ARCHIVO_DESTINO_JSON = "destino_guardado.json"
 ARCHIVO_RESUMEN_DIAS: str = "resumen_por_dia.json"
 ARCHIVO_LOG_ORQUESTADOR: str = "orquestador.log"
 ARCHIVO_CONEXIONES_JSON: str = "conexiones_webdav.json"
+ARCHIVO_CONEXIONES_SSH_JSON: str = "conexiones_ssh.json"
 EXTENSIONES_VALIDAS: list[str] = ['.png', '.jpg', '.jpeg', '.webp']
 NUM_HILOS_COPIA: int = 8
 BORRAR_ORIGINALES_TRAS_COMPRIMIR: bool = False

@@ -1,13 +1,15 @@
 from pathlib import Path
-from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
-                             QLabel, QListWidget, QFileDialog, QGroupBox, QAbstractItemView)
-from .carpetas import cargar_carpetas_guardadas, guardar_carpetas, cargar_destino_guardado, guardar_destino
+from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
+                             QLabel, QListWidget, QFileDialog, QGroupBox, QAbstractItemView,
+                             QInputDialog, QMessageBox)
+from .carpetas import cargar_carpetas_guardadas, guardar_carpetas, cargar_destino_guardado, guardar_destino, guardar_destino_ssh
+from . import ssh_conexion
 
 class SelectorCarpetas(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Configuración de Fotos")
-        self.setFixedSize(500, 450)
+        self.setFixedSize(500, 480)
         self.carpetas_origen = cargar_carpetas_guardadas()
         destino_previo = cargar_destino_guardado()
         self.carpeta_destino = Path(destino_previo) if destino_previo else None
@@ -19,8 +21,12 @@ class SelectorCarpetas(QMainWindow):
         # Destino
         self.lbl = QLabel(str(self.carpeta_destino) if self.carpeta_destino else "Sin destino configurado")
         l.addWidget(QLabel("<b>Carpeta de Destino:</b>")); l.addWidget(self.lbl)
-        btn_dest = QPushButton("Elegir Carpeta de Destino"); btn_dest.clicked.connect(self._selec_dest)
-        l.addWidget(btn_dest)
+        fila_destino = QHBoxLayout()
+        btn_dest = QPushButton("📁 Carpeta local"); btn_dest.clicked.connect(self._selec_dest)
+        fila_destino.addWidget(btn_dest)
+        btn_dest_ssh = QPushButton("🐧 Servidor SSH guardado"); btn_dest_ssh.clicked.connect(self._selec_dest_ssh)
+        fila_destino.addWidget(btn_dest_ssh)
+        l.addLayout(fila_destino)
         
         # Origen
         self.lista = QListWidget(); l.addWidget(QLabel("<b>Carpetas a escanear:</b>")); l.addWidget(self.lista)
@@ -45,6 +51,24 @@ class SelectorCarpetas(QMainWindow):
             self.carpeta_destino = Path(d)
             self.lbl.setText(d)
             guardar_destino(d) # Se guarda al momento para que no haya error si no existe
+
+    def _selec_dest_ssh(self):
+        alias_disponibles = [c["alias"] for c in ssh_conexion.cargar_conexiones_ssh()]
+        if not alias_disponibles:
+            QMessageBox.information(
+                self, "Sin servidores SSH",
+                "Todavía no has guardado ninguna conexión SSH. Añade una desde el panel "
+                "'🐧 Conexión SSH' de la ventana principal."
+            )
+            return
+
+        alias, ok = QInputDialog.getItem(
+            self, "Servidor SSH como destino", "Elige un servidor:", alias_disponibles, 0, False
+        )
+        if ok and alias:
+            guardar_destino_ssh(alias)
+            self.lbl.setText(f"🐧 Servidor SSH: {alias} (la organización local sigue igual; "
+                              f"'Subir a SSH' copia después lo organizado a este servidor)")
 
     def _add_orig(self):
         d = QFileDialog.getExistingDirectory(self, "Seleccionar origen")

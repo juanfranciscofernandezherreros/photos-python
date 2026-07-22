@@ -13,20 +13,21 @@ from PyQt6.QtGui import QFont, QTextCursor
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QTextEdit, QProgressBar, QMessageBox, QGroupBox,
-    QComboBox, QLineEdit, QListWidget, QListWidgetItem, QFormLayout,
+    QComboBox, QLineEdit, QListWidget, QListWidgetItem, QFormLayout, QFileDialog,
 )
 
 from .selector_carpetas import SelectorCarpetas
 from .mantener_despierto import evitar_suspension
-from . import descargar, organizar, comprimir, resumen, conexion
+from . import descargar, organizar, comprimir, resumen, conexion, ssh_conexion, subir_ssh
 
 PasoPipeline = tuple[str, Callable[[], None]]
 
 PASOS: list[PasoPipeline] = [
-    ("Descargar metadatos (móviles conectados -> JSON)", descargar.exportar_metadatos_json),
+    ("Descargar metadatos (móviles/servidores SSH conectados -> JSON)", descargar.exportar_metadatos_json),
     ("Organizar por fecha (JSON -> agrupado/AAAA/MM/DD)", organizar.organizar_capturas_por_fecha),
     ("Comprimir por día (agrupado -> .zip)", comprimir.comprimir_carpetas_por_dia),
     ("Contar fotos por día (JSON -> resumen_por_dia.json)", resumen.generar_resumen_por_dia),
+    ("Subir organizado a servidor SSH (opcional)", subir_ssh.subir_organizado_a_ssh),
 ]
 
 
@@ -65,6 +66,24 @@ class WorkerConexion(QThread):
         self.terminado.emit(exito, mensaje, self.letra, self.accion)
 
 
+class WorkerConexionSSH(QThread):
+    """Prueba una conexión SSH/SFTP (conectar + listar la ruta remota) en
+    un hilo aparte: si el servidor no responde, el intento puede tardar
+    hasta el timeout sin congelar la ventana. A diferencia de la unidad
+    WebDAV, una conexión SSH no se 'monta': solo se guarda su configuración
+    y se abre/cierra cada vez que el pipeline la necesita."""
+    terminado = pyqtSignal(bool, str)  # (éxito, mensaje)
+
+    def __init__(self, conexion_ssh: ssh_conexion.ConexionSSH, contrasena: str = "") -> None:
+        super().__init__()
+        self.conexion_ssh = conexion_ssh
+        self.contrasena = contrasena
+
+    def run(self) -> None:
+        exito, mensaje = ssh_conexion.ClienteSSH(self.conexion_ssh, contrasena=self.contrasena).probar()
+        self.terminado.emit(exito, mensaje)
+
+
 class WorkerPipeline(QThread):
     """Ejecuta una lista de pasos del pipeline en un hilo secundario para
     no congelar la interfaz."""
@@ -95,10 +114,12 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(720, 560)
         self.worker: WorkerPipeline | None = None
         self.worker_conexion: WorkerConexion | None = None
+        self.worker_ssh: WorkerConexionSSH | None = None
         self.ventana_carpetas: SelectorCarpetas | None = None
         self._construir_interfaz()
         self._redirigir_salida()
         self._refrescar_conexiones()
+        self._refrescar_conexiones_ssh()
 
     # ---------------------------------------------------------- interfaz --
     def _construir_interfaz(self) -> None:
@@ -153,6 +174,75 @@ class MainWindow(QMainWindow):
         col_conexion.addWidget(self.lista_conexiones)
 
         layout.addWidget(grupo_conexion)
+
+        # --- Conexión SSH (uno o varios servidores Linux) ---
+        grupo_ssh = QGroupBox("🐧 Conexión SSH (servidor Linux, origen y/o destino)")
+        col_ssh = QVBoxLayout(grupo_ssh)
+
+        fila_ssh_1 = QFormLayout()
+        self.campo_ssh_alias = QLineEdit()
+        self.campo_ssh_alias.setPlaceholderText("ej. NAS de casa")
+        fila_ssh_1.addRow("Nombre:", self.campo_ssh_alias)
+
+        self.campo_ssh_host = QLineEdit()
+        self.campo_ssh_host.setPlaceholderText("ej. 192.168.1.50 o midominio.com")
+        fila_ssh_1.addRow("Host:", self.campo_ssh_host)
+
+        self.campo_ssh_puerto = QLineEdit()
+        self.campo_ssh_puerto.setText("22")
+        fila_ssh_1.addRow("Puerto:", self.campo_ssh_puerto)
+
+        self.campo_ssh_usuario = QLineEdit()
+        self.campo_ssh_usuario.setPlaceholderText("ej. juan")
+        fila_ssh_1.addRow("Usuario:", self.campo_ssh_usuario)
+
+        col_ssh.addLayout(fila_ssh_1)
+
+        fila_ssh_2 = QFormLayout()
+        self.campo_ssh_ruta = QLineEdit()
+        self.campo_ssh_ruta.setPlaceholderText("ej. /home/juan/fotos")
+        fila_ssh_2.addRow("Ruta remota:", self.campo_ssh_ruta)
+
+        fila_clave = QHBoxLayout()
+        self.campo_ssh_clave = QLineEdit()
+        self.campo_ssh_clave.setPlaceholderText("opcional: ruta a clave privada, ej. ~/.ssh/id_rsa")
+        fila_clave.addWidget(self.campo_ssh_clave)
+        btn_elegir_clave = QPushButton("📁")
+        btn_elegir_clave.setToolTip("Elegir fichero de clave privada")
+        btn_elegir_clave.clicked.connect(self._elegir_clave_ssh)
+        fila_clave.addWidget(btn_elegir_clave)
+        fila_ssh_2.addRow("Clave privada:", fila_clave)
+
+        self.campo_ssh_contrasena = QLineEdit()
+        self.campo_ssh_contrasena.setEchoMode(QLineEdit.EchoMode.Password)
+        self.campo_ssh_contrasena.setPlaceholderText("solo para 'Probar conexión'; no se guarda en disco")
+        fila_ssh_2.addRow("Contraseña:", self.campo_ssh_contrasena)
+
+        self.combo_ssh_rol = QComboBox()
+        self.combo_ssh_rol.addItems(ssh_conexion.ROLES_VALIDOS)
+        fila_ssh_2.addRow("Usar como:", self.combo_ssh_rol)
+
+        col_ssh.addLayout(fila_ssh_2)
+
+        fila_botones_ssh = QHBoxLayout()
+        btn_guardar_ssh = QPushButton("💾 Guardar")
+        btn_guardar_ssh.clicked.connect(self._guardar_conexion_ssh)
+        fila_botones_ssh.addWidget(btn_guardar_ssh)
+        self.btn_probar_ssh = QPushButton("🔍 Probar conexión")
+        self.btn_probar_ssh.clicked.connect(self._probar_conexion_ssh)
+        fila_botones_ssh.addWidget(self.btn_probar_ssh)
+        btn_eliminar_ssh = QPushButton("🗑️ Eliminar seleccionada")
+        btn_eliminar_ssh.clicked.connect(self._eliminar_conexion_ssh)
+        fila_botones_ssh.addWidget(btn_eliminar_ssh)
+        col_ssh.addLayout(fila_botones_ssh)
+
+        col_ssh.addWidget(QLabel("Servidores SSH guardados:"))
+        self.lista_conexiones_ssh = QListWidget()
+        self.lista_conexiones_ssh.setMaximumHeight(90)
+        self.lista_conexiones_ssh.itemClicked.connect(self._cargar_conexion_ssh_en_formulario)
+        col_ssh.addWidget(self.lista_conexiones_ssh)
+
+        layout.addWidget(grupo_ssh)
 
         # --- Configuración ---
         grupo_config = QGroupBox("Configuración")
@@ -277,6 +367,119 @@ class MainWindow(QMainWindow):
             self.lbl_estado.setText(mensaje if exito else f"⚠️ {mensaje}")
 
         self._refrescar_conexiones()
+
+    # ------------------------------------------------------------ SSH --
+    def _refrescar_conexiones_ssh(self) -> None:
+        self.lista_conexiones_ssh.clear()
+        for c in ssh_conexion.cargar_conexiones_ssh():
+            texto = (f"{c['alias']}  —  {c['usuario']}@{c['host']}:{c['puerto']}  "
+                     f"'{c['ruta_remota']}'  (rol: {c['rol']})")
+            item = QListWidgetItem(texto)
+            item.setData(1000, c["alias"])
+            self.lista_conexiones_ssh.addItem(item)
+
+    def _elegir_clave_ssh(self) -> None:
+        ruta, _ = QFileDialog.getOpenFileName(self, "Elegir clave privada SSH")
+        if ruta:
+            self.campo_ssh_clave.setText(ruta)
+
+    def _leer_formulario_ssh(self) -> ssh_conexion.ConexionSSH | None:
+        alias = self.campo_ssh_alias.text().strip()
+        host = self.campo_ssh_host.text().strip()
+        usuario = self.campo_ssh_usuario.text().strip()
+        ruta_remota = self.campo_ssh_ruta.text().strip()
+
+        if not (alias and host and usuario and ruta_remota):
+            QMessageBox.warning(
+                self, "Faltan datos",
+                "Rellena al menos nombre, host, usuario y ruta remota."
+            )
+            return None
+
+        try:
+            puerto = int(self.campo_ssh_puerto.text().strip() or "22")
+        except ValueError:
+            QMessageBox.warning(self, "Puerto no válido", "El puerto debe ser un número, ej. 22.")
+            return None
+
+        return {
+            "alias": alias,
+            "host": host,
+            "puerto": puerto,
+            "usuario": usuario,
+            "ruta_remota": ruta_remota,
+            "clave_privada": self.campo_ssh_clave.text().strip(),
+            "rol": self.combo_ssh_rol.currentText(),
+        }
+
+    def _guardar_conexion_ssh(self) -> None:
+        datos = self._leer_formulario_ssh()
+        if datos is None:
+            return
+
+        ssh_conexion.anadir_o_actualizar_conexion_ssh(
+            alias=datos["alias"], host=datos["host"], puerto=datos["puerto"],
+            usuario=datos["usuario"], ruta_remota=datos["ruta_remota"],
+            clave_privada=datos["clave_privada"], rol=datos["rol"],
+        )
+        self._refrescar_conexiones_ssh()
+        self.lbl_estado.setText(f"Conexión SSH '{datos['alias']}' guardada.")
+
+    def _probar_conexion_ssh(self) -> None:
+        if self.worker_ssh is not None and self.worker_ssh.isRunning():
+            QMessageBox.warning(self, "En curso", "Ya hay una prueba de conexión SSH en curso.")
+            return
+        if not ssh_conexion.paramiko_disponible():
+            QMessageBox.critical(
+                self, "Falta 'paramiko'",
+                "Instala la librería con: pip install paramiko"
+            )
+            return
+
+        datos = self._leer_formulario_ssh()
+        if datos is None:
+            return
+
+        self.btn_probar_ssh.setEnabled(False)
+        self.lbl_estado.setText(f"Probando conexión SSH con {datos['host']}...")
+        print(f"\n🔍 Probando conexión SSH: {datos['usuario']}@{datos['host']}:{datos['puerto']} "
+              f"'{datos['ruta_remota']}'")
+
+        # La contraseña (si se ha escrito) solo se usa para esta prueba
+        # puntual: no se guarda en disco en ningún momento.
+        self.worker_ssh = WorkerConexionSSH(datos, contrasena=self.campo_ssh_contrasena.text())
+        self.worker_ssh.terminado.connect(self._al_terminar_prueba_ssh)
+        self.worker_ssh.start()
+
+    def _al_terminar_prueba_ssh(self, exito: bool, mensaje: str) -> None:
+        self.btn_probar_ssh.setEnabled(True)
+        print(mensaje)
+        self.lbl_estado.setText(mensaje)
+        if not exito:
+            QMessageBox.critical(self, "Error de conexión SSH", mensaje)
+
+    def _eliminar_conexion_ssh(self) -> None:
+        item = self.lista_conexiones_ssh.currentItem()
+        if item is None:
+            QMessageBox.information(self, "Nada seleccionado", "Selecciona primero un servidor de la lista.")
+            return
+        alias = item.data(1000)
+        ssh_conexion.quitar_conexion_ssh(alias)
+        self._refrescar_conexiones_ssh()
+        self.lbl_estado.setText(f"Conexión SSH '{alias}' eliminada.")
+
+    def _cargar_conexion_ssh_en_formulario(self, item: QListWidgetItem) -> None:
+        alias = item.data(1000)
+        c = ssh_conexion.obtener_conexion(alias)
+        if c is None:
+            return
+        self.campo_ssh_alias.setText(c["alias"])
+        self.campo_ssh_host.setText(c["host"])
+        self.campo_ssh_puerto.setText(str(c["puerto"]))
+        self.campo_ssh_usuario.setText(c["usuario"])
+        self.campo_ssh_ruta.setText(c["ruta_remota"])
+        self.campo_ssh_clave.setText(c["clave_privada"])
+        self.combo_ssh_rol.setCurrentText(c["rol"])
 
     # ------------------------------------------------------------ acciones --
     def _abrir_selector_carpetas(self) -> None:
