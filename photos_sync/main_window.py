@@ -8,16 +8,18 @@ import sys
 import traceback
 from typing import Callable
 
-from PyQt6.QtCore import QObject, QThread, pyqtSignal
+from PyQt6.QtCore import QObject, QThread, Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QTextCursor
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QTextEdit, QProgressBar, QMessageBox, QGroupBox,
     QComboBox, QLineEdit, QListWidget, QListWidgetItem, QFormLayout, QFileDialog,
+    QScrollArea, QSizePolicy,
 )
 
 from .selector_carpetas import SelectorCarpetas
 from .mantener_despierto import evitar_suspension
+from .flow_layout import FlowLayout
 from . import descargar, organizar, comprimir, resumen, conexion, ssh_conexion, subir_ssh
 
 PasoPipeline = tuple[str, Callable[[], None]]
@@ -111,7 +113,12 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Photos Sync")
-        self.setMinimumSize(720, 560)
+        # Tamaño mínimo pequeño: la ventana es responsive (se adapta a
+        # pantallas y ventanas más estrechas gracias al QScrollArea y al
+        # FlowLayout de los botones), así que no necesitamos imponer un
+        # ancho/alto grande de partida.
+        self.setMinimumSize(420, 480)
+        self.resize(820, 640)
         self.worker: WorkerPipeline | None = None
         self.worker_conexion: WorkerConexion | None = None
         self.worker_ssh: WorkerConexionSSH | None = None
@@ -123,8 +130,17 @@ class MainWindow(QMainWindow):
 
     # ---------------------------------------------------------- interfaz --
     def _construir_interfaz(self) -> None:
+        # El contenido real vive dentro de un QScrollArea: si la ventana se
+        # hace más pequeña que el contenido (pantallas chicas, portátiles,
+        # o simplemente redimensionar a mano), aparece una barra de scroll
+        # en vez de recortar o deformar los controles.
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.setCentralWidget(scroll)
+
         central = QWidget()
-        self.setCentralWidget(central)
+        scroll.setWidget(central)
         layout = QVBoxLayout(central)
 
         titulo = QLabel("📱 Photos Sync — Nothing Phone")
@@ -156,7 +172,7 @@ class MainWindow(QMainWindow):
 
         col_conexion.addLayout(fila_datos)
 
-        fila_botones_conexion = QHBoxLayout()
+        fila_botones_conexion = FlowLayout()
         self.btn_conectar = QPushButton("🔗 Conectar")
         self.btn_conectar.clicked.connect(self._conectar)
         fila_botones_conexion.addWidget(self.btn_conectar)
@@ -170,7 +186,9 @@ class MainWindow(QMainWindow):
 
         col_conexion.addWidget(QLabel("Móviles conectados/guardados:"))
         self.lista_conexiones = QListWidget()
-        self.lista_conexiones.setMaximumHeight(90)
+        self.lista_conexiones.setMinimumHeight(70)
+        self.lista_conexiones.setMaximumHeight(120)
+        self.lista_conexiones.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         col_conexion.addWidget(self.lista_conexiones)
 
         layout.addWidget(grupo_conexion)
@@ -224,7 +242,7 @@ class MainWindow(QMainWindow):
 
         col_ssh.addLayout(fila_ssh_2)
 
-        fila_botones_ssh = QHBoxLayout()
+        fila_botones_ssh = FlowLayout()
         btn_guardar_ssh = QPushButton("💾 Guardar")
         btn_guardar_ssh.clicked.connect(self._guardar_conexion_ssh)
         fila_botones_ssh.addWidget(btn_guardar_ssh)
@@ -238,7 +256,9 @@ class MainWindow(QMainWindow):
 
         col_ssh.addWidget(QLabel("Servidores SSH guardados:"))
         self.lista_conexiones_ssh = QListWidget()
-        self.lista_conexiones_ssh.setMaximumHeight(90)
+        self.lista_conexiones_ssh.setMinimumHeight(70)
+        self.lista_conexiones_ssh.setMaximumHeight(120)
+        self.lista_conexiones_ssh.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.lista_conexiones_ssh.itemClicked.connect(self._cargar_conexion_ssh_en_formulario)
         col_ssh.addWidget(self.lista_conexiones_ssh)
 
@@ -246,7 +266,7 @@ class MainWindow(QMainWindow):
 
         # --- Configuración ---
         grupo_config = QGroupBox("Configuración")
-        fila_config = QHBoxLayout(grupo_config)
+        fila_config = FlowLayout(grupo_config)
         btn_carpetas = QPushButton("⚙️ Configurar carpetas de origen/destino")
         btn_carpetas.clicked.connect(self._abrir_selector_carpetas)
         fila_config.addWidget(btn_carpetas)
@@ -254,7 +274,7 @@ class MainWindow(QMainWindow):
 
         # --- Pasos individuales ---
         grupo_pasos = QGroupBox("Pasos del pipeline")
-        fila_pasos = QHBoxLayout(grupo_pasos)
+        fila_pasos = FlowLayout(grupo_pasos)
         self.botones_paso: list[QPushButton] = []
         for i, (nombre, _fn) in enumerate(PASOS):
             btn = QPushButton(f"{i + 1}. {nombre.split('(')[0].strip()}")
@@ -284,6 +304,8 @@ class MainWindow(QMainWindow):
         self.log.setReadOnly(True)
         self.log.setFont(QFont("Consolas", 9))
         self.log.setStyleSheet("background-color: #1e1e1e; color: #d4d4d4;")
+        self.log.setMinimumHeight(160)
+        self.log.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         layout.addWidget(self.log, stretch=1)
 
     def _redirigir_salida(self) -> None:

@@ -1,7 +1,8 @@
 from pathlib import Path
-from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
+from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QPushButton,
                              QLabel, QListWidget, QFileDialog, QGroupBox, QAbstractItemView,
-                             QInputDialog, QMessageBox)
+                             QInputDialog, QMessageBox, QSizePolicy)
+from .flow_layout import FlowLayout
 from .carpetas import cargar_carpetas_guardadas, guardar_carpetas, cargar_destino_guardado, guardar_destino, guardar_destino_ssh
 from . import ssh_conexion
 
@@ -9,7 +10,11 @@ class SelectorCarpetas(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Configuración de Fotos")
-        self.setFixedSize(500, 480)
+        # Tamaño mínimo, no fijo: la ventana ahora se puede redimensionar y
+        # los widgets (lista de carpetas, botones) se adaptan al espacio
+        # disponible en lugar de quedar recortados o con huecos vacíos.
+        self.setMinimumSize(380, 400)
+        self.resize(500, 480)
         self.carpetas_origen = cargar_carpetas_guardadas()
         destino_previo = cargar_destino_guardado()
         self.carpeta_destino = Path(destino_previo) if destino_previo else None
@@ -20,8 +25,9 @@ class SelectorCarpetas(QMainWindow):
         
         # Destino
         self.lbl = QLabel(str(self.carpeta_destino) if self.carpeta_destino else "Sin destino configurado")
+        self.lbl.setWordWrap(True)
         l.addWidget(QLabel("<b>Carpeta de Destino:</b>")); l.addWidget(self.lbl)
-        fila_destino = QHBoxLayout()
+        fila_destino = FlowLayout()
         btn_dest = QPushButton("📁 Carpeta local"); btn_dest.clicked.connect(self._selec_dest)
         fila_destino.addWidget(btn_dest)
         btn_dest_ssh = QPushButton("🐧 Servidor SSH guardado"); btn_dest_ssh.clicked.connect(self._selec_dest_ssh)
@@ -29,12 +35,15 @@ class SelectorCarpetas(QMainWindow):
         l.addLayout(fila_destino)
         
         # Origen
-        self.lista = QListWidget(); l.addWidget(QLabel("<b>Carpetas a escanear:</b>")); l.addWidget(self.lista)
+        self.lista = QListWidget(); l.addWidget(QLabel("<b>Carpetas a escanear:</b>")); l.addWidget(self.lista, stretch=1)
         self.lista.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.lista.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        fila_botones_origen = FlowLayout()
         btn_add = QPushButton("➕ Añadir Carpeta"); btn_add.clicked.connect(self._add_orig)
-        l.addWidget(btn_add)
+        fila_botones_origen.addWidget(btn_add)
         btn_del = QPushButton("➖ Quitar seleccionadas"); btn_del.clicked.connect(self._quitar)
-        l.addWidget(btn_del)
+        fila_botones_origen.addWidget(btn_del)
+        l.addLayout(fila_botones_origen)
         
         # Guardar
         btn_save = QPushButton("💾 GUARDAR Y CERRAR"); btn_save.clicked.connect(self.close)
