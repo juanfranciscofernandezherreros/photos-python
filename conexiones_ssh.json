@@ -1,0 +1,11 @@
+[
+    {
+        "alias": "Servidor casa",
+        "host": "localhost",
+        "puerto": 2222,
+        "usuario": "fran",
+        "ruta_remota": "/",
+        "clave_privada": "",
+        "rol": "origen"
+    }
+]
