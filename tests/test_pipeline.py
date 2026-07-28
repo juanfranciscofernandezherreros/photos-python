@@ -70,9 +70,9 @@ class TestCargarMetadatosExistentes:
     def test_carga_correctamente(self, tmp_path, metadatos_json):
         m = load_existing_metadata()
         assert len(m) == 2
-        for clave, valor in m.items():
-            assert "ruta_original" in valor
-            assert valor["ruta_original"] == clave
+        for source_path, capture in m.items():
+            assert capture.source_path == source_path
+            assert capture.filename != ""
 
     def test_corrupt_file_returns_empty(self, tmp_path):
         from photos_sync.config import METADATA_JSON as MJ
@@ -169,37 +169,42 @@ class TestComprimir:
 # ═══════════════════════════════ resumen ════════════════════════════════════
 
 class TestResumen:
+    def _make_capture(self, id, filename, date, size_mb):
+        from photos_sync.models import Capture
+        return Capture(id=id, filename=filename, extension="png", size_mb=size_mb,
+                       mtime=0.0, capture_date=date, source_path=f"/{filename}")
+
     def test_group_by_day_groups_correctly(self):
-        capturas = [
-            {"id": "1", "archivo": "a.png", "fecha_captura": "2023-10-24 10:00:00", "tamano_mb": 1.0},
-            {"id": "2", "archivo": "b.png", "fecha_captura": "2023-10-24 11:00:00", "tamano_mb": 2.0},
-            {"id": "3", "archivo": "c.png", "fecha_captura": "2023-10-25 09:00:00", "tamano_mb": 0.5},
+        captures = [
+            self._make_capture("1", "a.png", "2023-10-24 10:00:00", 1.0),
+            self._make_capture("2", "b.png", "2023-10-24 11:00:00", 2.0),
+            self._make_capture("3", "c.png", "2023-10-25 09:00:00", 0.5),
         ]
-        resumenes = group_by_day(capturas)
-        assert len(resumenes) == 2
-        dia_24 = next(r for r in resumenes if r["fecha"] == "2023-10-24")
-        assert dia_24["cantidad_fotos"] == 2
-        assert dia_24["tamano_total_mb"] == pytest.approx(3.0)
+        summaries = group_by_day(captures)
+        assert len(summaries) == 2
+        day_24 = next(s for s in summaries if s.date == "2023-10-24")
+        assert day_24.photo_count == 2
+        assert day_24.total_mb == pytest.approx(3.0)
 
     def test_group_by_day_sorts_by_count_desc(self):
-        capturas = [
-            {"id": "1", "archivo": "a.png", "fecha_captura": "2023-10-24 10:00:00", "tamano_mb": 1.0},
-            {"id": "2", "archivo": "b.png", "fecha_captura": "2023-10-25 09:00:00", "tamano_mb": 0.5},
-            {"id": "3", "archivo": "c.png", "fecha_captura": "2023-10-25 10:00:00", "tamano_mb": 0.5},
+        captures = [
+            self._make_capture("1", "a.png", "2023-10-24 10:00:00", 1.0),
+            self._make_capture("2", "b.png", "2023-10-25 09:00:00", 0.5),
+            self._make_capture("3", "c.png", "2023-10-25 10:00:00", 0.5),
         ]
-        resumenes = group_by_day(capturas)
-        assert resumenes[0]["fecha"] == "2023-10-25"  # 2 fotos > 1 foto
+        summaries = group_by_day(captures)
+        assert summaries[0].date == "2023-10-25"  # 2 photos > 1 photo
 
     def test_group_by_day_ignores_captures_without_date(self):
-        capturas = [
-            {"id": "1", "archivo": "a.png", "fecha_captura": None, "tamano_mb": 1.0},
-            {"id": "2", "archivo": "b.png", "fecha_captura": "", "tamano_mb": 1.0},
+        captures = [
+            self._make_capture("1", "a.png", "", 1.0),
+            self._make_capture("2", "b.png", "", 1.0),
         ]
-        assert group_by_day(capturas) == []
+        assert group_by_day(captures) == []
 
     def test_group_by_day_ignores_malformed_date(self):
-        capturas = [{"id": "1", "archivo": "a.png", "fecha_captura": "no-es-fecha", "tamano_mb": 1.0}]
-        assert group_by_day(capturas) == []
+        captures = [self._make_capture("1", "a.png", "not-a-date", 1.0)]
+        assert group_by_day(captures) == []
 
     def test_generate_summary_creates_file(self, tmp_path, metadatos_json):
         generate_daily_summary()

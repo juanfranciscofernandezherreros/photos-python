@@ -8,93 +8,89 @@ from rich.progress import track
 from .folders import load_saved_destination
 from .config import METADATA_JSON, ORGANIZED_DIR
 from .json_io import read_json, write_json
+from .models import Capture
 from . import ssh_connection
 
 
 def organize_captures_by_date() -> None:
-    """Copia cada captura listada en METADATA_JSON a
-    destino/AAAA/MM/DD según su fecha real, repara la fecha del archivo
-    copiado y guarda la ruta de destino ("ruta_destino") de vuelta en el
-    JSON de metadatos para que comprimir.py y resumen.py puedan usarla."""
+    """Copy each capture listed in METADATA_JSON to dest/YYYY/MM/DD based on
+    its capture_date, fix the file's filesystem timestamp, and write back the
+    dest_path into the metadata so compress.py and summary.py can use it."""
     print(f"Reading '{METADATA_JSON}'...\n")
 
-    lista = read_json(METADATA_JSON)
-    if lista is None:
+    raw = read_json(METADATA_JSON)
+    if raw is None:
         print(f"❌ '{METADATA_JSON}' not found. Run step 1 (download) first.")
         return
-
-    if not isinstance(lista, list):
+    if not isinstance(raw, list):
         print(f"❌ '{METADATA_JSON}' is corrupt. Run step 1 (download) again.")
         return
-
-    if not lista:
+    if not raw:
         print("❌ No captures in the metadata file to organize.")
         return
 
-    destino_str = load_saved_destination()
-    destino_base = Path(destino_str) if destino_str else ORGANIZED_DIR
-    print(f"Destination: {destino_base.resolve()}\n")
+    captures = [Capture.from_dict(d) for d in raw]
 
-    copiadas = 0
-    ya_existian = 0
-    errores = 0
+    dest_str = load_saved_destination()
+    dest_base = Path(dest_str) if dest_str else ORGANIZED_DIR
+    print(f"Destination: {dest_base.resolve()}\n")
 
-    # Connectiones SSH abiertas de forma perezosa (una por alias, reutilizada
-    # para todas las capturas de ese mismo servidor) y cerradas todas al
-    # final, dentro/fuera de que todo vaya bien.
-    clientes_ssh: dict[str, ssh_connection.SSHClient] = {}
+    copied = 0
+    already_existed = 0
+    errors = 0
 
-    def _cliente_para(alias: str) -> ssh_connection.SSHClient:
-        if alias not in clientes_ssh:
-            conexion_guardada = ssh_connection.get_connection(alias)
-            if conexion_guardada is None:
+    # SSH clients opened lazily (one per alias, reused for all captures from
+    # that server) and closed in the finally block whether or not things succeed.
+    ssh_clients: dict[str, ssh_connection.SSHClient] = {}
+
+    def _client_for(alias: str) -> ssh_connection.SSHClient:
+        if alias not in ssh_clients:
+            saved = ssh_connection.get_connection(alias)
+            if saved is None:
                 raise RuntimeError(f"SSH connection '{alias}' is no longer saved")
-            cliente = ssh_connection.SSHClient(conexion_guardada)
-            cliente.connect()
-            clientes_ssh[alias] = cliente
-        return clientes_ssh[alias]
+            client = ssh_connection.SSHClient(saved)
+            client.connect()
+            ssh_clients[alias] = client
+        return ssh_clients[alias]
 
     try:
-        for captura in track(lista, description="Organizing by date..."):
+        for cap in track(captures, description="Organizing by date..."):
             try:
-                fecha = datetime.strptime(captura["fecha_captura"], '%Y-%m-%d %H:%M:%S')
-                carpeta_destino = destino_base / fecha.strftime('%Y/%m/%d')
-                carpeta_destino.mkdir(parents=True, exist_ok=True)
+                date = datetime.strptime(cap.capture_date, '%Y-%m-%d %H:%M:%S')
+                day_folder = dest_base / date.strftime('%Y/%m/%d')
+                day_folder.mkdir(parents=True, exist_ok=True)
 
-                destino_final = carpeta_destino / captura["archivo"]
+                dest_file = day_folder / cap.filename
 
-                if destino_final.exists():
-                    ya_existian += 1
+                if dest_file.exists():
+                    already_existed += 1
                 else:
-                    alias_ssh = captura.get("ssh_alias")
-                    if alias_ssh:
-                        # El origen es un servidor Linux: se trae por SFTP en vez de shutil.copy2.
-                        _cliente_para(alias_ssh).download(captura["ssh_ruta_remota"], destino_final)
+                    if cap.ssh_alias:
+                        _client_for(cap.ssh_alias).download(cap.ssh_remote_path, dest_file)
                     else:
-                        shutil.copy2(captura["ruta_original"], destino_final)
-                    # Repara la fecha en el sistema de archivos (WebDAV/SFTP suelen romperla)
-                    ts = fecha.timestamp()
-                    os.utime(destino_final, (ts, ts))
-                    copiadas += 1
+                        shutil.copy2(cap.source_path, dest_file)
+                    ts = date.timestamp()
+                    os.utime(dest_file, (ts, ts))
+                    copied += 1
 
-                captura["ruta_destino"] = str(destino_final)
+                cap.dest_path = str(dest_file)
 
-            except (KeyError, OSError, ValueError, RuntimeError) as e:
-                print(f"⚠️ Could not organize '{captura.get('archivo', '?')}': {e}")
-                errores += 1
+            except (OSError, ValueError, RuntimeError) as e:
+                print(f"⚠️ Could not organize '{cap.filename}': {e}")
+                errors += 1
     finally:
-        for cliente in clientes_ssh.values():
-            cliente.close()
+        for client in ssh_clients.values():
+            client.close()
 
-    write_json(METADATA_JSON, lista)
+    write_json(METADATA_JSON, [c.to_dict() for c in captures])
 
     print("-" * 50)
     print("ORGANIZE SUMMARY:")
-    print(f"  - New copies: {copiadas}")
-    print(f"  - Already existed: {ya_existian}")
-    if errores > 0:
-        print(f"  - Errors: {errores}")
-    print(f"\n📁 Organized files are in: {destino_base.resolve()}")
+    print(f"  - New copies: {copied}")
+    print(f"  - Already existed: {already_existed}")
+    if errors:
+        print(f"  - Errors: {errors}")
+    print(f"\n📁 Organized files are in: {dest_base.resolve()}")
 
 
 if __name__ == "__main__":

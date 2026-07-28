@@ -1,90 +1,85 @@
 """
-Cuarto paso del pipeline: lee metadatos_screenshots.json, agrupa las fotos
-por día (año/mes/día de captura) y genera un JSON nuevo (resumen_por_dia.json)
-con el resumen de cada día, ordenado de más a menos fotos.
+Step 4 of the pipeline: reads METADATA_JSON, groups captures by day
+(year/month/day of capture_date) and generates DAILY_SUMMARY_JSON with a
+DaySummary per day, sorted from most to fewest photos.
 """
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 from .config import METADATA_JSON, DAILY_SUMMARY_JSON
 from .json_io import read_json, write_json
-
-MetadatosCaptura = dict[str, Any]
-ResumenDia = dict[str, Any]
+from .models import Capture, DaySummary
 
 
-def load_captures() -> list[MetadatosCaptura]:
-    datos = read_json(METADATA_JSON, default=[])
-    return datos if isinstance(datos, list) else []
+def load_captures() -> list[Capture]:
+    raw = read_json(METADATA_JSON, default=[])
+    if not isinstance(raw, list):
+        return []
+    return [Capture.from_dict(d) for d in raw]
 
 
-def group_by_day(capturas: list[MetadatosCaptura]) -> list[ResumenDia]:
-    grupos: dict[str, list[MetadatosCaptura]] = defaultdict(list)
+def group_by_day(captures: list[Capture]) -> list[DaySummary]:
+    groups: dict[str, list[Capture]] = defaultdict(list)
 
-    for captura in capturas:
-        fecha_str = captura.get("fecha_captura")
-        if not fecha_str:
+    for cap in captures:
+        if not cap.capture_date:
             continue
         try:
-            fecha = datetime.strptime(fecha_str, '%Y-%m-%d %H:%M:%S')
+            date = datetime.strptime(cap.capture_date, '%Y-%m-%d %H:%M:%S')
         except ValueError:
             continue
-        grupos[fecha.strftime('%Y-%m-%d')].append(captura)
+        groups[date.strftime('%Y-%m-%d')].append(cap)
 
-    resumenes: list[ResumenDia] = []
+    summaries: list[DaySummary] = []
 
-    for fecha_str, lista in grupos.items():
-        ano, mes, dia = fecha_str.split('-')
+    for date_str, day_captures in groups.items():
+        year, month, day = date_str.split('-')
 
-        rutas_destino = {c["ruta_destino"] for c in lista if c.get("ruta_destino")}
-        destino = str(Path(next(iter(rutas_destino))).parent) if rutas_destino else None
+        dest_folders = {Path(c.dest_path).parent for c in day_captures if c.dest_path}
+        dest_folder = str(next(iter(dest_folders))) if dest_folders else None
 
-        rutas_zip = {c["ruta_zip"] for c in lista if c.get("ruta_zip")}
-        ruta_zip = next(iter(rutas_zip)) if rutas_zip else None
+        zip_paths = {c.zip_path for c in day_captures if c.zip_path}
+        zip_path = next(iter(zip_paths)) if zip_paths else None
 
-        tamano_total_mb = round(sum(c.get("tamano_mb", 0) for c in lista), 2)
+        summaries.append(DaySummary(
+            date=date_str,
+            year=year,
+            month=month,
+            day=day,
+            photo_count=len(day_captures),
+            total_mb=round(sum(c.size_mb for c in day_captures), 2),
+            dest_folder=dest_folder,
+            zip_path=zip_path,
+            capture_ids=[c.id for c in day_captures],
+            filenames=[c.filename for c in day_captures],
+        ))
 
-        resumenes.append({
-            "fecha": fecha_str,
-            "anio": ano,
-            "mes": mes,
-            "dia": dia,
-            "cantidad_fotos": len(lista),
-            "destino": destino,
-            "ruta_zip": ruta_zip,
-            "tamano_total_mb": tamano_total_mb,
-            "ids": [c["id"] for c in lista if "id" in c],
-            "archivos": [c["archivo"] for c in lista if c.get("archivo")],
-        })
-
-    resumenes.sort(key=lambda r: r["cantidad_fotos"], reverse=True)
-    return resumenes
+    summaries.sort(key=lambda s: s.photo_count, reverse=True)
+    return summaries
 
 
 def generate_daily_summary() -> None:
     print(f"Reading '{METADATA_JSON}'...\n")
 
-    capturas = load_captures()
-    if not capturas:
+    captures = load_captures()
+    if not captures:
         print(f"❌ No metadata found in '{METADATA_JSON}'. Run the previous steps first.")
         return
 
-    resumenes = group_by_day(capturas)
+    summaries = group_by_day(captures)
 
-    write_json(DAILY_SUMMARY_JSON, resumenes)
+    write_json(DAILY_SUMMARY_JSON, [s.to_dict() for s in summaries])
 
     print("-" * 50)
     print("SUMMARY BY DAY (most -> least photos):")
-    for resumen in resumenes:
-        print(f"  📅 {resumen['fecha']}  ->  {resumen['cantidad_fotos']} photos "
-              f"({resumen['tamano_total_mb']} MB)")
+    for s in summaries:
+        print(f"  📅 {s.date}  ->  {s.photo_count} photos ({s.total_mb} MB)")
 
-    total_fotos = sum(r["cantidad_fotos"] for r in resumenes)
+    total = sum(s.photo_count for s in summaries)
     print("-" * 50)
-    print(f"✅ '{DAILY_SUMMARY_JSON}' generated with {len(resumenes)} days "
-          f"and {total_fotos} photos in total.")
+    print(f"✅ '{DAILY_SUMMARY_JSON}' generated with {len(summaries)} days "
+          f"and {total} photos in total.")
 
 
 if __name__ == "__main__":

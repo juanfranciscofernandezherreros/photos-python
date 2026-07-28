@@ -2,18 +2,16 @@ import uuid
 import re
 from datetime import datetime
 from pathlib import Path, PurePosixPath
-from typing import Any
 
 from .folders import load_saved_folders
 from .config import METADATA_JSON, VALID_EXTENSIONS
 from .json_io import read_json, write_json
+from .models import Capture
 from . import connection, ssh_connection
-
-MetadatosCaptura = dict[str, Any]
 
 
 def _progreso(iterable, description: str = "", total: int | None = None):
-    """Sustituye a rich.progress.track escribiendo siempre a sys.stdout."""
+    """Progress bar writing to sys.stdout (replaces rich.progress.track)."""
     items = list(iterable)
     n = total or len(items)
     for i, item in enumerate(items, 1):
@@ -23,205 +21,181 @@ def _progreso(iterable, description: str = "", total: int | None = None):
             print(f"\r{description} [{bar}] {i}/{n} ({pct}%)", end="", flush=True)
         yield item
     if n > 0:
-        print()  # newline al terminar
+        print()
 
 
-def load_existing_metadata() -> dict[str, MetadatosCaptura]:
+def load_existing_metadata() -> dict[str, Capture]:
+    """Load the saved metadata JSON and return a dict keyed by source_path."""
     lista_previa = read_json(METADATA_JSON)
     if not isinstance(lista_previa, list):
         return {}
     try:
-        return {item["ruta_original"]: item for item in lista_previa}
+        captures = [Capture.from_dict(item) for item in lista_previa]
+        return {c.source_path: c for c in captures}
     except (KeyError, TypeError):
         print(f"⚠️ Existing '{METADATA_JSON}' is corrupt, it will be regenerated from scratch.\n")
         return {}
 
 
-def get_actual_date(nombre_archivo: str, mtime_fallback: float) -> str:
-    """
-    Intenta extraer la fecha exacta desde el nombre del archivo (Screenshot_20231024_153020).
-    Es la forma más fiable porque WebDAV a menudo rompe las fechas del sistema de archivos.
-    """
-    # Busca Año, Mes, Día y Hora, Minuto, Segundo separados por cualquier cosa
-    match_completo = re.search(r'(20\d{2})\D*(\d{2})\D*(\d{2})\D*(\d{2})\D*(\d{2})\D*(\d{2})', nombre_archivo)
-    if match_completo:
-        a, m, d, h, mn, s = match_completo.groups()
-        # Validamos que los números tengan sentido como fechas
+def get_actual_date(filename: str, mtime_fallback: float) -> str:
+    """Extract the capture date from the filename (Screenshot_20231024_153020).
+    More reliable than filesystem mtime because WebDAV often corrupts timestamps."""
+    # Full datetime: year, month, day, hour, minute, second
+    match = re.search(r'(20\d{2})\D*(\d{2})\D*(\d{2})\D*(\d{2})\D*(\d{2})\D*(\d{2})', filename)
+    if match:
+        a, m, d, h, mn, s = match.groups()
         if 1 <= int(m) <= 12 and 1 <= int(d) <= 31 and 0 <= int(h) <= 23:
             return f"{a}-{m}-{d} {h}:{mn}:{s}"
-            
-    # Si no tiene hora, buscamos solo la fecha (Año, Mes, Día)
-    match_fecha = re.search(r'(20\d{2})\D*(\d{2})\D*(\d{2})', nombre_archivo)
-    if match_fecha:
-        a, m, d = match_fecha.groups()
+
+    # Date only: year, month, day
+    match = re.search(r'(20\d{2})\D*(\d{2})\D*(\d{2})', filename)
+    if match:
+        a, m, d = match.groups()
         if 1 <= int(m) <= 12 and 1 <= int(d) <= 31:
             return f"{a}-{m}-{d} 12:00:00"
-            
-    # Fallback: Si el nombre no tiene fecha, confiamos en lo que diga el disco
+
+    # Fallback to filesystem mtime
     return datetime.fromtimestamp(mtime_fallback).strftime('%Y-%m-%d %H:%M:%S')
 
 
-def scan_ssh_server(connection_ssh: ssh_connection.SSHConnection) -> list[dict[str, Any]]:
-    """Se conecta por SFTP a un servidor Linux configurado como origen (o
-    'ambos') y devuelve una lista de "candidatos" con la misma forma que
-    los ficheros locales, pero marcados con ssh_alias/ssh_ruta_remota para
-    que organize.py sepa que hay que downloadlos por SFTP en vez de
-    copiarlos con shutil."""
-    alias = connection_ssh["alias"]
-    ruta_remota = connection_ssh["ruta_remota"]
+def scan_ssh_server(conn: ssh_connection.SSHConnection) -> list[Capture]:
+    """Connect via SFTP to a Linux server configured as source (or 'ambos')
+    and return a list of Capture objects with ssh_alias/ssh_remote_path set
+    so organize.py knows to download them via SFTP."""
+    alias = conn["alias"]
+    ruta_remota = conn["ruta_remota"]
 
     try:
-        with ssh_connection.SSHClient(connection_ssh) as cliente:
-            archivos = cliente.list_files_recursive(ruta_remota, VALID_EXTENSIONS)
+        with ssh_connection.SSHClient(conn) as client:
+            files = client.list_files_recursive(ruta_remota, VALID_EXTENSIONS)
     except Exception as e:
-        print(f"⚠️ Could not scan SSH server '{alias}' ({connection_ssh['host']}): {e}")
+        print(f"⚠️ Could not scan SSH server '{alias}' ({conn['host']}): {e}")
         return []
 
-    candidatos = []
-    for archivo in archivos:
-        nombre = PurePosixPath(archivo["ruta"]).name
-        candidatos.append({
-            "ruta_str": f"ssh://{alias}{archivo['ruta']}",
-            "archivo": nombre,
-            "formato": PurePosixPath(nombre).suffix.lower().replace('.', ''),
-            "tamano_mb": round(archivo["tamano"] / (1024 * 1024), 2),
-            "mtime": archivo["mtime"],
-            "ssh_alias": alias,
-            "ssh_ruta_remota": archivo["ruta"],
-        })
-    return candidatos
+    captures = []
+    for f in files:
+        nombre = PurePosixPath(f["ruta"]).name
+        captures.append(Capture(
+            id=str(uuid.uuid4()),   # temporary; may be replaced by existing id below
+            filename=nombre,
+            extension=PurePosixPath(nombre).suffix.lower().replace('.', ''),
+            size_mb=round(f["tamano"] / (1024 * 1024), 2),
+            mtime=f["mtime"],
+            capture_date="",        # filled in export_metadata_json
+            source_path=f"ssh://{alias}{f['ruta']}",
+            ssh_alias=alias,
+            ssh_remote_path=f["ruta"],
+        ))
+    return captures
 
 
 def export_metadata_json() -> None:
     print("Searching for screenshots on connected drives and extracting metadata...\n")
 
-    carpetas_a_escanear = load_saved_folders()
-    servidores_ssh_origen = ssh_connection.connections_by_role("origen")
+    folders = load_saved_folders()
+    ssh_sources = ssh_connection.connections_by_role("origen")
 
-    if not carpetas_a_escanear and not servidores_ssh_origen:
+    if not folders and not ssh_sources:
         print("❌ No connection or folder configured yet. Use the WebDAV or "
               "SSH section in the main window to connect a phone or server first.")
         return
 
-    connections_guardadas = connection.load_connections()
-    if connections_guardadas:
-        for c in connections_guardadas:
-            estado = "✅ mounted" if connection.is_mounted(c["letra"]) else "⚠️ NOT mounted right now"
-            print(f"  {c['letra']} ({c.get('alias', c['letra'])} — {c.get('ip')}:{c.get('puerto')}): {estado}")
+    saved_connections = connection.load_connections()
+    if saved_connections:
+        for c in saved_connections:
+            status = "✅ mounted" if connection.is_mounted(c["letra"]) else "⚠️ NOT mounted right now"
+            print(f"  {c['letra']} ({c.get('alias', c['letra'])} — {c.get('ip')}:{c.get('puerto')}): {status}")
         print()
 
-    archivos_encontrados: list[Path] = []
-    errores_listado = 0
-
-    for ruta in carpetas_a_escanear:
-        if not (ruta.exists() and ruta.is_dir()):
-            print(f"⚠️ Subfolder not found on drive: {ruta}")
+    local_files: list[Path] = []
+    for folder in folders:
+        if not (folder.exists() and folder.is_dir()):
+            print(f"⚠️ Subfolder not found on drive: {folder}")
             continue
-
-        print(f"✅ Extracting data from: {ruta}")
+        print(f"✅ Extracting data from: {folder}")
         try:
-            for candidato in ruta.rglob('*'):
+            for candidate in folder.rglob('*'):
                 try:
-                    if candidato.is_file() and candidato.suffix.lower() in VALID_EXTENSIONS:
-                        archivos_encontrados.append(candidato)
-                except OSError as e:
-                    errores_listado += 1
-        except OSError as e:
-            errores_listado += 1
+                    if candidate.is_file() and candidate.suffix.lower() in VALID_EXTENSIONS:
+                        local_files.append(candidate)
+                except OSError:
+                    pass
+        except OSError:
+            pass
 
-    # --- Servidores Linux por SSH configurados como origen ---
-    candidatos_ssh: list[dict[str, Any]] = []
-    if servidores_ssh_origen:
+    ssh_captures: list[Capture] = []
+    if ssh_sources:
         if not ssh_connection.paramiko_available():
             print("⚠️ SSH servers are configured as source, but 'paramiko' is missing. "
                   "Install it with: pip install paramiko\n")
         else:
-            for c in servidores_ssh_origen:
+            for c in ssh_sources:
                 print(f"✅ Extracting data from SSH server: {c['alias']} "
                       f"({c['usuario']}@{c['host']}:{c['ruta_remota']})")
-                candidatos_ssh.extend(scan_ssh_server(c))
+                ssh_captures.extend(scan_ssh_server(c))
             print()
 
-    metadatos_previos = load_existing_metadata()
-    metadatos_actuales = {}
-    nuevos = 0
-    sin_cambios = 0
+    previous = load_existing_metadata()
+    current: dict[str, Capture] = {}
+    new_count = 0
+    unchanged = 0
 
-    for archivo in _progreso(archivos_encontrados, description="Analyzing screenshots..."):
-        ruta_str = str(archivo)
-
+    for file in _progreso(local_files, description="Analyzing screenshots..."):
+        source = str(file)
         try:
-            stats = archivo.stat()
-            peso_mb = round(stats.st_size / (1024 * 1024), 2)
-            anterior = metadatos_previos.get(ruta_str)
+            stats = file.stat()
+            size_mb = round(stats.st_size / (1024 * 1024), 2)
+            prev = previous.get(source)
 
-            if (anterior
-                    and anterior.get("tamano_mb") == peso_mb
-                    and anterior.get("mtime") == stats.st_mtime):
-                if "id" not in anterior:
-                    anterior["id"] = str(uuid.uuid4())
-                metadatos_actuales[ruta_str] = anterior
-                sin_cambios += 1
+            if prev and prev.size_mb == size_mb and prev.mtime == stats.st_mtime:
+                current[source] = prev
+                unchanged += 1
                 continue
 
-            # --- MAGIA AQUÍ: Sacamos la fecha real del nombre ---
-            fecha_legible = get_actual_date(archivo.name, stats.st_mtime)
+            capture_date = get_actual_date(file.name, stats.st_mtime)
+            capture_id = prev.id if prev else str(uuid.uuid4())
 
-            id_captura = anterior["id"] if anterior and "id" in anterior else str(uuid.uuid4())
-
-            metadatos_actuales[ruta_str] = {
-                "id": id_captura,
-                "archivo": archivo.name,
-                "formato": archivo.suffix.lower().replace('.', ''),
-                "tamano_mb": peso_mb,
-                "mtime": stats.st_mtime,
-                "fecha_captura": fecha_legible,
-                "ruta_original": ruta_str
-            }
-            nuevos += 1
+            current[source] = Capture(
+                id=capture_id,
+                filename=file.name,
+                extension=file.suffix.lower().replace('.', ''),
+                size_mb=size_mb,
+                mtime=stats.st_mtime,
+                capture_date=capture_date,
+                source_path=source,
+            )
+            new_count += 1
 
         except OSError:
             continue
 
-    for candidato in _progreso(candidatos_ssh, description="Analyzing screenshots on SSH servers..."):
-        ruta_str = candidato["ruta_str"]
-        peso_mb = candidato["tamano_mb"]
-        anterior = metadatos_previos.get(ruta_str)
+    for cap in _progreso(ssh_captures, description="Analyzing screenshots on SSH servers..."):
+        source = cap.source_path
+        prev = previous.get(source)
 
-        if (anterior
-                and anterior.get("tamano_mb") == peso_mb
-                and anterior.get("mtime") == candidato["mtime"]):
-            if "id" not in anterior:
-                anterior["id"] = str(uuid.uuid4())
-            metadatos_actuales[ruta_str] = anterior
-            sin_cambios += 1
+        if prev and prev.size_mb == cap.size_mb and prev.mtime == cap.mtime:
+            current[source] = prev
+            unchanged += 1
             continue
 
-        fecha_legible = get_actual_date(candidato["archivo"], candidato["mtime"])
-        id_captura = anterior["id"] if anterior and "id" in anterior else str(uuid.uuid4())
+        cap.capture_date = get_actual_date(cap.filename, cap.mtime)
+        cap.id = prev.id if prev else cap.id
+        # preserve existing dest_path and zip_path if already organized
+        if prev:
+            cap.dest_path = prev.dest_path
+            cap.zip_path = prev.zip_path
+        current[source] = cap
+        new_count += 1
 
-        metadatos_actuales[ruta_str] = {
-            "id": id_captura,
-            "archivo": candidato["archivo"],
-            "formato": candidato["formato"],
-            "tamano_mb": peso_mb,
-            "mtime": candidato["mtime"],
-            "fecha_captura": fecha_legible,
-            "ruta_original": ruta_str,
-            "ssh_alias": candidato["ssh_alias"],
-            "ssh_ruta_remota": candidato["ssh_ruta_remota"],
-        }
-        nuevos += 1
+    captures_list = list(current.values())
 
-    eliminados = len(metadatos_previos) - sum(1 for r in metadatos_previos if r in metadatos_actuales)
-    lista_metadatos = list(metadatos_actuales.values())
-
-    if len(lista_metadatos) > 0:
-        write_json(METADATA_JSON, lista_metadatos)
+    if captures_list:
+        write_json(METADATA_JSON, [c.to_dict() for c in captures_list])
         print("-" * 50)
         print(f"✅ Success! Metadata extracted and dates corrected.")
     else:
         print("❌ No screenshots found to export.")
+
 
 if __name__ == "__main__":
     export_metadata_json()
