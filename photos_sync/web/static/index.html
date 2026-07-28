@@ -2,159 +2,196 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Photos Sync</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script>
-tailwind.config={theme:{extend:{fontFamily:{sans:['DM Sans','system-ui','sans-serif'],mono:['Space Mono','monospace']},
-colors:{brand:{50:'#f0f7ff',100:'#dfeeff',200:'#b8dbff',300:'#79bbff',400:'#3898ff',500:'#0b6bcb',600:'#0a5eb8',700:'#084d97',800:'#064079',900:'#03294f'},
-surface:{0:'#ffffff',1:'#f8fafc',2:'#f1f5f9'},
-ink:{0:'#0f172a',1:'#334155',2:'#64748b',3:'#94a3b8',4:'#cbd5e1'}}}}}
+tailwind.config={theme:{extend:{fontFamily:{sans:['DM Sans','system-ui'],mono:['Space Mono','monospace']}}}}
 </script>
 <style>
-*{box-sizing:border-box}
-body{font-family:'DM Sans',system-ui,sans-serif;background:#f8fafc;color:#0f172a;margin:0}
-[data-section]{display:none}[data-section].active{display:block;animation:sUp .28s ease both}
-@keyframes sUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+:root{--b:#0b6bcb;--b2:#3898ff;--b3:#79bbff;--bg:#f6f8fb;--card:#fff;--ink:#0f172a;--ink2:#334155;--ink3:#64748b;--ink4:#94a3b8;--ink5:#cbd5e1;--brd:#e8ecf1;--rad:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+::selection{background:#0b6bcb22}
+[data-s]{display:none}[data-s].on{display:block;animation:up .25s ease both}
+@keyframes up{from{opacity:0;transform:translateY(6px)}}
 @keyframes spin{to{transform:rotate(360deg)}}
-.spin{animation:spin .65s linear infinite}
-#log-box::-webkit-scrollbar{width:5px}
-#log-box::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
-/* Sidebar */
-.sb{width:232px;background:#fff;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
-.sb-brand{padding:20px;border-bottom:1px solid #f1f5f9}
-.nb{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:500;color:#64748b;
-cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:.15s}
-.nb:hover{background:#f0f7ff;color:#0b6bcb}
-.nb.on{background:linear-gradient(135deg,#0b6bcb 0%,#3898ff 100%);color:#fff;box-shadow:0 2px 8px #0b6bcb33}
-.nb.on svg{opacity:1}
-.nb svg{width:16px;height:16px;opacity:.45;flex-shrink:0}
-/* Stat cards */
-.stat{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px 16px;text-align:center;position:relative;overflow:hidden;transition:.2s}
-.stat:hover{border-color:#b8dbff;box-shadow:0 4px 12px #0b6bcb0d}
-.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#3898ff,#0b6bcb);border-radius:14px 14px 0 0;opacity:0;transition:.2s}
-.stat:hover::before{opacity:1}
-.stat b{display:block;font-size:28px;font-weight:700;letter-spacing:-.03em;color:#0b6bcb;line-height:1}
-.stat small{font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-top:4px;display:block}
-/* Day cards */
-.dcard{background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;transition:.2s;cursor:default}
-.dcard:hover{border-color:#79bbff;transform:translateY(-2px);box-shadow:0 6px 20px #0b6bcb10}
-.dcard-top{background:linear-gradient(135deg,#0b6bcb 0%,#3898ff 100%);padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
-.dcard-top span{font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.1em;opacity:.85}
-.dcard-badge{background:#fff;color:#0b6bcb;font-size:11px;font-weight:700;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center}
-.dcard-body{padding:14px}
-.dcard-day{font-size:32px;font-weight:700;letter-spacing:-.03em;color:#0f172a;line-height:1}
-.dcard-meta{font-size:11px;color:#94a3b8;margin-top:6px}
-/* Card / form wrappers */
-.card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px;box-shadow:0 1px 3px #0001}
-.lbl{display:block;font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
-.inp{width:100%;background:#f8fafc;border:1px solid #e2e8f0;color:#0f172a;font-size:13px;padding:8px 12px;border-radius:8px;outline:none;transition:.15s}
-.inp:focus{border-color:#3898ff;box-shadow:0 0 0 3px #0b6bcb12}
-.inp:disabled{opacity:.35;cursor:not-allowed}
-.bp{padding:8px 16px;font-size:12px;font-weight:600;color:#fff;background:linear-gradient(135deg,#0b6bcb,#3898ff);border:none;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:.15s}
-.bp:hover{box-shadow:0 3px 10px #0b6bcb33;transform:translateY(-1px)}
-.bp:disabled{opacity:.35;transform:none;box-shadow:none;cursor:not-allowed}
-.bg{padding:8px 16px;font-size:12px;font-weight:600;color:#64748b;background:#fff;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;transition:.15s}
-.bg:hover{border-color:#94a3b8;color:#0f172a}
-.tbl{width:100%;font-size:13px;border-collapse:collapse}
-.tbl th{text-align:left;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;border-bottom:1px solid #e2e8f0}
-.tbl td{padding:10px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
-.tbl tr:hover td{background:#f8fafc}
-.tag{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
-.tag-origen{background:#dfeeff;color:#0b6bcb}.tag-destino{background:#d1fae5;color:#059669}.tag-ambos{background:#fef3c7;color:#d97706}
-.msg{font-size:12px;font-weight:500;padding:8px 12px;border-radius:8px;display:none;margin-top:10px}
-.msg-ok{display:block;background:#d1fae5;color:#059669;border:1px solid #a7f3d0}
-.msg-err{display:block;background:#fee2e2;color:#dc2626;border:1px solid #fecaca}
-.pill{display:inline-flex;align-items:center;gap:6px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:5px 12px;font-family:'Space Mono',monospace;font-size:12px}
-.pill button{background:none;border:none;color:#dc2626;cursor:pointer;font-size:14px;line-height:1;padding:2px 4px;border-radius:4px;opacity:.5;transition:.15s}
-.pill button:hover{opacity:1;background:#fee2e2}
-/* Pipeline log */
-#log-box{background:#0f172a;border-radius:12px;padding:16px;height:340px;overflow-y:auto;font-family:'Space Mono',monospace;font-size:12px;line-height:1.7;color:#94a3b8;white-space:pre-wrap;word-break:break-all;scrollbar-width:thin;scrollbar-color:#334155 transparent}
-/* Status badge */
-.sbadge{margin:12px 16px;padding:5px 10px;border-radius:6px;font-size:10px;font-weight:700;text-align:center;letter-spacing:.04em;text-transform:uppercase}
-.sb-on{background:#d1fae5;color:#059669;border:1px solid #a7f3d0}
-.sb-off{background:#fee2e2;color:#dc2626;border:1px solid #fecaca}
-.sb-load{background:#dfeeff;color:#0b6bcb;border:1px solid #b8dbff}
-/* Responsive */
-@media(max-width:768px){.shell{flex-direction:column!important}.sb{width:100%;height:auto;position:static;border-right:none;border-bottom:1px solid #e2e8f0}.sb nav{display:flex;gap:4px;flex-wrap:wrap;padding:8px 12px}.nb{padding:6px 10px;font-size:12px}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+
+/* ─── Sidebar ─── */
+.sb{width:240px;background:var(--card);border-right:1px solid var(--brd);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sb::-webkit-scrollbar{width:0}
+.logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--b),var(--b2));display:grid;place-items:center;box-shadow:0 2px 10px #0b6bcb30}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:500;color:var(--ink3);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all .18s;position:relative}
+.nav-item:hover{background:#f0f7ff;color:var(--b)}
+.nav-item.on{background:var(--b);color:#fff;font-weight:600;box-shadow:0 2px 12px #0b6bcb2a}
+.nav-item.on svg{opacity:1}
+.nav-item svg{width:17px;height:17px;opacity:.4;flex-shrink:0;transition:opacity .18s}
+.conn-dot{width:7px;height:7px;border-radius:50%;position:absolute;right:12px;top:50%;transform:translateY(-50%)}
+.conn-dot.live{background:#22c55e;box-shadow:0 0 6px #22c55e80;animation:pulse 2s ease infinite}
+.conn-dot.dead{background:#ef4444}
+
+/* ─── Stat cards ─── */
+.scard{background:var(--card);border:1px solid var(--brd);border-radius:var(--rad);padding:20px;text-align:center;position:relative;overflow:hidden;transition:all .2s}
+.scard:hover{border-color:var(--b3);box-shadow:0 8px 24px #0b6bcb0a;transform:translateY(-1px)}
+.scard-val{font-size:32px;font-weight:800;letter-spacing:-.04em;background:linear-gradient(135deg,var(--b),var(--b2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;animation:countUp .4s ease both}
+.scard-label{font-size:10px;font-weight:600;color:var(--ink4);text-transform:uppercase;letter-spacing:.1em;margin-top:6px}
+.scard-icon{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#0b6bcb0a,#3898ff0a);display:grid;place-items:center}
+.scard-icon svg{width:14px;height:14px;color:var(--b3)}
+
+/* ─── Day cards ─── */
+.dcard{background:var(--card);border:1px solid var(--brd);border-radius:var(--rad);overflow:hidden;transition:all .22s;cursor:default;position:relative}
+.dcard:hover{border-color:var(--b3);transform:translateY(-3px);box-shadow:0 12px 32px #0b6bcb0f}
+.dcard-head{padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
+.dcard-month{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.9}
+.dcard-count{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700}
+.dcard-body{padding:4px 14px 14px}
+.dcard-day{font-size:38px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.dcard-meta{font-size:11px;color:var(--ink4);margin-top:6px;display:flex;align-items:center;gap:6px}
+.dcard-zip{display:inline-flex;align-items:center;gap:3px;background:#f0fdf4;color:#16a34a;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em}
+/* Month color bands */
+.m1 .dcard-head,.m2 .dcard-head{background:linear-gradient(135deg,#7dd3fc,#38bdf8)}.m1 .dcard-head *,.m2 .dcard-head *{color:#fff}.m1 .dcard-count,.m2 .dcard-count{background:#fff;color:#0284c7}
+.m3 .dcard-head,.m4 .dcard-head,.m5 .dcard-head{background:linear-gradient(135deg,#86efac,#22c55e)}.m3 .dcard-head *,.m4 .dcard-head *,.m5 .dcard-head *{color:#fff}.m3 .dcard-count,.m4 .dcard-count,.m5 .dcard-count{background:#fff;color:#16a34a}
+.m6 .dcard-head,.m7 .dcard-head,.m8 .dcard-head{background:linear-gradient(135deg,#fbbf24,#f59e0b)}.m6 .dcard-head *,.m7 .dcard-head *,.m8 .dcard-head *{color:#fff}.m6 .dcard-count,.m7 .dcard-count,.m8 .dcard-count{background:#fff;color:#b45309}
+.m9 .dcard-head,.m10 .dcard-head,.m11 .dcard-head{background:linear-gradient(135deg,#fb923c,#ea580c)}.m9 .dcard-head *,.m10 .dcard-head *,.m11 .dcard-head *{color:#fff}.m9 .dcard-count,.m10 .dcard-count,.m11 .dcard-count{background:#fff;color:#c2410c}
+.m12 .dcard-head{background:linear-gradient(135deg,var(--b),var(--b2))}.m12 .dcard-head *{color:#fff}.m12 .dcard-count{background:#fff;color:var(--b)}
+.m0 .dcard-head{background:linear-gradient(135deg,#a78bfa,#7c3aed)}.m0 .dcard-head *{color:#fff}.m0 .dcard-count{background:#fff;color:#7c3aed}
+
+/* ─── Log terminal ─── */
+#log-box{background:#0c1222;border:1px solid #1e293b;border-radius:12px;padding:16px 18px;height:360px;overflow-y:auto;font-family:'Space Mono',monospace;font-size:11.5px;line-height:1.75;color:#8892a8;white-space:pre-wrap;word-break:break-all;scrollbar-width:thin;scrollbar-color:#1e293b transparent;position:relative}
+#log-box::-webkit-scrollbar{width:5px}#log-box::-webkit-scrollbar-thumb{background:#1e293b;border-radius:3px}
+.log-header{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.log-dot{width:10px;height:10px;border-radius:50%;border:none;cursor:default}
+
+/* ─── Pipeline step cards ─── */
+.step-card{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:10px 14px;cursor:pointer;transition:all .18s;user-select:none}
+.step-card:hover{border-color:var(--b3);background:#f0f7ff}
+.step-card input{width:16px;height:16px;accent-color:var(--b);cursor:pointer;flex-shrink:0}
+.step-card span{font-size:13px;font-weight:500;color:var(--ink2)}
+.step-card.running{border-color:var(--b);background:#0b6bcb08}
+.step-card.running span{color:var(--b);font-weight:600}
+
+/* ─── Forms ─── */
+.card{background:var(--card);border:1px solid var(--brd);border-radius:var(--rad);padding:22px;box-shadow:0 1px 3px #0001}
+.card-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title svg{width:16px;height:16px;color:var(--ink4)}
+.lbl{display:block;font-size:10px;font-weight:600;color:var(--ink4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.inp{width:100%;background:var(--bg);border:1px solid var(--brd);color:var(--ink);font-size:13px;font-family:inherit;padding:9px 12px;border-radius:8px;outline:none;transition:.15s}
+.inp:focus{border-color:var(--b2);box-shadow:0 0 0 3px #0b6bcb10}
+.inp:disabled{opacity:.3;cursor:not-allowed}
+.bp{padding:9px 18px;font-size:12px;font-weight:600;color:#fff;background:linear-gradient(135deg,var(--b),var(--b2));border:none;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.18s;box-shadow:0 2px 8px #0b6bcb20}
+.bp:hover{box-shadow:0 4px 16px #0b6bcb30;transform:translateY(-1px)}
+.bp:active{transform:translateY(0)}
+.bp:disabled{opacity:.3;transform:none;box-shadow:none;cursor:not-allowed}
+.bg{padding:9px 18px;font-size:12px;font-weight:600;color:var(--ink3);background:var(--card);border:1px solid var(--brd);border-radius:8px;cursor:pointer;transition:.15s}
+.bg:hover{border-color:var(--ink4);color:var(--ink2)}
+.bd{padding:9px 18px;font-size:12px;font-weight:600;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;cursor:pointer;transition:.15s}
+.bd:hover{background:#fee2e2}
+.tbl{width:100%;font-size:13px;border-collapse:separate;border-spacing:0}
+.tbl th{text-align:left;font-size:9px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.08em;padding:10px 12px;border-bottom:2px solid var(--brd)}
+.tbl td{padding:11px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.tbl tbody tr{transition:background .12s}
+.tbl tbody tr:hover td{background:#fafbfd}
+.tag{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.tag-origen{background:#dbeafe;color:#1d4ed8}.tag-destino{background:#dcfce7;color:#15803d}.tag-ambos{background:#fef3c7;color:#b45309}
+.msg{font-size:12px;font-weight:500;padding:10px 14px;border-radius:8px;display:none;margin-top:12px}
+.msg-ok{display:block;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
+.msg-err{display:block;background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+.pill{display:inline-flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--brd);border-radius:8px;padding:6px 12px;font-family:'Space Mono',monospace;font-size:12px;transition:border .15s}
+.pill:hover{border-color:var(--ink5)}
+.pill button{background:none;border:none;color:#dc2626;cursor:pointer;font-size:15px;line-height:1;padding:2px 4px;border-radius:4px;opacity:.45;transition:.15s}
+.pill button:hover{opacity:1;background:#fef2f2}
+.notice{border-radius:10px;padding:12px 16px;font-size:13px;display:flex;gap:10px;align-items:start;line-height:1.5}
+.notice svg{width:16px;height:16px;flex-shrink:0;margin-top:1px}
+.notice code{font-family:'Space Mono',monospace;font-size:11px;padding:1px 6px;border-radius:4px}
+
+/* ─── Status badge ─── */
+.sbadge{margin:14px 16px;padding:6px 12px;border-radius:8px;font-size:10px;font-weight:700;text-align:center;letter-spacing:.05em;text-transform:uppercase;transition:all .2s}
+.sb-on{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
+.sb-off{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+.sb-load{background:#dbeafe;color:var(--b);border:1px solid #bfdbfe}
+
+/* ─── Responsive ─── */
+@media(max-width:768px){.shell{flex-direction:column!important}.sb{width:100%;height:auto;position:static;border-right:none;border-bottom:1px solid var(--brd)}.sb nav{display:flex;gap:4px;flex-wrap:wrap}.nav-item{padding:7px 12px;font-size:12px}.main-content{padding:16px!important}}
 </style>
 </head>
 <body>
 <div class="shell" style="display:flex;min-height:100vh">
+
   <!-- Sidebar -->
   <aside class="sb">
-    <div class="sb-brand">
+    <div style="padding:20px 18px;border-bottom:1px solid var(--brd)">
       <div style="display:flex;align-items:center;gap:10px">
-        <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#0b6bcb,#3898ff);display:flex;align-items:center;justify-content:center">
-          <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        </div>
-        <div>
-          <div style="font-size:14px;font-weight:700;letter-spacing:-.01em">Photos Sync</div>
-          <div style="font-size:10px;font-weight:600;color:#64748b;letter-spacing:.04em">DASHBOARD</div>
-        </div>
+        <div class="logo-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
+        <div><div style="font-size:15px;font-weight:800;letter-spacing:-.02em">Photos Sync</div><div style="font-size:9px;font-weight:600;color:var(--ink4);letter-spacing:.08em;margin-top:1px">DASHBOARD</div></div>
       </div>
     </div>
     <div id="srv-status" class="sbadge sb-load">Connecting…</div>
-    <nav style="display:flex;flex-direction:column;gap:2px;padding:12px">
-      <div style="font-size:9px;font-weight:700;color:#cbd5e1;text-transform:uppercase;letter-spacing:.12em;padding:0 12px 8px">Menu</div>
-      <button class="nb on" onclick="tab('gallery',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Gallery</button>
-      <button class="nb" onclick="tab('pipeline',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>Pipeline</button>
-      <button class="nb" onclick="tab('ssh',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15l3-3-3-3"/><line x1="14" y1="15" x2="17" y2="15"/></svg>SSH</button>
-      <button class="nb" onclick="tab('webdav',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20"/></svg>WebDAV</button>
-      <button class="nb" onclick="tab('folders',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Folders</button>
+    <nav style="display:flex;flex-direction:column;gap:2px;padding:8px 12px">
+      <div style="font-size:9px;font-weight:700;color:var(--ink5);text-transform:uppercase;letter-spacing:.14em;padding:4px 14px 10px">Menu</div>
+      <button class="nav-item on" onclick="tab('gallery',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Gallery<span class="conn-dot" id="dot-gallery"></span></button>
+      <button class="nav-item" onclick="tab('pipeline',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>Pipeline<span class="conn-dot" id="dot-pipeline"></span></button>
+      <button class="nav-item" onclick="tab('ssh',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15l3-3-3-3"/><line x1="14" y1="15" x2="17" y2="15"/></svg>SSH</button>
+      <button class="nav-item" onclick="tab('webdav',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20"/></svg>WebDAV</button>
+      <button class="nav-item" onclick="tab('folders',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Folders</button>
     </nav>
-    <div style="margin-top:auto;padding:16px;font-size:10px;color:#cbd5e1">v0.1.0</div>
+    <div style="margin-top:auto;padding:16px 18px;border-top:1px solid var(--brd)">
+      <div style="font-size:10px;color:var(--ink5)">Photos Sync v0.1.0</div>
+    </div>
   </aside>
 
   <!-- Main -->
-  <main style="flex:1;min-width:0;padding:24px 32px 40px;max-width:920px">
+  <main class="main-content" style="flex:1;min-width:0;padding:28px 36px 40px;max-width:960px">
 
     <!-- GALLERY -->
-    <section data-section="gallery" class="active">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
-        <div><h1 style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0">Gallery</h1><p style="font-size:13px;color:#64748b;margin:4px 0 0">Your photos, organized by day</p></div>
-        <button onclick="loadDays()" class="bg" style="font-size:11px;padding:6px 12px;display:inline-flex;align-items:center;gap:5px">
-          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Refresh
-        </button>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px" id="stats-row">
-        <div class="stat"><b id="stat-days">—</b><small>Days</small></div>
-        <div class="stat"><b id="stat-photos">—</b><small>Photos</small></div>
-        <div class="stat"><b id="stat-size">—</b><small>MB Total</small></div>
-      </div>
-      <div id="days-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px">
-        <div style="grid-column:1/-1;text-align:center;padding:56px 20px;color:#94a3b8">
-          <svg style="width:40px;height:40px;margin:0 auto 8px;color:#cbd5e1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          <div style="font-weight:500">Loading…</div>
+    <section data-s="gallery" class="on">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px">
+        <div><h1 style="font-size:24px;font-weight:800;letter-spacing:-.03em">Gallery</h1><p style="font-size:13px;color:var(--ink3);margin-top:3px">Your photos, organized by day</p></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="day-filter" placeholder="Search days…" class="inp" style="width:160px;padding:7px 12px;font-size:12px" oninput="filterDays(this.value)">
+          <button onclick="loadDays()" class="bg" style="padding:7px 12px;font-size:11px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Refresh</button>
         </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px" id="stats-row">
+        <div class="scard"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="scard-val" id="stat-days">—</div><div class="scard-label">Days</div></div>
+        <div class="scard"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div><div class="scard-val" id="stat-photos">—</div><div class="scard-label">Photos</div></div>
+        <div class="scard"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="scard-val" id="stat-size">—</div><div class="scard-label">MB Total</div></div>
+      </div>
+      <div id="days-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
+        <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--ink4)"><svg style="width:48px;height:48px;margin:0 auto 12px;color:var(--ink5)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.3"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><div style="font-weight:600;font-size:14px">Loading…</div></div>
       </div>
     </section>
 
     <!-- PIPELINE -->
-    <section data-section="pipeline">
-      <h1 style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px">Pipeline</h1>
-      <p style="font-size:13px;color:#64748b;margin:0 0 20px">Select steps and sync your photos.</p>
+    <section data-s="pipeline">
+      <h1 style="font-size:24px;font-weight:800;letter-spacing:-.03em;margin-bottom:3px">Pipeline</h1>
+      <p style="font-size:13px;color:var(--ink3);margin-bottom:22px">Select steps and sync your photos.</p>
       <div class="card" style="margin-bottom:16px">
-        <div id="paso-checks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-bottom:14px"></div>
+        <div id="paso-checks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:16px"></div>
         <div style="display:flex;gap:8px">
           <button class="bp" id="btn-run-sel" onclick="runPipeline(false)"><svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run selected</button>
-          <button class="bg" id="btn-run-all" onclick="runPipeline(true)" style="display:inline-flex;align-items:center;gap:5px"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Run ALL</button>
+          <button class="bg" id="btn-run-all" onclick="runPipeline(true)" style="display:inline-flex;align-items:center;gap:6px"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Run ALL</button>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:0 2px">
-        <div id="spinner" style="display:none;width:14px;height:14px;border:2px solid #e2e8f0;border-top-color:#0b6bcb;border-radius:50%" class="spin"></div>
-        <span id="pipeline-status" style="font-size:13px;color:#64748b;font-weight:500">Ready.</span>
+        <div id="spinner" style="display:none;width:14px;height:14px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div>
+        <span id="pipeline-status" style="font-size:13px;color:var(--ink3);font-weight:500">Ready.</span>
       </div>
-      <div id="log-box"></div>
+      <div>
+        <div class="log-header"><div class="log-dot" style="background:#ef4444"></div><div class="log-dot" style="background:#f59e0b"></div><div class="log-dot" style="background:#22c55e"></div><span style="font-size:11px;color:var(--ink4);font-weight:600;margin-left:6px">Terminal</span></div>
+        <div id="log-box"></div>
+      </div>
     </section>
 
     <!-- SSH -->
-    <section data-section="ssh">
-      <h1 style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px">SSH Connections</h1>
-      <p style="font-size:13px;color:#64748b;margin:0 0 20px">Remote servers for source and destination.</p>
+    <section data-s="ssh">
+      <h1 style="font-size:24px;font-weight:800;letter-spacing:-.03em;margin-bottom:3px">SSH Connections</h1>
+      <p style="font-size:13px;color:var(--ink3);margin-bottom:22px">Remote servers for source and destination.</p>
       <div class="card" style="margin-bottom:14px">
-        <div style="font-size:13px;font-weight:600;margin-bottom:12px">New connection</div>
+        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/></svg>New connection</div>
         <div style="display:grid;grid-template-columns:2fr 3fr 1fr;gap:10px">
           <div><label class="lbl">Alias</label><input id="ssh-alias" placeholder="Home NAS" class="inp"></div>
           <div><label class="lbl">Host / IP</label><input id="ssh-host" placeholder="192.168.1.50" class="inp"></div>
@@ -165,55 +202,55 @@ cursor:pointer;border:none;background:none;width:100%;text-align:left;transition
           <div><label class="lbl">Remote path (source)</label><input id="ssh-ruta" placeholder="/home/juan/fotos" class="inp"></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
-          <div><label class="lbl">Remote path (dest)</label><input id="ssh-ruta-dest" placeholder="only if role=ambos" disabled class="inp"><div id="ssh-ruta-dest-hint" style="font-size:10px;color:#94a3b8;margin-top:3px"></div></div>
+          <div><label class="lbl">Remote path (dest)</label><input id="ssh-ruta-dest" placeholder="only if role=ambos" disabled class="inp"><div id="ssh-ruta-dest-hint" style="font-size:10px;color:var(--ink4);margin-top:3px"></div></div>
           <div><label class="lbl">Private key</label><input id="ssh-clave" placeholder="~/.ssh/id_rsa (optional)" class="inp"></div>
         </div>
-        <div style="width:160px;margin-top:8px"><label class="lbl">Role</label><select id="ssh-rol" onchange="onRolChange()" class="inp"></select><div id="ssh-rol-hint" style="font-size:10px;color:#94a3b8;margin-top:3px"></div></div>
-        <div style="display:flex;gap:8px;margin-top:14px"><button class="bp" onclick="guardarSSH()">Save connection</button><button class="bg" onclick="limpiarFormSSH()">Clear</button></div>
+        <div style="width:160px;margin-top:8px"><label class="lbl">Role</label><select id="ssh-rol" onchange="onRolChange()" class="inp"></select><div id="ssh-rol-hint" style="font-size:10px;color:var(--ink4);margin-top:3px"></div></div>
+        <div style="display:flex;gap:8px;margin-top:16px"><button class="bp" onclick="guardarSSH()">Save connection</button><button class="bg" onclick="limpiarFormSSH()">Clear</button></div>
         <div id="ssh-msg" class="msg"></div>
       </div>
-      <div class="card"><div style="font-size:13px;font-weight:600;margin-bottom:10px">Saved connections</div><div style="overflow-x:auto"><table id="ssh-table" class="tbl"><thead><tr><th>Alias</th><th>Host</th><th>User</th><th>Source</th><th>Dest</th><th>Role</th><th></th></tr></thead><tbody></tbody></table></div></div>
+      <div class="card"><div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Saved connections</div><div style="overflow-x:auto"><table id="ssh-table" class="tbl"><thead><tr><th>Alias</th><th>Host</th><th>User</th><th>Source</th><th>Dest</th><th>Role</th><th></th></tr></thead><tbody></tbody></table></div></div>
     </section>
 
     <!-- WEBDAV -->
-    <section data-section="webdav">
-      <h1 style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px">WebDAV Connections</h1>
-      <p style="font-size:13px;color:#64748b;margin:0 0 20px">Mount phone drives to access photos.</p>
-      <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400e;margin-bottom:14px;display:flex;gap:8px;align-items:start"><svg style="width:15px;height:15px;flex-shrink:0;margin-top:2px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span><code style="background:#fde68a;padding:1px 5px;border-radius:4px;font-size:11px;font-family:'Space Mono',monospace">net use</code> only works on Windows. May take up to 20s if the phone is unresponsive.</span></div>
+    <section data-s="webdav">
+      <h1 style="font-size:24px;font-weight:800;letter-spacing:-.03em;margin-bottom:3px">WebDAV</h1>
+      <p style="font-size:13px;color:var(--ink3);margin-bottom:22px">Mount phone drives to access photos.</p>
+      <div class="notice" style="background:#fefce8;border:1px solid #fde68a;color:#854d0e;margin-bottom:14px"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span><code style="background:#fde68a">net use</code> only works on Windows. May take up to 20s.</span></div>
       <div class="card" style="margin-bottom:14px">
-        <div style="font-size:13px;font-weight:600;margin-bottom:12px">New connection</div>
-        <div style="display:grid;grid-template-columns:100px 2fr 80px 2fr;gap:10px">
+        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 7h3a5 5 0 010 10h-3m-6 0H6A5 5 0 016 7h3"/><line x1="8" y1="12" x2="16" y2="12"/></svg>New connection</div>
+        <div style="display:grid;grid-template-columns:90px 2fr 80px 2fr;gap:10px">
           <div><label class="lbl">Drive</label><select id="wd-letra" class="inp"></select></div>
           <div><label class="lbl">Phone IP</label><input id="wd-ip" placeholder="192.168.1.133" class="inp"></div>
           <div><label class="lbl">Port</label><input id="wd-puerto" value="8080" class="inp"></div>
           <div><label class="lbl">Alias</label><input id="wd-alias" placeholder="Nothing Phone 1" class="inp"></div>
         </div>
-        <div style="margin-top:14px"><button class="bp" id="btn-wd-conectar" onclick="conectarWD()">Connect drive</button></div>
+        <div style="margin-top:16px"><button class="bp" id="btn-wd-conectar" onclick="conectarWD()">Connect drive</button></div>
         <div id="wd-msg" class="msg"></div>
       </div>
-      <div class="card"><div style="font-size:13px;font-weight:600;margin-bottom:10px">Mounted drives</div><div style="overflow-x:auto"><table id="wd-table" class="tbl"><thead><tr><th>Drive</th><th>Alias</th><th>IP</th><th>Port</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div></div>
+      <div class="card"><div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Mounted drives</div><div style="overflow-x:auto"><table id="wd-table" class="tbl"><thead><tr><th>Drive</th><th>Alias</th><th>IP</th><th>Port</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div></div>
     </section>
 
     <!-- FOLDERS -->
-    <section data-section="folders">
-      <h1 style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px">Folders</h1>
-      <p style="font-size:13px;color:#64748b;margin:0 0 20px">Source and destination directories.</p>
+    <section data-s="folders">
+      <h1 style="font-size:24px;font-weight:800;letter-spacing:-.03em;margin-bottom:3px">Folders</h1>
+      <p style="font-size:13px;color:var(--ink3);margin-bottom:22px">Source and destination directories.</p>
       <div class="card" style="margin-bottom:14px">
-        <div style="font-size:13px;font-weight:600;margin-bottom:4px">Source folders</div>
-        <p style="font-size:11px;color:#94a3b8;margin:0 0 10px">Directories scanned for captures. Click × to remove.</p>
+        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Source folders</div>
+        <p style="font-size:11px;color:var(--ink4);margin:-6px 0 12px">Directories scanned for captures. Click × to remove.</p>
         <div id="carpetas-origen-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
         <div style="display:flex;gap:8px;margin-top:12px"><input id="nueva-carpeta" placeholder="/mnt/nothing/DCIM  or  Z:\DCIM" class="inp" style="flex:1" onkeydown="if(event.key==='Enter')addCarpeta()"><button class="bp" onclick="addCarpeta()">Add folder</button></div>
         <div id="carpetas-msg" class="msg"></div>
       </div>
       <div class="card">
-        <div style="font-size:13px;font-weight:600;margin-bottom:4px">Destination</div>
-        <p style="font-size:11px;color:#94a3b8;margin:0 0 10px">Where organized files are stored.</p>
-        <div style="display:grid;grid-template-columns:140px 1fr;gap:10px;margin-bottom:10px">
+        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Destination</div>
+        <p style="font-size:11px;color:var(--ink4);margin:-6px 0 12px">Where organized files are stored.</p>
+        <div style="display:grid;grid-template-columns:140px 1fr;gap:10px;margin-bottom:12px">
           <div><label class="lbl">Type</label><select id="dest-tipo" onchange="destTipoChange()" class="inp"><option value="local">Local</option><option value="ssh">SSH Server</option></select></div>
           <div id="dest-local-wrap"><label class="lbl">Local path</label><input id="dest-ruta" placeholder="/home/user/photos_organized" class="inp"></div>
-          <div id="dest-ssh-wrap" style="display:none"><label class="lbl">SSH Server</label><select id="dest-ssh-alias" class="inp"><option value="">— loading… —</option></select><div id="dest-ssh-hint" style="font-size:10px;color:#94a3b8;margin-top:3px"></div></div>
+          <div id="dest-ssh-wrap" style="display:none"><label class="lbl">SSH Server</label><select id="dest-ssh-alias" class="inp"><option value="">— loading… —</option></select><div id="dest-ssh-hint" style="font-size:10px;color:var(--ink4);margin-top:3px"></div></div>
         </div>
-        <div style="display:flex;gap:8px"><button class="bp" onclick="guardarDestino()">Save destination</button><button onclick="quitarDestino()" style="padding:8px 14px;font-size:12px;font-weight:600;color:#dc2626;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;cursor:pointer">Remove</button></div>
+        <div style="display:flex;gap:8px"><button class="bp" onclick="guardarDestino()">Save destination</button><button class="bd" onclick="quitarDestino()">Remove</button></div>
         <div id="destino-msg" class="msg"></div>
       </div>
     </section>
@@ -223,49 +260,52 @@ cursor:pointer;border:none;background:none;width:100%;text-align:left;transition
 <script>
 const $=id=>document.getElementById(id);
 async function api(p,o={}){const r=await fetch(p,{headers:{'Content-Type':'application/json'},...o,body:o.body!==undefined?JSON.stringify(o.body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||`HTTP ${r.status}`);return d}
-function showMsg(id,t,ok){const e=$(id);e.className='msg '+(ok?'msg-ok':'msg-err');e.textContent=t;e.style.display='block';setTimeout(()=>{e.style.display='none'},5000)}
-function tab(id,b){document.querySelectorAll('[data-section]').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));document.querySelector(`[data-section="${id}"]`).classList.add('active');b.classList.add('on');if(id==='gallery')loadDays();if(id==='ssh')initSSH();if(id==='webdav')initWebDAV();if(id==='folders')initCarpetas()}
+function showMsg(id,t,ok){const e=$(id);e.className='msg '+(ok?'msg-ok':'msg-err');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',5000)}
+function tab(id,b){document.querySelectorAll('[data-s]').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('on'));document.querySelector(`[data-s="${id}"]`).classList.add('on');b.classList.add('on');({gallery:loadDays,ssh:initSSH,webdav:initWebDAV,folders:initCarpetas})[id]?.()}
 
-// WS
+/* WS */
 const logBox=$('log-box');let ws;
-function conectarWS(){const proto=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${proto}://${location.host}/ws/log`);
+function conectarWS(){const p=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${p}://${location.host}/ws/log`);
 ws.onmessage=e=>{if(!e.data)return;logBox.textContent+=e.data;logBox.scrollTop=logBox.scrollHeight};
 ws.onopen=()=>{logBox.textContent='';const s=$('srv-status');s.textContent='Online';s.className='sbadge sb-on'};
-ws.onclose=()=>{const s=$('srv-status');s.textContent='Offline';s.className='sbadge sb-off';setTimeout(conectarWS,3000)}}
+ws.onclose=()=>{$('srv-status').textContent='Offline';$('srv-status').className='sbadge sb-off';setTimeout(conectarWS,3000)}}
 conectarWS();
 
-// Gallery
+/* Gallery */
 const MN=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-async function loadDays(){try{const d=await api('/api/days');$('stat-days').textContent=d.total_days;$('stat-photos').textContent=d.total_photos.toLocaleString();$('stat-size').textContent=d.total_mb.toLocaleString();const g=$('days-grid');if(!d.days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:56px 20px;color:#94a3b8"><svg style="width:44px;height:44px;margin:0 auto 10px;color:#e2e8f0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><div style="font-weight:600;font-size:14px">No photos organized yet</div><div style="font-size:12px;margin-top:4px">Run the Pipeline to scan and organize your photos.</div></div>`;return}g.innerHTML='';d.days.forEach(x=>{const m=parseInt(x.mes,10);const el=document.createElement('div');el.className='dcard';el.innerHTML=`<div class="dcard-top"><span>${MN[m]} ${x.anio}</span><div class="dcard-badge">${x.cantidad_fotos}</div></div><div class="dcard-body"><div class="dcard-day">${parseInt(x.dia,10)}</div><div class="dcard-meta">${x.tamano_total_mb} MB${x.ruta_zip?' · zipped':''}</div></div>`;g.appendChild(el)})}catch(e){const g=$('days-grid');g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:#dc2626"><div style="font-weight:600;font-size:14px">Could not load gallery</div><div style="font-size:12px;margin-top:4px">${e.message}</div><button onclick="loadDays()" class="bg" style="margin-top:12px;font-size:11px">Retry</button></div>`}}
+let _allDays=[];
+function filterDays(q){const g=$('days-grid');g.innerHTML='';const f=q.toLowerCase();const days=f?_allDays.filter(d=>`${d.fecha} ${MN[parseInt(d.mes,10)]} ${d.anio}`.toLowerCase().includes(f)):_allDays;if(!days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--ink4);font-size:13px">${f?'No matches':'No photos yet'}</div>`;return}renderDayCards(days,g)}
+function renderDayCards(days,g){days.forEach((d,i)=>{const m=parseInt(d.mes,10);const el=document.createElement('div');el.className=`dcard m${m}`;el.style.animation=`slideIn .25s ease ${i*30}ms both`;el.innerHTML=`<div class="dcard-head"><span class="dcard-month">${MN[m]} ${d.anio}</span><div class="dcard-count">${d.cantidad_fotos}</div></div><div class="dcard-body"><div class="dcard-day">${parseInt(d.dia,10)}</div><div class="dcard-meta">${d.tamano_total_mb} MB${d.ruta_zip?` <span class="dcard-zip"><svg width="8" height="8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>zipped</span>`:''}</div></div>`;g.appendChild(el)})}
+async function loadDays(){try{const d=await api('/api/days');_allDays=d.days;$('stat-days').textContent=d.total_days;$('stat-photos').textContent=d.total_photos.toLocaleString();$('stat-size').textContent=d.total_mb.toLocaleString();$('day-filter').value='';const g=$('days-grid');g.innerHTML='';if(!d.days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:64px 20px;color:var(--ink4)"><svg style="width:52px;height:52px;margin:0 auto 14px;color:var(--ink5)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><div style="font-weight:700;font-size:15px;margin-bottom:4px">No photos organized yet</div><div style="font-size:12px">Run the Pipeline to scan and organize.</div></div>`;return}renderDayCards(d.days,g)}catch(e){$('days-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:#dc2626"><div style="font-weight:700;font-size:15px;margin-bottom:4px">Could not load gallery</div><div style="font-size:12px;color:var(--ink3);margin-bottom:12px">${e.message}</div><button onclick="loadDays()" class="bg" style="font-size:11px">Retry</button></div>`}}
 loadDays();
 
-// Pipeline
-async function initPipeline(){const p=await api('/api/pasos');const g=$('paso-checks');g.innerHTML='';p.forEach(x=>{const l=document.createElement('label');l.style.cssText='display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px 12px;cursor:pointer;font-size:13px;font-weight:500;color:#334155;user-select:none;transition:.15s';l.onmouseenter=()=>l.style.borderColor='#3898ff';l.onmouseleave=()=>l.style.borderColor='#e2e8f0';l.innerHTML=`<input type="checkbox" value="${x.id}" checked style="width:15px;height:15px;accent-color:#0b6bcb"> ${x.nombre}`;g.appendChild(l)});pollEstado()}initPipeline();
+/* Pipeline */
+async function initPipeline(){const p=await api('/api/pasos');const g=$('paso-checks');g.innerHTML='';p.forEach(x=>{const l=document.createElement('label');l.className='step-card';l.innerHTML=`<input type="checkbox" value="${x.id}" checked><span>${x.nombre}</span>`;g.appendChild(l)});pollEstado()}initPipeline();
 let pt;async function pollEstado(){const{corriendo}=await api('/api/pipeline/estado');setPipelineUI(corriendo);if(corriendo)pt=setTimeout(pollEstado,1500)}
 async function runPipeline(a){const c=[...document.querySelectorAll('#paso-checks input:checked')];const p=a?null:c.map(x=>+x.value);if(!a&&p.length===0)return;try{await api('/api/pipeline/ejecutar',{method:'POST',body:{pasos:p}});setPipelineUI(true);pt=setTimeout(pollEstado,1500)}catch(e){$('pipeline-status').textContent=e.message}}
-function setPipelineUI(r){$('spinner').style.display=r?'block':'none';$('pipeline-status').textContent=r?'Running pipeline…':'Ready.';$('btn-run-sel').disabled=r;$('btn-run-all').disabled=r}
+function setPipelineUI(r){$('spinner').style.display=r?'block':'none';$('pipeline-status').textContent=r?'Running pipeline…':'Ready.';$('btn-run-sel').disabled=r;$('btn-run-all').disabled=r;const d=$('dot-pipeline');if(d){d.className='conn-dot'+(r?' live':'');d.style.display=r?'block':'none'}}
 
-// SSH
+/* SSH */
 let _sr={};async function initSSH(){_sr=await api('/api/ssh/roles');const s=$('ssh-rol');s.innerHTML='';_sr.roles.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;s.appendChild(o)});onRolChange();await renderSSH()}
-async function renderSSH(){const l=await api('/api/ssh');const tb=document.querySelector('#ssh-table tbody');tb.innerHTML='';if(!l.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:#94a3b8;font-size:13px">No SSH connections yet</td></tr>';return}l.forEach(c=>{const tc={origen:'tag-origen',destino:'tag-destino',ambos:'tag-ambos'}[c.rol]||'';const tr=document.createElement('tr');tr.innerHTML=`<td><a href="#" onclick="editSSH(${JSON.stringify(c).replace(/"/g,'&quot;')});return false" style="color:#0b6bcb;font-weight:500;text-decoration:none">${c.alias}</a></td><td>${c.host}:${c.puerto}</td><td>${c.usuario}</td><td style="font-family:'Space Mono',monospace;font-size:11px;color:#64748b">${c.ruta_remota}</td><td style="font-family:'Space Mono',monospace;font-size:11px;color:#64748b">${c.ruta_remota_destino||'—'}</td><td><span class="tag ${tc}">${c.rol}</span></td><td><button onclick="borrarSSH('${c.alias}')" style="font-size:11px;color:#dc2626;background:none;border:none;cursor:pointer;font-weight:600">Delete</button></td>`;tb.appendChild(tr)})}
-function onRolChange(){const r=$('ssh-rol').value,d=$('ssh-ruta-dest'),s=_sr;const h=(s.requiere_ruta_destino||[]).includes(r);d.disabled=!h;$('ssh-rol-hint').textContent=(s.descripcion||{})[r]||'';const o=(s.ruta_destino_obligatoria||[]).includes(r);d.placeholder=o?'REQUIRED: different from source':'optional: empty = use source';$('ssh-ruta-dest-hint').textContent=o?'Must differ from source to avoid re-scan loops.':''}
-function editSSH(c){$('ssh-alias').value=c.alias;$('ssh-host').value=c.host;$('ssh-puerto').value=c.puerto;$('ssh-usuario').value=c.usuario;$('ssh-ruta').value=c.ruta_remota;$('ssh-ruta-dest').value=c.ruta_remota_destino||'';$('ssh-clave').value='';$('ssh-clave').placeholder=c.tiene_clave?'(key configured — leave empty to keep)':'~/.ssh/id_rsa (optional)';$('ssh-rol').value=c.rol;onRolChange();document.querySelector('[data-section="ssh"] .card').scrollIntoView({behavior:'smooth'})}
+async function renderSSH(){const l=await api('/api/ssh');const tb=document.querySelector('#ssh-table tbody');tb.innerHTML='';if(!l.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--ink4);font-size:13px">No SSH connections yet</td></tr>';return}l.forEach(c=>{const tc={origen:'tag-origen',destino:'tag-destino',ambos:'tag-ambos'}[c.rol]||'';const tr=document.createElement('tr');tr.innerHTML=`<td><a href="#" onclick="editSSH(${JSON.stringify(c).replace(/"/g,'&quot;')});return false" style="color:var(--b);font-weight:600;text-decoration:none">${c.alias}</a></td><td>${c.host}:${c.puerto}</td><td>${c.usuario}</td><td style="font-family:'Space Mono';font-size:11px;color:var(--ink3)">${c.ruta_remota}</td><td style="font-family:'Space Mono';font-size:11px;color:var(--ink3)">${c.ruta_remota_destino||'—'}</td><td><span class="tag ${tc}">${c.rol}</span></td><td><button onclick="borrarSSH('${c.alias}')" style="font-size:11px;color:#dc2626;background:none;border:none;cursor:pointer;font-weight:600">Delete</button></td>`;tb.appendChild(tr)})}
+function onRolChange(){const r=$('ssh-rol').value,d=$('ssh-ruta-dest'),s=_sr;d.disabled=!(s.requiere_ruta_destino||[]).includes(r);$('ssh-rol-hint').textContent=(s.descripcion||{})[r]||'';const o=(s.ruta_destino_obligatoria||[]).includes(r);d.placeholder=o?'REQUIRED: different from source':'optional: empty = use source';$('ssh-ruta-dest-hint').textContent=o?'Must differ from source to avoid re-scan loops.':''}
+function editSSH(c){$('ssh-alias').value=c.alias;$('ssh-host').value=c.host;$('ssh-puerto').value=c.puerto;$('ssh-usuario').value=c.usuario;$('ssh-ruta').value=c.ruta_remota;$('ssh-ruta-dest').value=c.ruta_remota_destino||'';$('ssh-clave').value='';$('ssh-clave').placeholder=c.tiene_clave?'(configured — empty to keep)':'~/.ssh/id_rsa';$('ssh-rol').value=c.rol;onRolChange();document.querySelector('[data-s="ssh"] .card').scrollIntoView({behavior:'smooth'})}
 async function guardarSSH(){try{await api('/api/ssh',{method:'POST',body:{alias:$('ssh-alias').value.trim(),host:$('ssh-host').value.trim(),puerto:+$('ssh-puerto').value||22,usuario:$('ssh-usuario').value.trim(),ruta_remota:$('ssh-ruta').value.trim(),ruta_remota_destino:$('ssh-ruta-dest').value.trim(),clave_privada:$('ssh-clave').value.trim(),rol:$('ssh-rol').value}});showMsg('ssh-msg','Connection saved.',true);limpiarFormSSH();renderSSH()}catch(e){showMsg('ssh-msg',e.message,false)}}
 async function borrarSSH(a){if(!confirm('Delete "'+a+'"?'))return;await api('/api/ssh/'+encodeURIComponent(a),{method:'DELETE'});renderSSH()}
 function limpiarFormSSH(){['ssh-alias','ssh-host','ssh-usuario','ssh-ruta','ssh-ruta-dest','ssh-clave'].forEach(i=>$(i).value='');$('ssh-puerto').value='22';if($('ssh-rol').options.length){$('ssh-rol').selectedIndex=0;onRolChange()}}
 
-// WebDAV
+/* WebDAV */
 async function initWebDAV(){const{libres}=await api('/api/webdav/letras');const s=$('wd-letra');s.innerHTML='';(libres.length?libres:['Z:']).forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;s.appendChild(o)});await renderWD()}
-async function renderWD(){const l=await api('/api/webdav');const tb=document.querySelector('#wd-table tbody');tb.innerHTML='';if(!l.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:#94a3b8;font-size:13px">No WebDAV drives</td></tr>';return}l.forEach(c=>{const ok=c.montada;const tr=document.createElement('tr');tr.innerHTML=`<td style="font-weight:600">${c.letra}</td><td>${c.alias||''}</td><td style="font-family:'Space Mono',monospace;font-size:12px">${c.ip}</td><td>${c.puerto}</td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:${ok?'#059669':'#dc2626'}"></span>${ok?'Connected':'Disconnected'}</span></td><td>${ok?'<button onclick="disconnectWD(\''+c.letra+'\')" style="font-size:11px;color:#dc2626;background:none;border:none;cursor:pointer;font-weight:600">Disconnect</button>':'—'}</td>`;tb.appendChild(tr)})}
+async function renderWD(){const l=await api('/api/webdav');const tb=document.querySelector('#wd-table tbody');tb.innerHTML='';if(!l.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink4);font-size:13px">No WebDAV drives</td></tr>';return}l.forEach(c=>{const ok=c.montada;const tr=document.createElement('tr');tr.innerHTML=`<td style="font-weight:600">${c.letra}</td><td>${c.alias||''}</td><td style="font-family:'Space Mono';font-size:12px">${c.ip}</td><td>${c.puerto}</td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:${ok?'#22c55e':'#ef4444'}${ok?';box-shadow:0 0 6px #22c55e60':''}"></span>${ok?'Connected':'Disconnected'}</span></td><td>${ok?`<button onclick="disconnectWD('${c.letra}')" style="font-size:11px;color:#dc2626;background:none;border:none;cursor:pointer;font-weight:600">Disconnect</button>`:'—'}</td>`;tb.appendChild(tr)})}
 async function conectarWD(){const b=$('btn-wd-conectar');b.disabled=true;b.textContent='Connecting…';try{const r=await api('/api/webdav/connect',{method:'POST',body:{letra:$('wd-letra').value,ip:$('wd-ip').value.trim(),puerto:$('wd-puerto').value.trim()||'8080',alias:$('wd-alias').value.trim()}});showMsg('wd-msg',r.mensaje,r.ok);await initWebDAV()}catch(e){showMsg('wd-msg',e.message,false)}finally{b.disabled=false;b.textContent='Connect drive'}}
 async function disconnectWD(l){const r=await api('/api/webdav/disconnect/'+encodeURIComponent(l),{method:'POST'});showMsg('wd-msg',r.mensaje,r.ok);await initWebDAV()}
 
-// Folders
+/* Folders */
 async function initCarpetas(){const d=await api('/api/carpetas');renderOrigen(d.origen);renderDestinoSSH(d.servidores_ssh_destino);const c=d.destino||{};if(c.tipo==='ssh'){$('dest-tipo').value='ssh';destTipoChange();$('dest-ssh-alias').value=c.alias||''}else{$('dest-tipo').value='local';destTipoChange();$('dest-ruta').value=c.ruta||''}}
-function renderOrigen(l){const c=$('carpetas-origen-list');c.innerHTML='';if(!l||!l.length){c.innerHTML='<span style="font-size:12px;color:#94a3b8">No source folders added.</span>';return}l.forEach(p=>{const d=document.createElement('div');d.className='pill';d.innerHTML=`<span>${p}</span><button onclick="quitarCarpeta('${p.replace(/'/g,"\\'")}',this.parentNode)">&times;</button>`;c.appendChild(d)})}
+function renderOrigen(l){const c=$('carpetas-origen-list');c.innerHTML='';if(!l||!l.length){c.innerHTML='<span style="font-size:12px;color:var(--ink4)">No source folders added.</span>';return}l.forEach(p=>{const d=document.createElement('div');d.className='pill';d.innerHTML=`<span>${p}</span><button onclick="quitarCarpeta('${p.replace(/'/g,"\\'")}',this.parentNode)">&times;</button>`;c.appendChild(d)})}
 function renderDestinoSSH(s){const sel=$('dest-ssh-alias'),pv=sel.value;sel.innerHTML='<option value="">— choose server —</option>';(s||[]).forEach(x=>{const o=document.createElement('option');o.value=x.alias;o.textContent=x.alias+' ('+x.host+')';if(x.alias===pv)o.selected=true;sel.appendChild(o)});$('dest-ssh-hint').textContent=s&&!s.length?'No SSH servers with dest/ambos role.':''}
 async function addCarpeta(){const v=$('nueva-carpeta').value.trim();if(!v)return;try{const d=await api('/api/carpetas/origen/anadir',{method:'POST',body:{carpeta:v}});$('nueva-carpeta').value='';renderOrigen(d.origen);showMsg('carpetas-msg','Folder added.',true)}catch(e){showMsg('carpetas-msg',e.message,false)}}
-async function quitarCarpeta(c,el){try{await api('/api/carpetas/origen/quitar',{method:'POST',body:{carpeta:c}});el.remove();const ct=$('carpetas-origen-list');if(!ct.children.length)ct.innerHTML='<span style="font-size:12px;color:#94a3b8">No source folders added.</span>';showMsg('carpetas-msg','Folder removed.',true)}catch(e){showMsg('carpetas-msg',e.message,false)}}
+async function quitarCarpeta(c,el){try{await api('/api/carpetas/origen/quitar',{method:'POST',body:{carpeta:c}});el.remove();const ct=$('carpetas-origen-list');if(!ct.children.length)ct.innerHTML='<span style="font-size:12px;color:var(--ink4)">No source folders added.</span>';showMsg('carpetas-msg','Folder removed.',true)}catch(e){showMsg('carpetas-msg',e.message,false)}}
 function destTipoChange(){$('dest-local-wrap').style.display=$('dest-tipo').value==='local'?'':'none';$('dest-ssh-wrap').style.display=$('dest-tipo').value==='ssh'?'':'none'}
 async function guardarDestino(){const t=$('dest-tipo').value,b=t==='local'?{tipo:'local',ruta:$('dest-ruta').value.trim()}:{tipo:'ssh',alias:$('dest-ssh-alias').value};try{await api('/api/carpetas/destino',{method:'POST',body:b});showMsg('destino-msg','Destination saved.',true)}catch(e){showMsg('destino-msg',e.message,false)}}
 async function quitarDestino(){if(!confirm('Remove destination?'))return;try{await api('/api/carpetas/destino/quitar',{method:'POST'});$('dest-ruta').value='';$('dest-ssh-alias').value='';showMsg('destino-msg','Destination removed.',true)}catch(e){showMsg('destino-msg',e.message,false)}}
