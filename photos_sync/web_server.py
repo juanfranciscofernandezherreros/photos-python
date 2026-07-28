@@ -1,12 +1,11 @@
 """
-web_server.py — Interfaz web local para Photos Sync.
+web_server.py — Local web interface for Photos Sync.
 
-El JS de la UI es puro presentación: recoge campos del formulario,
-llama a un endpoint Python y renderiza la respuesta. Toda la lógica
-(validaciones, persistencia, estado del pipeline, roles SSH, etc.)
-vive en Python.
+The JS UI is pure presentation: it collects form fields, calls a Python
+endpoint, and renders the response. All business logic (validations,
+persistence, pipeline state, SSH roles, etc.) lives in Python.
 
-Arrancar sin GUI (headless):
+Run headless:
     python -m photos_sync.web_server   →   http://localhost:8765
 """
 from __future__ import annotations
@@ -31,44 +30,157 @@ from .folders import (load_saved_folders, save_folders,
                        load_destination_config, save_destination, save_ssh_destination)
 from .keep_awake import prevent_sleep
 
-# ──────────────────────────── estado compartido ─────────────────────────────
-
-_pipeline_lock = threading.Lock()
-_pipeline_running = False
-_log_lines: list[str] = []
-_log_listeners: set[asyncio.Queue] = set()
+# ──────────────────────────── Pipeline steps ────────────────────────────────
 
 PASOS: list[tuple[str, Any]] = [
-    ("Descargar metadatos",  download.export_metadata_json),
-    ("Organizar por fecha",  organize.organize_captures_by_date),
-    ("Comprimir por día",    compress.compress_folders_by_day),
-    ("Generar summary",      summary.generate_daily_summary),
-    ("Subir a SSH",          upload_ssh.upload_organized_to_ssh),
+    ("Download metadata",   download.export_metadata_json),
+    ("Organize by date",    organize.organize_captures_by_date),
+    ("Compress by day",     compress.compress_folders_by_day),
+    ("Generate summary",    summary.generate_daily_summary),
+    ("Upload to SSH",       upload_ssh.upload_organized_to_ssh),
 ]
 
-_net_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="net-use")
+# ──────────────────────────── LogBroadcaster ────────────────────────────────
 
-# ──────────────────────────── log broadcaster ───────────────────────────────
+class LogBroadcaster:
+    """Captures all stdout/stderr writes from pipeline steps and fans them out
+    to every active WebSocket subscriber. Also keeps a rolling in-memory
+    buffer so late-connecting clients can replay the current session's log.
 
-def _emit(texto: str) -> None:
-    _log_lines.append(texto)
-    if len(_log_lines) > 2000:
-        del _log_lines[:-2000]
-    for q in list(_log_listeners):
-        try:
-            q.put_nowait(texto)
-        except Exception:
-            pass
+    Usage:
+        broadcaster = LogBroadcaster()
+        broadcaster.subscribe(queue)      # called by each WebSocket handler
+        broadcaster.unsubscribe(queue)
+        broadcaster.emit("some text\n")   # called by _WebIO.write()
+        broadcaster.replay(queue)         # sends buffered lines to new client
+    """
+    MAX_LINES = 2000
+
+    def __init__(self) -> None:
+        self._lines: list[str] = []
+        self._listeners: set[asyncio.Queue] = set()
+        self._lock = threading.Lock()
+
+    def emit(self, text: str) -> None:
+        """Append text to the buffer and push to all current subscribers."""
+        with self._lock:
+            self._lines.append(text)
+            if len(self._lines) > self.MAX_LINES:
+                del self._lines[:-self.MAX_LINES]
+        for q in list(self._listeners):
+            try:
+                q.put_nowait(text)
+            except Exception:
+                pass
+
+    def subscribe(self, q: asyncio.Queue) -> None:
+        self._listeners.add(q)
+
+    def unsubscribe(self, q: asyncio.Queue) -> None:
+        self._listeners.discard(q)
+
+    def replay(self, q: asyncio.Queue) -> list[str]:
+        """Return a snapshot of buffered lines for replay to a new client."""
+        with self._lock:
+            return list(self._lines)
+
+    def clear(self) -> None:
+        with self._lock:
+            self._lines.clear()
 
 
-class _WebIO(io.TextIOBase):
+# ──────────────────────────── PipelineManager ───────────────────────────────
+
+class PipelineManager:
+    """Owns all mutable pipeline state: running flag, step list, executor.
+
+    Responsibilities:
+      - Guard against concurrent runs with a threading.Lock
+      - Redirect stdout/stderr to the LogBroadcaster for the duration of a run
+      - Run steps in a daemon thread; update running flag in the finally block
+      - Expose is_running() and run() as the only public API the endpoints need
+
+    Testable in isolation: inject a LogBroadcaster and a custom step list.
+    """
+
+    def __init__(
+        self,
+        broadcaster: LogBroadcaster,
+        pasos: list[tuple[str, Any]] | None = None,
+    ) -> None:
+        self._broadcaster = broadcaster
+        self._pasos = pasos if pasos is not None else PASOS
+        self._lock = threading.Lock()
+        self._running = False
+
+    def is_running(self) -> bool:
+        return self._running
+
+    def step_names(self) -> list[str]:
+        return [name for name, _ in self._pasos]
+
+    def run(self, indices: list[int] | None = None) -> list[str]:
+        """Start the pipeline in a background thread.
+
+        Args:
+            indices: step indices to run, or None to run all.
+
+        Returns:
+            List of step names that will be executed.
+
+        Raises:
+            RuntimeError: if the pipeline is already running.
+        """
+        with self._lock:
+            if self._running:
+                raise RuntimeError("Pipeline is already running.")
+            self._running = True
+
+        idx_list = indices if indices is not None else list(range(len(self._pasos)))
+        selected = [(self._pasos[i][0], self._pasos[i][1])
+                    for i in idx_list if 0 <= i < len(self._pasos)]
+
+        def _run_thread() -> None:
+            orig_out, orig_err = sys.stdout, sys.stderr
+            sys.stdout = sys.stderr = _BroadcastIO(self._broadcaster)
+            try:
+                with prevent_sleep():
+                    for name, fn in selected:
+                        self._broadcaster.emit(f"\n{'='*55}\n⏳ STARTING: {name}\n{'='*55}\n")
+                        fn()
+                self._broadcaster.emit("\n✅ Pipeline finished successfully.\n")
+            except Exception:
+                self._broadcaster.emit("\n❌ ERROR:\n" + traceback.format_exc())
+            finally:
+                sys.stdout = orig_out
+                sys.stderr = orig_err
+                self._running = False
+
+        threading.Thread(target=_run_thread, daemon=True, name="pipeline").start()
+        return [name for name, _ in selected]
+
+
+# ──────────────────────────── I/O redirect ──────────────────────────────────
+
+class _BroadcastIO(io.TextIOBase):
+    """Thin TextIO shim that forwards all writes to a LogBroadcaster."""
+    def __init__(self, broadcaster: LogBroadcaster) -> None:
+        self._broadcaster = broadcaster
+
     def write(self, s: str) -> int:
         if s:
-            _emit(s)
+            self._broadcaster.emit(s)
         return len(s)
+
     def flush(self) -> None:
         pass
 
+
+# ──────────────────────────── Singletons ────────────────────────────────────
+
+broadcaster = LogBroadcaster()
+pipeline    = PipelineManager(broadcaster)
+_net_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="net-use")
 
 # ──────────────────────────── FastAPI app ───────────────────────────────────
 
@@ -85,21 +197,20 @@ app = FastAPI(title="Photos Sync Web", lifespan=_lifespan)
 async def ws_log(ws: WebSocket):
     await ws.accept()
     q: asyncio.Queue = asyncio.Queue()
-    _log_listeners.add(q)
+    broadcaster.subscribe(q)
     try:
-        for line in _log_lines:
+        for line in broadcaster.replay(q):
             await ws.send_text(line)
         while True:
             try:
                 msg = await asyncio.wait_for(q.get(), timeout=30)
                 await ws.send_text(msg)
             except asyncio.TimeoutError:
-                # Keepalive: enviar ping en vez de disconnect
-                await ws.send_text("")
+                await ws.send_text("")   # keepalive ping
     except (WebSocketDisconnect, Exception):
         pass
     finally:
-        _log_listeners.discard(q)
+        broadcaster.unsubscribe(q)
 
 
 # ═══════════════════════════════════════════ Pipeline ═══════════════════════
@@ -110,7 +221,7 @@ class PipelineRequest(BaseModel):
 
 @app.get("/api/pasos")
 def get_pasos():
-    return [{"id": i, "nombre": n} for i, (n, _) in enumerate(PASOS)]
+    return [{"id": i, "nombre": n} for i, n in enumerate(pipeline.step_names())]
 
 
 @app.get("/api/days")
@@ -121,7 +232,6 @@ def get_days():
     days = read_json(DAILY_SUMMARY_JSON, default=[])
     if not isinstance(days, list):
         days = []
-    # Also scan the organized dir for physical day folders
     org = Path(ORGANIZED_DIR)
     if org.exists() and not days:
         for year_dir in sorted(org.iterdir()):
@@ -144,7 +254,6 @@ def get_days():
                             "tamano_total_mb": round(sum(f.stat().st_size for f in files) / 1048576, 2),
                             "destino": str(day_dir),
                         })
-    # Sort by date descending (most recent first)
     days.sort(key=lambda d: d.get("fecha", ""), reverse=True)
     total_photos = sum(d.get("cantidad_fotos", 0) for d in days)
     total_mb = round(sum(d.get("tamano_total_mb", 0) for d in days), 1)
@@ -153,39 +262,16 @@ def get_days():
 
 @app.get("/api/pipeline/estado")
 def pipeline_estado():
-    return {"corriendo": _pipeline_running}
+    return {"corriendo": pipeline.is_running()}
 
 
 @app.post("/api/pipeline/ejecutar")
 def ejecutar_pipeline(req: PipelineRequest):
-    global _pipeline_running
-    with _pipeline_lock:
-        if _pipeline_running:
-            raise HTTPException(409, "Ya hay un proceso en curso.")
-        _pipeline_running = True
-
-    indices = req.pasos if req.pasos is not None else list(range(len(PASOS)))
-    pasos_sel = [(PASOS[i][0], PASOS[i][1]) for i in indices if 0 <= i < len(PASOS)]
-
-    def _run():
-        global _pipeline_running
-        _orig_out, _orig_err = sys.stdout, sys.stderr
-        sys.stdout = sys.stderr = _WebIO()
-        try:
-            with prevent_sleep():
-                for nombre, fn in pasos_sel:
-                    _emit(f"\n{'='*55}\n⏳ INICIANDO: {nombre}\n{'='*55}\n")
-                    fn()
-            _emit("\n✅ Pipeline finalizado correctamente.\n")
-        except Exception:
-            _emit("\n❌ ERROR:\n" + traceback.format_exc())
-        finally:
-            sys.stdout = _orig_out
-            sys.stderr = _orig_err
-            _pipeline_running = False
-
-    threading.Thread(target=_run, daemon=True).start()
-    return {"ok": True, "pasos": [n for n, _ in pasos_sel]}
+    try:
+        names = pipeline.run(req.pasos)
+    except RuntimeError as e:
+        raise HTTPException(409, str(e))
+    return {"ok": True, "pasos": names}
 
 
 # ═══════════════════════════════════════════ SSH ════════════════════════════
