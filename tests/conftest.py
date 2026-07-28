@@ -19,15 +19,33 @@ def cwd_temporal(tmp_path, monkeypatch):
     ~/PhotosSync/data/ directory during tests."""
     monkeypatch.chdir(tmp_path)
 
-    # Patch every path constant in config and every module that imported it
+    # Patch every path constant in config and every module that imported it —
+    # including both the facade modules (photos_sync.folders, etc.) and the
+    # actual implementation modules (photos_sync.storage.folders, etc.)
     import photos_sync.config as cfg
-    import photos_sync.folders as folders_mod
-    import photos_sync.connection as connection_mod
-    import photos_sync.ssh_connection as ssh_mod
-    import photos_sync.download as download_mod
-    import photos_sync.compress as compress_mod
-    import photos_sync.summary as summary_mod
-    import photos_sync.organize as organize_mod
+    import photos_sync.folders as folders_facade
+    import photos_sync.connection as connection_facade
+    import photos_sync.ssh_connection as ssh_facade
+    import photos_sync.download as download_facade
+    import photos_sync.compress as compress_facade
+    import photos_sync.summary as summary_facade
+    import photos_sync.organize as organize_facade
+    import photos_sync.storage.folders as folders_impl
+    import photos_sync.storage.connection as connection_impl
+    import photos_sync.storage.ssh_repo as ssh_repo_impl
+    import photos_sync.pipeline.download as download_impl
+    import photos_sync.pipeline.compress as compress_impl
+    import photos_sync.pipeline.summary as summary_impl
+    import photos_sync.pipeline.organize as organize_impl
+    import photos_sync.pipeline.upload_ssh as upload_impl
+
+    all_modules = (
+        cfg,
+        folders_facade, connection_facade, ssh_facade,
+        download_facade, compress_facade, summary_facade, organize_facade,
+        folders_impl, connection_impl, ssh_repo_impl,
+        download_impl, compress_impl, summary_impl, organize_impl, upload_impl,
+    )
 
     data_dir = tmp_path / "data"
     data_dir.mkdir()
@@ -43,16 +61,13 @@ def cwd_temporal(tmp_path, monkeypatch):
     }
 
     for attr, val in paths.items():
-        monkeypatch.setattr(cfg, attr, val)
-        for mod in (folders_mod, connection_mod, ssh_mod,
-                    download_mod, compress_mod, summary_mod, organize_mod):
+        for mod in all_modules:
             if hasattr(mod, attr):
                 monkeypatch.setattr(mod, attr, val)
 
     # Also patch ORGANIZED_DIR so compress/organize use tmp_path
     org_dir = tmp_path / "organizado"
-    monkeypatch.setattr(cfg, "ORGANIZED_DIR", org_dir)
-    for mod in (compress_mod, organize_mod):
+    for mod in all_modules:
         if hasattr(mod, "ORGANIZED_DIR"):
             monkeypatch.setattr(mod, "ORGANIZED_DIR", org_dir)
 

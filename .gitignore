@@ -1,0 +1,32 @@
+# Datos personales generados por el pipeline (contienen rutas y nombres de tus capturas)
+metadatos_screenshots.json
+resumen_por_dia.json
+
+# Selección de carpetas y destino hecha con el selector gráfico
+carpetas_screenshots.json
+destino_guardado.json
+
+# Conexiones WebDAV guardadas (contiene IPs de tu red local)
+conexiones_webdav.json
+
+# Log de ejecuciones del orquestador
+orquestador.log
+
+# Cachés de Python
+__pycache__/
+*.pyc
+.mypy_cache/
+.pytest_cache/
+
+# Artefactos de empaquetado (pip install -e .)
+*.egg-info/
+build/
+dist/
+
+# Entornos virtuales
+.venv/
+venv/
+
+# Archivos de IDE
+.vscode/
+.idea/

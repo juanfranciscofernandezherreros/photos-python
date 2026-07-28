@@ -5,16 +5,18 @@ from typing import Callable
 
 from .config import ORCHESTRATOR_LOG
 from .keep_awake import prevent_sleep
-from . import download, organize, compress, summary, upload_ssh, ssh_connection
+from . import ssh_connection
+from .pipeline import (export_metadata_json, organize_captures_by_date,
+    compress_folders_by_day, generate_daily_summary, upload_organized_to_ssh)
 
 PasoPipeline = tuple[str, Callable[[], None]]
 
 PASOS: list[PasoPipeline] = [
-    ("Download metadata (connected drives/SSH servers -> JSON)", download.export_metadata_json),
-    ("Organize by date (JSON -> grouped/YYYY/MM/DD)", organize.organize_captures_by_date),
-    ("Compress by day (grouped -> .zip)", compress.compress_folders_by_day),
-    ("Count photos by day (JSON -> summary_por_dia.json)", summary.generate_daily_summary),
-    ("Upload organized folder to SSH server (optional)", upload_ssh.upload_organized_to_ssh),
+    ("Download metadata", export_metadata_json),
+    ("Organize by date", organize_captures_by_date),
+    ("Compress by day", compress_folders_by_day),
+    ("Generate summary", generate_daily_summary),
+    ("Upload to SSH", upload_organized_to_ssh),
 ]
 
 
