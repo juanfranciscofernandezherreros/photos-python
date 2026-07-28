@@ -7,10 +7,10 @@ backwards compatibility with legacy format, and WebDAV connection CRUD.
 import json
 import pytest
 from pathlib import Path
-from photos_sync import folders, conexion
+from photos_sync import folders, connection
 
 
-# ═══════════════════════════════════════ CARPETAS ════════════════════════════
+# ═══════════════════════════════════════ FOLDERS ════════════════════════════
 
 class TestCarpetasOrigen:
     def test_lista_vacia_sin_archivo(self):
@@ -102,27 +102,27 @@ class TestConnectionWebDAV:
         assert connection.load_connections() == []
 
     def test_anadir_y_cargar(self):
-        conexion.add_or_update_connection("Z:", "192.168.1.1", "8080", "Pixel")
+        connection.add_or_update_connection("Z:", "192.168.1.1", "8080", "Pixel")
         lista = connection.load_connections()
         assert len(lista) == 1
         assert lista[0]["alias"] == "Pixel"
 
     def test_actualizar_sobreescribe(self):
-        conexion.add_or_update_connection("Z:", "192.168.1.1", "8080", "Pixel")
-        conexion.add_or_update_connection("Z:", "192.168.1.99", "8080", "Pixel Pro")
+        connection.add_or_update_connection("Z:", "192.168.1.1", "8080", "Pixel")
+        connection.add_or_update_connection("Z:", "192.168.1.99", "8080", "Pixel Pro")
         lista = connection.load_connections()
         assert len(lista) == 1
         assert lista[0]["ip"] == "192.168.1.99"
         assert lista[0]["alias"] == "Pixel Pro"
 
     def test_varias_conexiones(self):
-        conexion.add_or_update_connection("Z:", "1.1.1.1", "8080", "A")
-        conexion.add_or_update_connection("Y:", "2.2.2.2", "8080", "B")
+        connection.add_or_update_connection("Z:", "1.1.1.1", "8080", "A")
+        connection.add_or_update_connection("Y:", "2.2.2.2", "8080", "B")
         assert len(connection.load_connections()) == 2
 
     def test_remove_connection(self):
-        conexion.add_or_update_connection("Z:", "1.1.1.1", "8080", "A")
-        conexion.add_or_update_connection("Y:", "2.2.2.2", "8080", "B")
+        connection.add_or_update_connection("Z:", "1.1.1.1", "8080", "A")
+        connection.add_or_update_connection("Y:", "2.2.2.2", "8080", "B")
         connection.remove_connection("Z:")
         lista = connection.load_connections()
         assert len(lista) == 1
@@ -134,7 +134,7 @@ class TestConnectionWebDAV:
         assert "Z:" in letras
         assert "A:" not in letras
         assert "C:" not in letras
-        assert len(letras) == 23  # D a Z
+        assert len(letras) == 23  # D to Z
 
     def test_is_mounted_ruta_inexistente(self, tmp_path):
         # On any OS this made-up path does not exist

@@ -14,7 +14,7 @@ from photos_sync.folders import save_destination
 # ═══════════════════════════════════════ /api/pasos ══════════════════════════
 
 class TestPasos:
-    def test_devuelve_5_pasos(self, cliente_api):
+    def test_returns_5_steps(self, cliente_api):
         r = cliente_api.get("/api/pasos")
         assert r.status_code == 200
         pasos = r.json()
@@ -26,7 +26,7 @@ class TestPasos:
             assert "id" in p and "nombre" in p
             assert isinstance(p["id"], int)
 
-    def test_ids_secuenciales(self, cliente_api):
+    def test_ids_are_sequential(self, cliente_api):
         ids = [p["id"] for p in cliente_api.get("/api/pasos").json()]
         assert ids == list(range(5))
 
@@ -34,17 +34,17 @@ class TestPasos:
 # ═══════════════════════════════════════ /api/pipeline ═══════════════════════
 
 class TestPipeline:
-    def test_estado_inicial_no_corriendo(self, cliente_api):
+    def test_initial_state_not_running(self, cliente_api):
         r = cliente_api.get("/api/pipeline/estado")
         assert r.status_code == 200
         assert r.json()["corriendo"] is False
 
-    def test_ejecutar_pasos_validos(self, cliente_api):
+    def test_run_valid_steps(self, cliente_api):
         r = cliente_api.post("/api/pipeline/ejecutar", json={"pasos": [0]})
         assert r.status_code == 200
         assert r.json()["ok"] is True
 
-    def test_ejecutar_todos_pasos_null(self, cliente_api):
+    def test_run_all_steps_null(self, cliente_api):
         r = cliente_api.post("/api/pipeline/ejecutar", json={"pasos": None})
         assert r.status_code == 200
 
@@ -57,12 +57,12 @@ class TestPipeline:
 # ═══════════════════════════════════════ /api/ssh ════════════════════════════
 
 class TestSSHApi:
-    def test_lista_vacia_inicial(self, cliente_api):
+    def test_empty_list_initially(self, cliente_api):
         r = cliente_api.get("/api/ssh")
         assert r.status_code == 200
         assert r.json() == []
 
-    def test_guardar_conexion(self, cliente_api):
+    def test_save_connection(self, cliente_api):
         r = cliente_api.post("/api/ssh", json={
             "alias": "nas1", "host": "1.2.3.4", "puerto": 22,
             "usuario": "juan", "ruta_remota": "/fotos", "rol": "origen",
@@ -70,7 +70,7 @@ class TestSSHApi:
         assert r.status_code == 200
         assert r.json()["ok"] is True
 
-    def test_listar_tras_guardar(self, cliente_api):
+    def test_list_after_save(self, cliente_api):
         cliente_api.post("/api/ssh", json={
             "alias": "nas1", "host": "1.2.3.4", "puerto": 22,
             "usuario": "juan", "ruta_remota": "/fotos", "rol": "origen",
@@ -86,7 +86,7 @@ class TestSSHApi:
             "rol": "ambos", "ruta_remota_destino": "",
         })
         assert r.status_code == 400
-        assert "ruta" in r.json()["detail"].lower()
+        assert "path" in r.json()["detail"].lower()
 
     def test_ambos_misma_ruta_400(self, cliente_api):
         r = cliente_api.post("/api/ssh", json={
@@ -104,7 +104,7 @@ class TestSSHApi:
         })
         assert r.status_code == 200
 
-    def test_eliminar_conexion(self, cliente_api):
+    def test_delete_connection(self, cliente_api):
         cliente_api.post("/api/ssh", json={
             "alias": "nas1", "host": "1.2.3.4", "puerto": 22,
             "usuario": "juan", "ruta_remota": "/fotos", "rol": "origen",
@@ -114,7 +114,7 @@ class TestSSHApi:
         assert r.json()["ok"] is True
         assert cliente_api.get("/api/ssh").json() == []
 
-    def test_roles_devuelve_estructura_completa(self, cliente_api):
+    def test_roles_returns_full_structure(self, cliente_api):
         r = cliente_api.get("/api/ssh/roles")
         assert r.status_code == 200
         data = r.json()
@@ -132,12 +132,12 @@ class TestSSHApi:
 # ═══════════════════════════════════════ /api/webdav ═════════════════════════
 
 class TestWebDAVApi:
-    def test_lista_vacia_inicial(self, cliente_api):
+    def test_empty_list_initially(self, cliente_api):
         r = cliente_api.get("/api/webdav")
         assert r.status_code == 200
         assert r.json() == []
 
-    def test_letras_devuelve_rango_correcto(self, cliente_api):
+    def test_letters_returns_correct_range(self, cliente_api):
         r = cliente_api.get("/api/webdav/letras")
         assert r.status_code == 200
         data = r.json()
@@ -154,7 +154,7 @@ class TestWebDAVApi:
         assert "Z:" not in data["libres"]
         assert "Z:" in data["todas"]
 
-    def test_connect_en_linux_devuelve_ok_false_con_mensaje(self, cliente_api):
+    def test_connect_on_linux_returns_ok_false_with_message(self, cliente_api):
         r = cliente_api.post("/api/webdav/connect", json={
             "letra": "Z:", "ip": "192.168.1.1", "puerto": "8080", "alias": "test",
         })
@@ -163,8 +163,8 @@ class TestWebDAVApi:
         assert data["ok"] is False
         assert "Windows" in data["mensaje"]
 
-    def test_desconnect_en_linux_devuelve_ok_false(self, cliente_api):
-        r = cliente_api.post("/api/webdav/desconnect/Z%3A")
+    def test_disconnect_on_linux_returns_ok_false(self, cliente_api):
+        r = cliente_api.post("/api/webdav/disconnect/Z%3A")
         assert r.status_code == 200
         assert r.json()["ok"] is False
 
@@ -186,7 +186,7 @@ class TestCarpetasApi:
         assert r.status_code == 200
         assert "/mnt/fotos" in r.json()["origen"]
 
-    def test_anadir_carpeta_vacia_400(self, cliente_api):
+    def test_add_empty_folder_returns_400(self, cliente_api):
         r = cliente_api.post("/api/carpetas/origen/anadir", json={"carpeta": ""})
         assert r.status_code == 400
 
@@ -279,20 +279,20 @@ class TestCarpetasApi:
 # ═══════════════════════════════════════ / (HTML) ════════════════════════════
 
 class TestUIHtml:
-    def test_devuelve_html(self, cliente_api):
+    def test_returns_html(self, cliente_api):
         r = cliente_api.get("/")
         assert r.status_code == 200
         assert "text/html" in r.headers["content-type"]
 
-    def test_html_contiene_secciones_principales(self, cliente_api):
+    def test_html_contains_main_sections(self, cliente_api):
         html = cliente_api.get("/").text
         for seccion in ["pipeline", "ssh", "webdav", "carpetas"]:
             assert seccion in html.lower(), f"Missing section '{seccion}' in the HTML"
 
-    def test_html_contiene_websocket(self, cliente_api):
+    def test_html_contains_websocket(self, cliente_api):
         assert "ws/log" in cliente_api.get("/").text
 
-    def test_html_endpoints_coinciden_con_api(self, cliente_api):
+    def test_html_endpoints_match_api(self, cliente_api):
         """Los endpoints llamados desde el JS deben existir en la API."""
         html = cliente_api.get("/").text
         endpoints_esperados = [

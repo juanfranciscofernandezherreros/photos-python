@@ -1,8 +1,8 @@
 """
-Tests de photos_sync.ssh_conexion
-──────────────────────────────────
-Cubre: guardar, actualizar, eliminar, obtener, connections_by_role,
-effective_destination_path, y todas las validaciones del rol "ambos".
+Tests for photos_sync.ssh_connection
+──────────────────────────────────────
+Covers: save, update, delete, get, connections_by_role,
+effective_destination_path, and all "ambos" role validations.
 """
 import pytest
 from photos_sync import ssh_connection
@@ -14,7 +14,7 @@ def _guardar(**kwargs):
     defaults = dict(alias="nas1", host="1.2.3.4", puerto=22,
                     usuario="juan", ruta_remota="/fotos", rol="origen")
     defaults.update(kwargs)
-    return ssh_conexion.add_or_update_ssh_connection(**defaults)
+    return ssh_connection.add_or_update_ssh_connection(**defaults)
 
 
 # ──────────────────────────────── CRUD básico ────────────────────────────────
@@ -94,11 +94,11 @@ class TestRoles:
 
 class TestValidacionAmbos:
     def test_ambos_sin_ruta_destino_lanza_valueerror(self):
-        with pytest.raises(ValueError, match="ruta remota de destino"):
+        with pytest.raises(ValueError, match="remote destination path"):
             _guardar(rol="ambos", ruta_remota="/fotos", ruta_remota_destino="")
 
     def test_ambos_con_misma_ruta_lanza_valueerror(self):
-        with pytest.raises(ValueError, match="igual a la de origen"):
+        with pytest.raises(ValueError, match="cannot be the same"):
             _guardar(rol="ambos", ruta_remota="/fotos", ruta_remota_destino="/fotos")
 
     def test_ambos_con_trailing_slash_detecta_igualdad(self):
@@ -136,8 +136,8 @@ class TestRutaDestinoEfectiva:
         assert ssh_connection.effective_destination_path(c) == "/backup"
 
     def test_compatibilidad_conexion_sin_campo_destino(self):
-        """Connectiones guardadas antes de añadir ruta_remota_destino no tienen
-        ese campo; effective_destination_path no debe fallar."""
+        """Connections saved before ruta_remota_destino was added lack that
+        field; effective_destination_path must not fail."""
         c = {"alias": "viejo", "host": "x", "puerto": 22, "usuario": "u",
              "ruta_remota": "/old", "clave_privada": "", "rol": "destino"}
         assert ssh_connection.effective_destination_path(c) == "/old"

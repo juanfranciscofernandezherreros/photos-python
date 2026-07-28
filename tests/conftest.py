@@ -1,9 +1,9 @@
 """
 conftest.py — shared fixtures for all tests.
 
-Each test receives an isolated temporary directory as cwd, so that
-JSON config files (conexiones_ssh.json, destino_guardado.json, etc.)
-do not mix between tests or with the real project.
+Each test receives an isolated temporary directory. All config path
+constants (METADATA_JSON, SSH_CONNECTIONS_JSON, etc.) are monkeypatched
+to point into that tmp_path, so tests never touch ~/PhotosSync/data/.
 """
 import json
 import os
@@ -14,10 +14,48 @@ from pathlib import Path
 
 @pytest.fixture(autouse=True)
 def cwd_temporal(tmp_path, monkeypatch):
-    """Changes the cwd to a temporary directory per test.
-    All modules that open relative files (folders.py, ssh_connection.py,
-    connection.py...) will write here without contaminating anything."""
+    """Redirect all config path constants into tmp_path for full isolation.
+    Without this, the absolute paths in config.py would write to the real
+    ~/PhotosSync/data/ directory during tests."""
     monkeypatch.chdir(tmp_path)
+
+    # Patch every path constant in config and every module that imported it
+    import photos_sync.config as cfg
+    import photos_sync.folders as folders_mod
+    import photos_sync.connection as connection_mod
+    import photos_sync.ssh_connection as ssh_mod
+    import photos_sync.download as download_mod
+    import photos_sync.compress as compress_mod
+    import photos_sync.summary as summary_mod
+    import photos_sync.organize as organize_mod
+
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+
+    paths = {
+        "METADATA_JSON":          str(tmp_path / "metadatos_screenshots.json"),
+        "SELECTED_FOLDERS_JSON":  str(tmp_path / "carpetas_screenshots.json"),
+        "DESTINATION_JSON":       str(tmp_path / "destino_guardado.json"),
+        "DAILY_SUMMARY_JSON":     str(tmp_path / "resumen_por_dia.json"),
+        "ORCHESTRATOR_LOG":       str(tmp_path / "orquestador.log"),
+        "WEBDAV_CONNECTIONS_JSON":str(tmp_path / "conexiones_webdav.json"),
+        "SSH_CONNECTIONS_JSON":   str(tmp_path / "conexiones_ssh.json"),
+    }
+
+    for attr, val in paths.items():
+        monkeypatch.setattr(cfg, attr, val)
+        for mod in (folders_mod, connection_mod, ssh_mod,
+                    download_mod, compress_mod, summary_mod, organize_mod):
+            if hasattr(mod, attr):
+                monkeypatch.setattr(mod, attr, val)
+
+    # Also patch ORGANIZED_DIR so compress/organize use tmp_path
+    org_dir = tmp_path / "organizado"
+    monkeypatch.setattr(cfg, "ORGANIZED_DIR", org_dir)
+    for mod in (compress_mod, organize_mod):
+        if hasattr(mod, "ORGANIZED_DIR"):
+            monkeypatch.setattr(mod, "ORGANIZED_DIR", org_dir)
+
     return tmp_path
 
 
