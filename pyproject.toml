@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "photos-sync"
+version = "0.1.0"
+description = "Extract, organize by date, and compress screenshots from an Android phone mounted via WebDAV"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = [
+    "rich>=13.0",
+    "PyQt6>=6.6",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+]
+
+[project.optional-dependencies]
+ssh = [
+    "paramiko>=3.4",
+]
+dev = [
+    "mypy>=1.0",
+    "pytest>=7.0",
+]
+
+[project.scripts]
+photos-sync = "photos_sync.cli:main"
+photos-sync-gui = "photos_sync.main_window:main"
+photos-sync-web = "photos_sync.web_server:app"
+photos-sync-folders = "photos_sync.folder_selector:main"
+photos-sync-summary = "photos_sync.summary:generate_daily_summary"
+
+[tool.setuptools.packages.find]
+include = ["photos_sync*"]

@@ -1,0 +1,1 @@
+python -m photos_sync.web_server
