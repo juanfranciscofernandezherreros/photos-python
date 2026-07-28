@@ -1,5 +1,6 @@
 import uuid
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 
@@ -8,6 +9,11 @@ from .config import METADATA_JSON, VALID_EXTENSIONS
 from .json_io import read_json, write_json
 from .models import Capture
 from . import connection, ssh_connection
+
+# Maximum parallel SFTP connections when scanning multiple SSH sources.
+# Each connection opens one SSH session + one SFTP channel, so keep this
+# reasonable. 4 is enough for home/prosumer setups; raise if needed.
+SSH_SCAN_WORKERS = 4
 
 
 def _progreso(iterable, description: str = "", total: int | None = None):
@@ -130,9 +136,39 @@ def export_metadata_json() -> None:
                   "Install it with: pip install paramiko\n")
         else:
             for c in ssh_sources:
-                print(f"✅ Extracting data from SSH server: {c['alias']} "
+                print(f"🔍 Will scan SSH server: {c['alias']} "
                       f"({c['usuario']}@{c['host']}:{c['ruta_remota']})")
-                ssh_captures.extend(scan_ssh_server(c))
+            print(f"\n⚡ Scanning {len(ssh_sources)} server(s) in parallel "
+                  f"(max {SSH_SCAN_WORKERS} concurrent)...\n")
+
+            workers = min(SSH_SCAN_WORKERS, len(ssh_sources))
+            results: dict[str, list[Capture]] = {}
+            errors: dict[str, str] = {}
+
+            with ThreadPoolExecutor(max_workers=workers,
+                                    thread_name_prefix="ssh-scan") as pool:
+                future_to_alias = {
+                    pool.submit(scan_ssh_server, c): c["alias"]
+                    for c in ssh_sources
+                }
+                for future in as_completed(future_to_alias):
+                    alias = future_to_alias[future]
+                    try:
+                        results[alias] = future.result()
+                        print(f"  ✅ {alias}: {len(results[alias])} file(s) found")
+                    except Exception as e:
+                        errors[alias] = str(e)
+                        print(f"  ❌ {alias}: scan failed — {e}")
+
+            # Merge in the original server order for deterministic output
+            for c in ssh_sources:
+                alias = c["alias"]
+                if alias in results:
+                    ssh_captures.extend(results[alias])
+
+            if errors:
+                print(f"\n⚠️ {len(errors)} server(s) could not be scanned: "
+                      f"{', '.join(errors)}")
             print()
 
     previous = load_existing_metadata()
