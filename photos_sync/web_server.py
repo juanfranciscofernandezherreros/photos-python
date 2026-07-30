@@ -366,34 +366,90 @@ def get_day_photos(date: str):
     }
 
 
-@app.get("/api/photo")
-def serve_photo(path: str):
-    """Serve a photo file by its absolute path.
-    Allows files inside ORGANIZED_DIR or the user-configured destination."""
+def _allowed_bases() -> list[Path]:
+    """All directories from which photos may be served."""
     from .config import ORGANIZED_DIR
     from .storage.folders import load_saved_destination, load_destination_config
+    bases = [Path(ORGANIZED_DIR).resolve()]
+    dc = load_destination_config()
+    if dc.get("tipo") == "local" and dc.get("ruta"):
+        bases.append(Path(dc["ruta"]).resolve())
+    ds = load_saved_destination()
+    if ds:
+        bases.append(Path(ds).resolve())
+    return bases
+
+
+def _is_allowed(p: Path) -> bool:
+    resolved_str = str(p.resolve())
+    return any(resolved_str.startswith(str(b)) for b in _allowed_bases())
+
+
+@app.get("/api/photo")
+def serve_photo(path: str):
+    """Serve a full-resolution photo file by its absolute path.
+    Allows files inside ORGANIZED_DIR or the user-configured destination."""
     from fastapi.responses import FileResponse
     import mimetypes
 
     p = Path(path)
-
-    # Resolve all allowed base directories
-    allowed_bases = [Path(ORGANIZED_DIR).resolve()]
-    dest_config = load_destination_config()
-    if dest_config.get("tipo") == "local" and dest_config.get("ruta"):
-        allowed_bases.append(Path(dest_config["ruta"]).resolve())
-    dest_str = load_saved_destination()
-    if dest_str:
-        allowed_bases.append(Path(dest_str).resolve())
-
-    resolved = p.resolve()
-    resolved_str = str(resolved)
-    if not any(resolved_str.startswith(str(b)) for b in allowed_bases):
-        raise HTTPException(403, f"Access denied — path not inside any configured destination")
+    if not _is_allowed(p):
+        raise HTTPException(403, "Access denied — path not inside any configured destination")
     if not p.is_file():
         raise HTTPException(404, "File not found")
     mime = mimetypes.guess_type(p.name)[0] or "image/jpeg"
     return FileResponse(p, media_type=mime)
+
+
+@app.get("/api/thumb")
+def serve_thumbnail(path: str, size: int = 300):
+    """Serve a cached JPEG thumbnail of a photo. Generates and caches it
+    on first request under THUMBS_DIR/<hash>.jpg. Falls back to the full
+    image if Pillow is unavailable."""
+    from .config import THUMBS_DIR
+    from fastapi.responses import FileResponse
+    import hashlib
+
+    p = Path(path)
+    if not _is_allowed(p):
+        raise HTTPException(403, "Access denied")
+    if not p.is_file():
+        raise HTTPException(404, "File not found")
+
+    # Pillow required for thumbnailing
+    try:
+        from PIL import Image
+    except ImportError:
+        # Graceful fallback: serve the original
+        import mimetypes
+        mime = mimetypes.guess_type(p.name)[0] or "image/jpeg"
+        return FileResponse(p, media_type=mime)
+
+    size = max(64, min(size, 1024))  # clamp
+
+    # Cache key: absolute path + size + file mtime (so edits invalidate)
+    try:
+        mtime = int(p.stat().st_mtime)
+    except OSError:
+        mtime = 0
+    key = f"{p.resolve()}|{size}|{mtime}"
+    digest = hashlib.sha1(key.encode("utf-8")).hexdigest()
+    THUMBS_DIR.mkdir(parents=True, exist_ok=True)
+    thumb_path = THUMBS_DIR / f"{digest}.jpg"
+
+    if not thumb_path.exists():
+        try:
+            with Image.open(p) as img:
+                img = img.convert("RGB")
+                img.thumbnail((size, size), Image.LANCZOS)
+                img.save(thumb_path, "JPEG", quality=82, optimize=True)
+        except Exception:
+            # If thumbnailing fails (corrupt file, unsupported), serve original
+            import mimetypes
+            mime = mimetypes.guess_type(p.name)[0] or "image/jpeg"
+            return FileResponse(p, media_type=mime)
+
+    return FileResponse(thumb_path, media_type="image/jpeg")
 
 
 @app.get("/api/favourites")

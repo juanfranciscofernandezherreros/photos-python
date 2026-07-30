@@ -30,3 +30,6 @@ venv/
 # Archivos de IDE
 .vscode/
 .idea/
+
+# Thumbnail cache
+PhotosSync/data/thumbs/

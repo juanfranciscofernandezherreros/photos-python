@@ -421,7 +421,7 @@ async function showView(view){
       const div=document.createElement('div');div.className='tl-thumb';div.style.animation=`slideIn .2s ease ${Math.min(i,20)*20}ms both`;div.dataset.photoId=ph.id;
       const img=document.createElement('img');img.className='loading';img.alt=ph.filename;
       img.onload=()=>img.classList.replace('loading','loaded');
-      img.src=`/api/photo?path=${encodeURIComponent(ph.id)}`;
+      img.src=`/api/thumb?path=${encodeURIComponent(ph.id)}&size=250`;
       const favBtn=document.createElement('button');favBtn.className='tl-thumb-fav'+(ph.favourite?' fav':'');
       favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
       favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(ph);favBtn.classList.toggle('fav',ph.favourite);$('stat-favs').textContent=_tlPhotos.filter(x=>x.favourite).length;renderGpGrid&&typeof renderGpGrid==='function'&&_lbSource!=='timeline'&&renderGpGrid();};
@@ -525,7 +525,7 @@ function renderGpGrid(){
     const div=document.createElement('div');div.className='gp-photo';div.style.animation=`slideIn .2s ease ${i*15}ms both`;
     const img=document.createElement('img');img.className='loading';img.alt=p.filename;
     img.onload=()=>img.classList.replace('loading','loaded');
-    img.src=`/api/photo?path=${encodeURIComponent(p.id)}`;
+    img.src=`/api/thumb?path=${encodeURIComponent(p.id)}&size=400`;
     const favBtn=document.createElement('button');favBtn.className='gp-photo-fav'+(p.favourite?' fav':'');
     favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
     favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(p);favBtn.classList.toggle('fav',p.favourite)};

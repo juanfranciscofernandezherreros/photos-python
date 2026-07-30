@@ -72,6 +72,10 @@ def cwd_temporal(tmp_path, monkeypatch):
         if hasattr(mod, "ORGANIZED_DIR"):
             monkeypatch.setattr(mod, "ORGANIZED_DIR", org_dir)
 
+    # Patch THUMBS_DIR so thumbnail cache goes to tmp_path
+    import photos_sync.config as _cfg
+    monkeypatch.setattr(_cfg, "THUMBS_DIR", tmp_path / "thumbs")
+
     return tmp_path
 
 

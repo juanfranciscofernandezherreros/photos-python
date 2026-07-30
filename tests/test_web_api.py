@@ -303,3 +303,53 @@ class TestUIHtml:
         ]
         for ep in endpoints_esperados:
             assert ep in html, f"El endpoint '{ep}' no aparece en el HTML/JS"
+
+
+# ═══════════════════════════════════════ /api/thumb ══════════════════════════
+
+class TestThumbnails:
+    def _make_photo(self, tmp_path):
+        """Create a real JPEG inside the organized dir; return its path."""
+        from PIL import Image
+        day = tmp_path / "organizado" / "2024" / "01" / "15"
+        day.mkdir(parents=True, exist_ok=True)
+        img_path = day / "IMG_001.jpg"
+        Image.new("RGB", (2000, 1500), (100, 150, 200)).save(img_path, "JPEG")
+        return img_path
+
+    def test_thumb_returns_jpeg(self, cliente_api, cwd_temporal):
+        img = self._make_photo(cwd_temporal)
+        r = cliente_api.get(f"/api/thumb?path={img}&size=200")
+        assert r.status_code == 200
+        assert r.headers["content-type"] == "image/jpeg"
+
+    def test_thumb_is_smaller_than_original(self, cliente_api, cwd_temporal):
+        img = self._make_photo(cwd_temporal)
+        r = cliente_api.get(f"/api/thumb?path={img}&size=200")
+        assert len(r.content) < img.stat().st_size
+
+    def test_thumb_is_cached(self, cliente_api, cwd_temporal):
+        img = self._make_photo(cwd_temporal)
+        cliente_api.get(f"/api/thumb?path={img}&size=200")
+        thumbs = list((cwd_temporal / "thumbs").glob("*.jpg"))
+        assert len(thumbs) == 1
+        # Second request reuses the cache (still 1 file, still 200)
+        r2 = cliente_api.get(f"/api/thumb?path={img}&size=200")
+        assert r2.status_code == 200
+        assert len(list((cwd_temporal / "thumbs").glob("*.jpg"))) == 1
+
+    def test_thumb_rejects_outside_path(self, cliente_api, cwd_temporal):
+        r = cliente_api.get("/api/thumb?path=/etc/passwd&size=200")
+        assert r.status_code == 403
+
+    def test_thumb_404_for_missing_file(self, cliente_api, cwd_temporal):
+        missing = cwd_temporal / "organizado" / "2024" / "01" / "15" / "nope.jpg"
+        missing.parent.mkdir(parents=True, exist_ok=True)
+        r = cliente_api.get(f"/api/thumb?path={missing}&size=200")
+        assert r.status_code == 404
+
+    def test_thumb_size_is_clamped(self, cliente_api, cwd_temporal):
+        img = self._make_photo(cwd_temporal)
+        # Oversized request should still succeed (clamped to 1024)
+        r = cliente_api.get(f"/api/thumb?path={img}&size=99999")
+        assert r.status_code == 200
