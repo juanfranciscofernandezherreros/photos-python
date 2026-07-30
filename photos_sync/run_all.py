@@ -11,11 +11,13 @@ Executes the same 5 steps as the web interface, in order and headless:
 Usage:
     python -m photos_sync.ejecutar_todo
 """
-from photos_sync.download import export_metadata_json
-from photos_sync.organize import organize_captures_by_date
-from photos_sync.compress import compress_folders_by_day
-from photos_sync.summary import generate_daily_summary
-from photos_sync.upload_ssh import upload_organized_to_ssh
+from __future__ import annotations
+
+from photos_sync.pipeline.download import export_metadata_json
+from photos_sync.pipeline.organize import organize_captures_by_date
+from photos_sync.pipeline.compress import compress_folders_by_day
+from photos_sync.pipeline.summary import generate_daily_summary
+from photos_sync.pipeline.upload_ssh import upload_organized_to_ssh
 
 PASOS = [
     ("Download metadata",   export_metadata_json),

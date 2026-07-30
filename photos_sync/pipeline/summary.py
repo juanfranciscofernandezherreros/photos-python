@@ -3,6 +3,8 @@ Step 4 of the pipeline: reads METADATA_JSON, groups captures by day
 (year/month/day of capture_date) and generates DAILY_SUMMARY_JSON with a
 DaySummary per day, sorted from most to fewest photos.
 """
+from __future__ import annotations
+
 from collections import defaultdict
 from datetime import datetime
 from ..utils.dates import parse_date, DATE_FORMAT

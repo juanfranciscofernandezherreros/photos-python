@@ -6,6 +6,8 @@ ventana gráfica (selector_carpetas.py) como el propio pipeline
 (download.py). Así, ejecutar `photos-sync --todo` en un servidor sin
 interfaz gráfica nunca necesita cargar PyQt6.
 """
+from __future__ import annotations
+
 from pathlib import Path
 
 from ..config import SELECTED_FOLDERS_JSON, DESTINATION_JSON

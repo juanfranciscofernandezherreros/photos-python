@@ -1,4 +1,6 @@
 """SSH connection CRUD — persistence only, no transport."""
+from __future__ import annotations
+
 from typing import Optional
 from ..config import SSH_CONNECTIONS_JSON
 from ..json_io import read_json, write_json

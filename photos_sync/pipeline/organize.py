@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import shutil
 import os
 from datetime import datetime
@@ -6,7 +8,7 @@ from pathlib import Path
 
 from rich.progress import track
 
-from ..folders import load_saved_destination
+from ..storage.folders import load_saved_destination
 from ..config import METADATA_JSON, ORGANIZED_DIR
 from ..json_io import read_json, write_json
 from ..models import Capture

@@ -1,9 +1,12 @@
 """SSH/SFTP client — transport layer only."""
+from __future__ import annotations
+
 import stat
 from pathlib import Path, PurePosixPath
 from typing import Any, Optional
 
 from .validation import SSHConnection, DEFAULT_SSH_PORT
+from ..utils.retry import retry
 
 try:
     import paramiko
@@ -94,10 +97,12 @@ class SSHClient:
                 found.append({"ruta": full_path, "tamano": entry.st_size, "mtime": entry.st_mtime})
         return found
 
+    @retry(attempts=3, base_delay=2.0, exceptions=(OSError, Exception))
     def download(self, remote_path: str, local_path: Path) -> None:
         local_path.parent.mkdir(parents=True, exist_ok=True)
         self._sftp.get(remote_path, str(local_path))
 
+    @retry(attempts=3, base_delay=2.0, exceptions=(OSError, Exception))
     def upload(self, local_path: Path, remote_path: str) -> None:
         self._create_remote_directories(str(PurePosixPath(remote_path).parent))
         self._sftp.put(str(local_path), remote_path)

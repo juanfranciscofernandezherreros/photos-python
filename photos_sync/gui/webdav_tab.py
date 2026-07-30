@@ -1,4 +1,6 @@
 """WebDAV connection tab widget."""
+from __future__ import annotations
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout, QComboBox, QLineEdit,
     QPushButton, QLabel, QListWidget, QListWidgetItem, QMessageBox,

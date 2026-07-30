@@ -1,5 +1,5 @@
 """
-Tests for photos_sync.folders and photos_sync.connection
+Tests for photos_sync.storage.folders and photos_sync.storage.connection
 ──────────────────────────────────────────────────────────
 Covers: save/load source folders, local destination, SSH destination,
 backwards compatibility with legacy format, and WebDAV connection CRUD.
@@ -7,7 +7,7 @@ backwards compatibility with legacy format, and WebDAV connection CRUD.
 import json
 import pytest
 from pathlib import Path
-from photos_sync import folders, connection
+from photos_sync.storage import folders, connection
 
 
 # ═══════════════════════════════════════ FOLDERS ════════════════════════════

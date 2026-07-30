@@ -6,6 +6,8 @@ The rest of the project reads from here instead of hardcoding a drive letter.
 
 Deliberately free of PyQt6 imports so headless mode works without the GUI.
 """
+from __future__ import annotations
+
 import json
 import platform
 import subprocess

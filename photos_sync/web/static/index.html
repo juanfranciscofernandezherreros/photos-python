@@ -6,53 +6,52 @@
 <title>Photos Sync</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<script>
-tailwind.config={theme:{extend:{fontFamily:{sans:['DM Sans','system-ui'],mono:['Space Mono','monospace']}}}}
-</script>
+<script>tailwind.config={theme:{extend:{fontFamily:{sans:['DM Sans','system-ui'],mono:['Space Mono','monospace']}}}}</script>
 <style>
 :root{--b:#0b6bcb;--b2:#3898ff;--b3:#79bbff;--bg:#f6f8fb;--card:#fff;--ink:#0f172a;--ink2:#334155;--ink3:#64748b;--ink4:#94a3b8;--ink5:#cbd5e1;--brd:#e8ecf1;--rad:14px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
-::selection{background:#0b6bcb22}
 [data-s]{display:none}[data-s].on{display:block;animation:up .25s ease both}
 @keyframes up{from{opacity:0;transform:translateY(6px)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-@keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes slideIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes heartPop{0%{transform:scale(1)}40%{transform:scale(1.5)}70%{transform:scale(.85)}100%{transform:scale(1)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
-/* ─── Sidebar ─── */
+/* Sidebar */
 .sb{width:240px;background:var(--card);border-right:1px solid var(--brd);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
 .sb::-webkit-scrollbar{width:0}
 .logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--b),var(--b2));display:grid;place-items:center;box-shadow:0 2px 10px #0b6bcb30}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:500;color:var(--ink3);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all .18s;position:relative}
 .nav-item:hover{background:#f0f7ff;color:var(--b)}
 .nav-item.on{background:var(--b);color:#fff;font-weight:600;box-shadow:0 2px 12px #0b6bcb2a}
-.nav-item.on svg{opacity:1}
-.nav-item svg{width:17px;height:17px;opacity:.4;flex-shrink:0;transition:opacity .18s}
+.nav-item.on svg{opacity:1}.nav-item svg{width:17px;height:17px;opacity:.4;flex-shrink:0;transition:opacity .18s}
+.sbadge{margin:14px 16px;padding:6px 12px;border-radius:8px;font-size:10px;font-weight:700;text-align:center;letter-spacing:.05em;text-transform:uppercase;transition:all .2s}
+.sb-on{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
+.sb-off{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+.sb-load{background:#dbeafe;color:var(--b);border:1px solid #bfdbfe}
 .conn-dot{width:7px;height:7px;border-radius:50%;position:absolute;right:12px;top:50%;transform:translateY(-50%)}
 .conn-dot.live{background:#22c55e;box-shadow:0 0 6px #22c55e80;animation:pulse 2s ease infinite}
-.conn-dot.dead{background:#ef4444}
 
-/* ─── Stat cards ─── */
+/* Stats */
 .scard{background:var(--card);border:1px solid var(--brd);border-radius:var(--rad);padding:20px;text-align:center;position:relative;overflow:hidden;transition:all .2s}
 .scard:hover{border-color:var(--b3);box-shadow:0 8px 24px #0b6bcb0a;transform:translateY(-1px)}
-.scard-val{font-size:32px;font-weight:800;letter-spacing:-.04em;background:linear-gradient(135deg,var(--b),var(--b2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;animation:countUp .4s ease both}
+.scard-val{font-size:30px;font-weight:800;letter-spacing:-.04em;background:linear-gradient(135deg,var(--b),var(--b2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
 .scard-label{font-size:10px;font-weight:600;color:var(--ink4);text-transform:uppercase;letter-spacing:.1em;margin-top:6px}
 .scard-icon{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#0b6bcb0a,#3898ff0a);display:grid;place-items:center}
 .scard-icon svg{width:14px;height:14px;color:var(--b3)}
 
-/* ─── Day cards ─── */
-.dcard{background:var(--card);border:1px solid var(--brd);border-radius:var(--rad);overflow:hidden;transition:all .22s;cursor:default;position:relative}
+/* Day cards */
+.dcard{background:var(--card);border:1px solid var(--brd);border-radius:var(--rad);overflow:hidden;transition:all .22s;cursor:pointer;position:relative}
 .dcard:hover{border-color:var(--b3);transform:translateY(-3px);box-shadow:0 12px 32px #0b6bcb0f}
 .dcard-head{padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
-.dcard-month{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.9}
+.dcard-month{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
 .dcard-count{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700}
 .dcard-body{padding:4px 14px 14px}
 .dcard-day{font-size:38px;font-weight:800;letter-spacing:-.04em;line-height:1}
 .dcard-meta{font-size:11px;color:var(--ink4);margin-top:6px;display:flex;align-items:center;gap:6px}
-.dcard-zip{display:inline-flex;align-items:center;gap:3px;background:#f0fdf4;color:#16a34a;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em}
-/* Month color bands */
+.dcard-zip{display:inline-flex;align-items:center;gap:3px;background:#f0fdf4;color:#16a34a;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase}
 .m1 .dcard-head,.m2 .dcard-head{background:linear-gradient(135deg,#7dd3fc,#38bdf8)}.m1 .dcard-head *,.m2 .dcard-head *{color:#fff}.m1 .dcard-count,.m2 .dcard-count{background:#fff;color:#0284c7}
 .m3 .dcard-head,.m4 .dcard-head,.m5 .dcard-head{background:linear-gradient(135deg,#86efac,#22c55e)}.m3 .dcard-head *,.m4 .dcard-head *,.m5 .dcard-head *{color:#fff}.m3 .dcard-count,.m4 .dcard-count,.m5 .dcard-count{background:#fff;color:#16a34a}
 .m6 .dcard-head,.m7 .dcard-head,.m8 .dcard-head{background:linear-gradient(135deg,#fbbf24,#f59e0b)}.m6 .dcard-head *,.m7 .dcard-head *,.m8 .dcard-head *{color:#fff}.m6 .dcard-count,.m7 .dcard-count,.m8 .dcard-count{background:#fff;color:#b45309}
@@ -60,21 +59,53 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .m12 .dcard-head{background:linear-gradient(135deg,var(--b),var(--b2))}.m12 .dcard-head *{color:#fff}.m12 .dcard-count{background:#fff;color:var(--b)}
 .m0 .dcard-head{background:linear-gradient(135deg,#a78bfa,#7c3aed)}.m0 .dcard-head *{color:#fff}.m0 .dcard-count{background:#fff;color:#7c3aed}
 
-/* ─── Log terminal ─── */
-#log-box{background:#0c1222;border:1px solid #1e293b;border-radius:12px;padding:16px 18px;height:360px;overflow-y:auto;font-family:'Space Mono',monospace;font-size:11.5px;line-height:1.75;color:#8892a8;white-space:pre-wrap;word-break:break-all;scrollbar-width:thin;scrollbar-color:#1e293b transparent;position:relative}
-#log-box::-webkit-scrollbar{width:5px}#log-box::-webkit-scrollbar-thumb{background:#1e293b;border-radius:3px}
-.log-header{display:flex;align-items:center;gap:6px;margin-bottom:8px}
-.log-dot{width:10px;height:10px;border-radius:50%;border:none;cursor:default}
+/* ─── Day Gallery Panel ─── */
+#gallery-panel{position:fixed;top:0;right:0;bottom:0;width:520px;background:var(--card);border-left:1px solid var(--brd);box-shadow:-8px 0 32px #0001;z-index:200;display:none;flex-direction:column;overflow:hidden}
+#gallery-panel.open{display:flex;animation:slideInRight .28s cubic-bezier(.4,0,.2,1) both}
+@keyframes slideInRight{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+.gp-header{padding:18px 20px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.gp-title{font-size:16px;font-weight:800;letter-spacing:-.02em}
+.gp-sub{font-size:11px;color:var(--ink4);margin-top:2px}
+.gp-close{width:32px;height:32px;border-radius:8px;border:1px solid var(--brd);background:none;cursor:pointer;display:grid;place-items:center;transition:.15s}
+.gp-close:hover{background:var(--bg);border-color:var(--ink5)}
+.gp-filters{padding:10px 20px;border-bottom:1px solid var(--brd);display:flex;gap:8px;align-items:center;flex-shrink:0}
+.gp-filter-btn{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--brd);background:none;cursor:pointer;transition:.15s;color:var(--ink3)}
+.gp-filter-btn:hover{border-color:var(--b3);color:var(--b)}
+.gp-filter-btn.on{background:var(--b);color:#fff;border-color:var(--b);box-shadow:0 2px 8px #0b6bcb25}
+.gp-grid{flex:1;overflow-y:auto;padding:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-content:start;scrollbar-width:thin;scrollbar-color:var(--ink5) transparent}
+.gp-grid::-webkit-scrollbar{width:5px}.gp-grid::-webkit-scrollbar-thumb{background:var(--ink5);border-radius:3px}
+.gp-photo{border-radius:10px;overflow:hidden;aspect-ratio:1;position:relative;cursor:pointer;background:var(--bg);border:1px solid var(--brd);transition:all .2s}
+.gp-photo:hover{transform:scale(1.03);box-shadow:0 8px 20px #0002;z-index:2}
+.gp-photo img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .2s}
+.gp-photo img.loading{opacity:0}.gp-photo img.loaded{opacity:1}
+.gp-photo-fav{position:absolute;bottom:6px;right:6px;width:28px;height:28px;border-radius:50%;background:#000a;backdrop-filter:blur(6px);border:none;cursor:pointer;display:grid;place-items:center;opacity:0;transition:opacity .2s}
+.gp-photo:hover .gp-photo-fav,.gp-photo-fav.fav{opacity:1}
+.gp-photo-fav svg{width:14px;height:14px;fill:transparent;stroke:#fff;stroke-width:2;transition:all .18s}
+.gp-photo-fav.fav svg{fill:#f43f5e;stroke:#f43f5e;animation:heartPop .35s ease}
+.gp-empty{grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--ink4);font-size:13px}
+.gp-loading{grid-column:1/-1;display:flex;justify-content:center;padding:40px}
 
-/* ─── Pipeline step cards ─── */
-.step-card{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:10px 14px;cursor:pointer;transition:all .18s;user-select:none}
-.step-card:hover{border-color:var(--b3);background:#f0f7ff}
-.step-card input{width:16px;height:16px;accent-color:var(--b);cursor:pointer;flex-shrink:0}
-.step-card span{font-size:13px;font-weight:500;color:var(--ink2)}
-.step-card.running{border-color:var(--b);background:#0b6bcb08}
-.step-card.running span{color:var(--b);font-weight:600}
+/* ─── Lightbox ─── */
+#lightbox{position:fixed;inset:0;z-index:400;background:#000c;display:none;flex-direction:column;align-items:center;justify-content:center;animation:fadeIn .2s ease}
+#lightbox.open{display:flex}
+.lb-img-wrap{position:relative;max-width:90vw;max-height:78vh;display:flex;align-items:center;justify-content:center}
+#lb-img{max-width:90vw;max-height:78vh;object-fit:contain;border-radius:10px;box-shadow:0 32px 80px #0008;user-select:none}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:#fff1;backdrop-filter:blur(8px);border:1px solid #fff2;color:#fff;cursor:pointer;display:grid;place-items:center;transition:.18s}
+.lb-nav:hover{background:#fff3;border-color:#fff4}
+.lb-nav.prev{left:-60px}.lb-nav.next{right:-60px}
+.lb-nav svg{width:20px;height:20px}
+.lb-bar{display:flex;align-items:center;gap:12px;margin-top:16px}
+.lb-fav{width:40px;height:40px;border-radius:50%;background:#fff1;backdrop-filter:blur(8px);border:1px solid #fff2;cursor:pointer;display:grid;place-items:center;transition:.18s}
+.lb-fav:hover{background:#fff3}
+.lb-fav svg{width:22px;height:22px;fill:transparent;stroke:#fff;stroke-width:2;transition:.18s}
+.lb-fav.fav svg{fill:#f43f5e;stroke:#f43f5e;animation:heartPop .35s ease}
+.lb-info{color:#ffffffcc;font-size:12px;font-weight:500}
+.lb-close{position:fixed;top:20px;right:24px;width:38px;height:38px;border-radius:50%;background:#fff1;border:1px solid #fff2;color:#fff;cursor:pointer;display:grid;place-items:center;transition:.15s}
+.lb-close:hover{background:#fff3}
+.lb-close svg{width:18px;height:18px}
+.lb-counter{color:#ffffff80;font-size:11px;font-weight:600;font-family:'Space Mono',monospace}
 
-/* ─── Forms ─── */
+/* Forms/common */
 .card{background:var(--card);border:1px solid var(--brd);border-radius:var(--rad);padding:22px;box-shadow:0 1px 3px #0001}
 .card-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .card-title svg{width:16px;height:16px;color:var(--ink4)}
@@ -83,9 +114,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .inp:focus{border-color:var(--b2);box-shadow:0 0 0 3px #0b6bcb10}
 .inp:disabled{opacity:.3;cursor:not-allowed}
 .bp{padding:9px 18px;font-size:12px;font-weight:600;color:#fff;background:linear-gradient(135deg,var(--b),var(--b2));border:none;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.18s;box-shadow:0 2px 8px #0b6bcb20}
-.bp:hover{box-shadow:0 4px 16px #0b6bcb30;transform:translateY(-1px)}
-.bp:active{transform:translateY(0)}
-.bp:disabled{opacity:.3;transform:none;box-shadow:none;cursor:not-allowed}
+.bp:hover{box-shadow:0 4px 16px #0b6bcb30;transform:translateY(-1px)}.bp:disabled{opacity:.3;transform:none;box-shadow:none;cursor:not-allowed}
 .bg{padding:9px 18px;font-size:12px;font-weight:600;color:var(--ink3);background:var(--card);border:1px solid var(--brd);border-radius:8px;cursor:pointer;transition:.15s}
 .bg:hover{border-color:var(--ink4);color:var(--ink2)}
 .bd{padding:9px 18px;font-size:12px;font-weight:600;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;cursor:pointer;transition:.15s}
@@ -93,7 +122,6 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .tbl{width:100%;font-size:13px;border-collapse:separate;border-spacing:0}
 .tbl th{text-align:left;font-size:9px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.08em;padding:10px 12px;border-bottom:2px solid var(--brd)}
 .tbl td{padding:11px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
-.tbl tbody tr{transition:background .12s}
 .tbl tbody tr:hover td{background:#fafbfd}
 .tag{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 .tag-origen{background:#dbeafe;color:#1d4ed8}.tag-destino{background:#dcfce7;color:#15803d}.tag-ambos{background:#fef3c7;color:#b45309}
@@ -101,21 +129,36 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .msg-ok{display:block;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
 .msg-err{display:block;background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
 .pill{display:inline-flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--brd);border-radius:8px;padding:6px 12px;font-family:'Space Mono',monospace;font-size:12px;transition:border .15s}
-.pill:hover{border-color:var(--ink5)}
-.pill button{background:none;border:none;color:#dc2626;cursor:pointer;font-size:15px;line-height:1;padding:2px 4px;border-radius:4px;opacity:.45;transition:.15s}
+.pill:hover{border-color:var(--ink5)}.pill button{background:none;border:none;color:#dc2626;cursor:pointer;font-size:15px;line-height:1;padding:2px 4px;border-radius:4px;opacity:.45;transition:.15s}
 .pill button:hover{opacity:1;background:#fef2f2}
+.tag-chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:#f1f5f9;color:var(--ink3);white-space:nowrap}
+.tag-chip.screenshot{background:#dbeafe;color:#1d4ed8}
+.tag-chip.camera{background:#dcfce7;color:#15803d}
+.tag-chip.whatsapp{background:#dcfce7;color:#059669}
+.tag-chip.telegram{background:#dbeafe;color:#0284c7}
+.tag-chip.instagram{background:#fce7f3;color:#be185d}
+.tag-chip.download{background:#f3f4f6;color:#374151}
+.tag-chip.panorama{background:#e0e7ff;color:#4338ca}
+.tag-chip.edited{background:#fef3c7;color:#b45309}
+.tag-chip.has_gps{background:#d1fae5;color:#065f46}
+.tag-chip.no_exif{background:#f3f4f6;color:#6b7280}
+.tag-chip.portrait{background:#faf5ff;color:#7c3aed}
+.tag-chip.landscape_photo{background:#ecfdf5;color:#047857}
+.tag-chip.screen_recording{background:#fff7ed;color:#c2410c}
+.tag-chip.other{background:#f3f4f6;color:#9ca3af}
+.tag-chip.gif{background:#fdf4ff;color:#a21caf}
+.gp-tags{padding:0 20px 10px;border-bottom:1px solid var(--brd);display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;align-items:center}
+.gp-tag-filter{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border:1.5px solid var(--brd);background:none;cursor:pointer;transition:.15s;color:var(--ink3)}
+.gp-tag-filter:hover{border-color:var(--b3);color:var(--b)}
+.gp-tag-filter.on{border-color:currentColor}
 .notice{border-radius:10px;padding:12px 16px;font-size:13px;display:flex;gap:10px;align-items:start;line-height:1.5}
 .notice svg{width:16px;height:16px;flex-shrink:0;margin-top:1px}
 .notice code{font-family:'Space Mono',monospace;font-size:11px;padding:1px 6px;border-radius:4px}
-
-/* ─── Status badge ─── */
-.sbadge{margin:14px 16px;padding:6px 12px;border-radius:8px;font-size:10px;font-weight:700;text-align:center;letter-spacing:.05em;text-transform:uppercase;transition:all .2s}
-.sb-on{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
-.sb-off{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
-.sb-load{background:#dbeafe;color:var(--b);border:1px solid #bfdbfe}
-
-/* ─── Responsive ─── */
-@media(max-width:768px){.shell{flex-direction:column!important}.sb{width:100%;height:auto;position:static;border-right:none;border-bottom:1px solid var(--brd)}.sb nav{display:flex;gap:4px;flex-wrap:wrap}.nav-item{padding:7px 12px;font-size:12px}.main-content{padding:16px!important}}
+#log-box{background:#0c1222;border:1px solid #1e293b;border-radius:12px;padding:16px 18px;height:360px;overflow-y:auto;font-family:'Space Mono',monospace;font-size:11.5px;line-height:1.75;color:#8892a8;white-space:pre-wrap;word-break:break-all;scrollbar-width:thin;scrollbar-color:#1e293b transparent}
+#log-box::-webkit-scrollbar{width:5px}#log-box::-webkit-scrollbar-thumb{background:#1e293b;border-radius:3px}
+.step-card{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:10px 14px;cursor:pointer;transition:all .18s;user-select:none}
+.step-card:hover{border-color:var(--b3);background:#f0f7ff}.step-card input{width:16px;height:16px;accent-color:var(--b);cursor:pointer;flex-shrink:0}.step-card span{font-size:13px;font-weight:500;color:var(--ink2)}
+@media(max-width:768px){.shell{flex-direction:column!important}.sb{width:100%;height:auto;position:static;border-right:none;border-bottom:1px solid var(--brd)}.sb nav{display:flex;gap:4px;flex-wrap:wrap}.nav-item{padding:7px 12px;font-size:12px}#gallery-panel{width:100%!important}.lb-nav.prev{left:-4px}.lb-nav.next{right:-4px}}
 </style>
 </head>
 <body>
@@ -132,36 +175,42 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <div id="srv-status" class="sbadge sb-load">Connecting…</div>
     <nav style="display:flex;flex-direction:column;gap:2px;padding:8px 12px">
       <div style="font-size:9px;font-weight:700;color:var(--ink5);text-transform:uppercase;letter-spacing:.14em;padding:4px 14px 10px">Menu</div>
-      <button class="nav-item on" onclick="tab('gallery',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Gallery<span class="conn-dot" id="dot-gallery"></span></button>
-      <button class="nav-item" onclick="tab('pipeline',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>Pipeline<span class="conn-dot" id="dot-pipeline"></span></button>
+      <button class="nav-item on" onclick="tab('gallery',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Gallery</button>
+      <button class="nav-item" onclick="tab('pipeline',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>Pipeline<span class="conn-dot" id="dot-pipeline" style="display:none"></span></button>
       <button class="nav-item" onclick="tab('ssh',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15l3-3-3-3"/><line x1="14" y1="15" x2="17" y2="15"/></svg>SSH</button>
       <button class="nav-item" onclick="tab('webdav',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20"/></svg>WebDAV</button>
       <button class="nav-item" onclick="tab('folders',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Folders</button>
     </nav>
-    <div style="margin-top:auto;padding:16px 18px;border-top:1px solid var(--brd)">
-      <div style="font-size:10px;color:var(--ink5)">Photos Sync v0.1.0</div>
+    <div style="margin-top:auto;padding:16px 18px;border-top:1px solid var(--brd);display:flex;flex-direction:column;gap:8px">
+      <button onclick="wizOpen()" style="width:100%;padding:7px 12px;font-size:11px;font-weight:600;color:var(--b);background:#f0f7ff;border:1px solid var(--b3);border-radius:8px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:6px;justify-content:center">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+        Setup wizard
+      </button>
+      <div style="font-size:10px;color:var(--ink5);text-align:center">Photos Sync v0.1.0</div>
     </div>
   </aside>
 
   <!-- Main -->
-  <main class="main-content" style="flex:1;min-width:0;padding:28px 36px 40px;max-width:960px">
+  <main style="flex:1;min-width:0;padding:28px 36px 40px;max-width:960px">
 
     <!-- GALLERY -->
     <section data-s="gallery" class="on">
       <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px">
-        <div><h1 style="font-size:24px;font-weight:800;letter-spacing:-.03em">Gallery</h1><p style="font-size:13px;color:var(--ink3);margin-top:3px">Your photos, organized by day</p></div>
+        <div><h1 style="font-size:24px;font-weight:800;letter-spacing:-.03em">Gallery</h1><p style="font-size:13px;color:var(--ink3);margin-top:3px">Click any day to browse photos</p></div>
         <div style="display:flex;gap:8px;align-items:center">
-          <input id="day-filter" placeholder="Search days…" class="inp" style="width:160px;padding:7px 12px;font-size:12px" oninput="filterDays(this.value)">
+          <input id="day-filter" placeholder="Search…" class="inp" style="width:140px;padding:7px 12px;font-size:12px" oninput="filterDays(this.value)">
           <button onclick="loadDays()" class="bg" style="padding:7px 12px;font-size:11px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Refresh</button>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px" id="stats-row">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
         <div class="scard"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="scard-val" id="stat-days">—</div><div class="scard-label">Days</div></div>
         <div class="scard"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div><div class="scard-val" id="stat-photos">—</div><div class="scard-label">Photos</div></div>
-        <div class="scard"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="scard-val" id="stat-size">—</div><div class="scard-label">MB Total</div></div>
+        <div class="scard"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div><div class="scard-val" id="stat-favs">—</div><div class="scard-label">Favourites</div></div>
+        <div class="scard"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="10"/><path d="M2 12h20M12 2a15 15 0 014 10 15 15 0 01-4 10 15 15 0 01-4-10 15 15 0 014-10z"/></svg></div><div class="scard-val" id="stat-size">—</div><div class="scard-label">MB Total</div></div>
       </div>
-      <div id="days-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
-        <div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--ink4)"><svg style="width:48px;height:48px;margin:0 auto 12px;color:var(--ink5)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.3"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><div style="font-weight:600;font-size:14px">Loading…</div></div>
+      <div id="tag-cloud" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;min-height:26px"></div>
+      <div id="days-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px">
+        <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--ink4)"><div style="font-weight:500">Loading…</div></div>
       </div>
     </section>
 
@@ -171,19 +220,13 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
       <p style="font-size:13px;color:var(--ink3);margin-bottom:22px">Select steps and sync your photos.</p>
       <div class="card" style="margin-bottom:16px">
         <div id="paso-checks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:16px"></div>
-        <div style="display:flex;gap:8px">
-          <button class="bp" id="btn-run-sel" onclick="runPipeline(false)"><svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run selected</button>
-          <button class="bg" id="btn-run-all" onclick="runPipeline(true)" style="display:inline-flex;align-items:center;gap:6px"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Run ALL</button>
-        </div>
+        <div style="display:flex;gap:8px"><button class="bp" id="btn-run-sel" onclick="runPipeline(false)"><svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run selected</button><button class="bg" id="btn-run-all" onclick="runPipeline(true)" style="display:inline-flex;align-items:center;gap:6px"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Run ALL</button></div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:0 2px">
         <div id="spinner" style="display:none;width:14px;height:14px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div>
         <span id="pipeline-status" style="font-size:13px;color:var(--ink3);font-weight:500">Ready.</span>
       </div>
-      <div>
-        <div class="log-header"><div class="log-dot" style="background:#ef4444"></div><div class="log-dot" style="background:#f59e0b"></div><div class="log-dot" style="background:#22c55e"></div><span style="font-size:11px;color:var(--ink4);font-weight:600;margin-left:6px">Terminal</span></div>
-        <div id="log-box"></div>
-      </div>
+      <div><div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><div style="width:10px;height:10px;border-radius:50%;background:#ef4444"></div><div style="width:10px;height:10px;border-radius:50%;background:#f59e0b"></div><div style="width:10px;height:10px;border-radius:50%;background:#22c55e"></div><span style="font-size:11px;color:var(--ink4);font-weight:600;margin-left:6px">Terminal</span></div><div id="log-box"></div></div>
     </section>
 
     <!-- SSH -->
@@ -192,19 +235,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
       <p style="font-size:13px;color:var(--ink3);margin-bottom:22px">Remote servers for source and destination.</p>
       <div class="card" style="margin-bottom:14px">
         <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/></svg>New connection</div>
-        <div style="display:grid;grid-template-columns:2fr 3fr 1fr;gap:10px">
-          <div><label class="lbl">Alias</label><input id="ssh-alias" placeholder="Home NAS" class="inp"></div>
-          <div><label class="lbl">Host / IP</label><input id="ssh-host" placeholder="192.168.1.50" class="inp"></div>
-          <div><label class="lbl">Port</label><input id="ssh-puerto" value="22" type="number" class="inp"></div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
-          <div><label class="lbl">User</label><input id="ssh-usuario" placeholder="juan" class="inp"></div>
-          <div><label class="lbl">Remote path (source)</label><input id="ssh-ruta" placeholder="/home/juan/fotos" class="inp"></div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
-          <div><label class="lbl">Remote path (dest)</label><input id="ssh-ruta-dest" placeholder="only if role=ambos" disabled class="inp"><div id="ssh-ruta-dest-hint" style="font-size:10px;color:var(--ink4);margin-top:3px"></div></div>
-          <div><label class="lbl">Private key</label><input id="ssh-clave" placeholder="~/.ssh/id_rsa (optional)" class="inp"></div>
-        </div>
+        <div style="display:grid;grid-template-columns:2fr 3fr 1fr;gap:10px"><div><label class="lbl">Alias</label><input id="ssh-alias" placeholder="Home NAS" class="inp"></div><div><label class="lbl">Host / IP</label><input id="ssh-host" placeholder="192.168.1.50" class="inp"></div><div><label class="lbl">Port</label><input id="ssh-puerto" value="22" type="number" class="inp"></div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px"><div><label class="lbl">User</label><input id="ssh-usuario" placeholder="juan" class="inp"></div><div><label class="lbl">Remote path (source)</label><input id="ssh-ruta" placeholder="/home/juan/fotos" class="inp"></div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px"><div><label class="lbl">Remote path (dest)</label><input id="ssh-ruta-dest" placeholder="only if role=ambos" disabled class="inp"><div id="ssh-ruta-dest-hint" style="font-size:10px;color:var(--ink4);margin-top:3px"></div></div><div><label class="lbl">Private key</label><input id="ssh-clave" placeholder="~/.ssh/id_rsa (optional)" class="inp"></div></div>
         <div style="width:160px;margin-top:8px"><label class="lbl">Role</label><select id="ssh-rol" onchange="onRolChange()" class="inp"></select><div id="ssh-rol-hint" style="font-size:10px;color:var(--ink4);margin-top:3px"></div></div>
         <div style="display:flex;gap:8px;margin-top:16px"><button class="bp" onclick="guardarSSH()">Save connection</button><button class="bg" onclick="limpiarFormSSH()">Clear</button></div>
         <div id="ssh-msg" class="msg"></div>
@@ -217,17 +250,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
       <h1 style="font-size:24px;font-weight:800;letter-spacing:-.03em;margin-bottom:3px">WebDAV</h1>
       <p style="font-size:13px;color:var(--ink3);margin-bottom:22px">Mount phone drives to access photos.</p>
       <div class="notice" style="background:#fefce8;border:1px solid #fde68a;color:#854d0e;margin-bottom:14px"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span><code style="background:#fde68a">net use</code> only works on Windows. May take up to 20s.</span></div>
-      <div class="card" style="margin-bottom:14px">
-        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 7h3a5 5 0 010 10h-3m-6 0H6A5 5 0 016 7h3"/><line x1="8" y1="12" x2="16" y2="12"/></svg>New connection</div>
-        <div style="display:grid;grid-template-columns:90px 2fr 80px 2fr;gap:10px">
-          <div><label class="lbl">Drive</label><select id="wd-letra" class="inp"></select></div>
-          <div><label class="lbl">Phone IP</label><input id="wd-ip" placeholder="192.168.1.133" class="inp"></div>
-          <div><label class="lbl">Port</label><input id="wd-puerto" value="8080" class="inp"></div>
-          <div><label class="lbl">Alias</label><input id="wd-alias" placeholder="Nothing Phone 1" class="inp"></div>
-        </div>
-        <div style="margin-top:16px"><button class="bp" id="btn-wd-conectar" onclick="conectarWD()">Connect drive</button></div>
-        <div id="wd-msg" class="msg"></div>
-      </div>
+      <div class="card" style="margin-bottom:14px"><div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 7h3a5 5 0 010 10h-3m-6 0H6A5 5 0 016 7h3"/><line x1="8" y1="12" x2="16" y2="12"/></svg>New connection</div><div style="display:grid;grid-template-columns:90px 2fr 80px 2fr;gap:10px"><div><label class="lbl">Drive</label><select id="wd-letra" class="inp"></select></div><div><label class="lbl">Phone IP</label><input id="wd-ip" placeholder="192.168.1.133" class="inp"></div><div><label class="lbl">Port</label><input id="wd-puerto" value="8080" class="inp"></div><div><label class="lbl">Alias</label><input id="wd-alias" placeholder="Nothing Phone 1" class="inp"></div></div><div style="margin-top:16px"><button class="bp" id="btn-wd-conectar" onclick="conectarWD()">Connect drive</button></div><div id="wd-msg" class="msg"></div></div>
       <div class="card"><div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Mounted drives</div><div style="overflow-x:auto"><table id="wd-table" class="tbl"><thead><tr><th>Drive</th><th>Alias</th><th>IP</th><th>Port</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div></div>
     </section>
 
@@ -235,57 +258,231 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <section data-s="folders">
       <h1 style="font-size:24px;font-weight:800;letter-spacing:-.03em;margin-bottom:3px">Folders</h1>
       <p style="font-size:13px;color:var(--ink3);margin-bottom:22px">Source and destination directories.</p>
-      <div class="card" style="margin-bottom:14px">
-        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Source folders</div>
-        <p style="font-size:11px;color:var(--ink4);margin:-6px 0 12px">Directories scanned for captures. Click × to remove.</p>
-        <div id="carpetas-origen-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
-        <div style="display:flex;gap:8px;margin-top:12px"><input id="nueva-carpeta" placeholder="/mnt/nothing/DCIM  or  Z:\DCIM" class="inp" style="flex:1" onkeydown="if(event.key==='Enter')addCarpeta()"><button class="bp" onclick="addCarpeta()">Add folder</button></div>
-        <div id="carpetas-msg" class="msg"></div>
-      </div>
-      <div class="card">
-        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Destination</div>
-        <p style="font-size:11px;color:var(--ink4);margin:-6px 0 12px">Where organized files are stored.</p>
-        <div style="display:grid;grid-template-columns:140px 1fr;gap:10px;margin-bottom:12px">
-          <div><label class="lbl">Type</label><select id="dest-tipo" onchange="destTipoChange()" class="inp"><option value="local">Local</option><option value="ssh">SSH Server</option></select></div>
-          <div id="dest-local-wrap"><label class="lbl">Local path</label><input id="dest-ruta" placeholder="/home/user/photos_organized" class="inp"></div>
-          <div id="dest-ssh-wrap" style="display:none"><label class="lbl">SSH Server</label><select id="dest-ssh-alias" class="inp"><option value="">— loading… —</option></select><div id="dest-ssh-hint" style="font-size:10px;color:var(--ink4);margin-top:3px"></div></div>
-        </div>
-        <div style="display:flex;gap:8px"><button class="bp" onclick="guardarDestino()">Save destination</button><button class="bd" onclick="quitarDestino()">Remove</button></div>
-        <div id="destino-msg" class="msg"></div>
-      </div>
+      <div class="card" style="margin-bottom:14px"><div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Source folders</div><p style="font-size:11px;color:var(--ink4);margin:-6px 0 12px">Directories scanned for captures.</p><div id="carpetas-origen-list" style="display:flex;flex-wrap:wrap;gap:6px"></div><div style="display:flex;gap:8px;margin-top:12px"><input id="nueva-carpeta" placeholder="/mnt/nothing/DCIM  or  Z:\DCIM" class="inp" style="flex:1" onkeydown="if(event.key==='Enter')addCarpeta()"><button class="bp" onclick="addCarpeta()">Add folder</button></div><div id="carpetas-msg" class="msg"></div></div>
+      <div class="card"><div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Destination</div><p style="font-size:11px;color:var(--ink4);margin:-6px 0 12px">Where organized files are stored.</p><div style="display:grid;grid-template-columns:140px 1fr;gap:10px;margin-bottom:12px"><div><label class="lbl">Type</label><select id="dest-tipo" onchange="destTipoChange()" class="inp"><option value="local">Local</option><option value="ssh">SSH Server</option></select></div><div id="dest-local-wrap"><label class="lbl">Local path</label><input id="dest-ruta" placeholder="/home/user/photos_organized" class="inp"></div><div id="dest-ssh-wrap" style="display:none"><label class="lbl">SSH Server</label><select id="dest-ssh-alias" class="inp"><option value="">— loading… —</option></select><div id="dest-ssh-hint" style="font-size:10px;color:var(--ink4);margin-top:3px"></div></div></div><div style="display:flex;gap:8px"><button class="bp" onclick="guardarDestino()">Save destination</button><button class="bd" onclick="quitarDestino()">Remove</button></div><div id="destino-msg" class="msg"></div></div>
     </section>
   </main>
+</div>
+
+<!-- ─── Day Gallery Panel ─── -->
+<div id="gallery-panel">
+  <div class="gp-header">
+    <div>
+      <div class="gp-title" id="gp-title">—</div>
+      <div class="gp-sub" id="gp-sub"></div>
+    </div>
+    <button class="gp-close" onclick="closeGallery()"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="gp-filters">
+    <button class="gp-filter-btn on" onclick="setFilter('all',this)">All</button>
+    <button class="gp-filter-btn" onclick="setFilter('favourites',this)">❤️ Favourites</button>
+    <span id="gp-count" style="margin-left:auto;font-size:11px;color:var(--ink4);font-weight:600"></span>
+  </div>
+  <div class="gp-tags" id="gp-tags" style="display:none">
+    <span style="font-size:9px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Filter by tag:</span>
+    <div id="gp-tag-btns" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+  </div>
+  <div class="gp-grid" id="gp-grid">
+    <div class="gp-loading"><div style="width:24px;height:24px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div></div>
+  </div>
+</div>
+
+<!-- ─── Lightbox ─── -->
+<div id="lightbox" onclick="lbClickBg(event)">
+  <button class="lb-close" onclick="closeLightbox()"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+  <div class="lb-img-wrap">
+    <button class="lb-nav prev" onclick="lbNav(-1);event.stopPropagation()"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <img id="lb-img" src="" alt="">
+    <button class="lb-nav next" onclick="lbNav(1);event.stopPropagation()"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+  </div>
+  <div class="lb-bar">
+    <button class="lb-fav" id="lb-fav-btn" onclick="lbToggleFav();event.stopPropagation()"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></button>
+    <div class="lb-info" id="lb-info"></div>
+    <div class="lb-counter" id="lb-counter"></div>
+  </div>
 </div>
 
 <script>
 const $=id=>document.getElementById(id);
 async function api(p,o={}){const r=await fetch(p,{headers:{'Content-Type':'application/json'},...o,body:o.body!==undefined?JSON.stringify(o.body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||`HTTP ${r.status}`);return d}
 function showMsg(id,t,ok){const e=$(id);e.className='msg '+(ok?'msg-ok':'msg-err');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',5000)}
-function tab(id,b){document.querySelectorAll('[data-s]').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('on'));document.querySelector(`[data-s="${id}"]`).classList.add('on');b.classList.add('on');({gallery:loadDays,ssh:initSSH,webdav:initWebDAV,folders:initCarpetas})[id]?.()}
+function tab(id,b){document.querySelectorAll('[data-s]').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('on'));document.querySelector(`[data-s="${id}"]`).classList.add('on');b.classList.add('on');closeGallery();({gallery:loadDays,ssh:initSSH,webdav:initWebDAV,folders:initCarpetas})[id]?.()}
 
 /* WS */
 const logBox=$('log-box');let ws;
 function conectarWS(){const p=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${p}://${location.host}/ws/log`);
 ws.onmessage=e=>{if(!e.data)return;logBox.textContent+=e.data;logBox.scrollTop=logBox.scrollHeight};
-ws.onopen=()=>{logBox.textContent='';const s=$('srv-status');s.textContent='Online';s.className='sbadge sb-on'};
+ws.onopen=()=>{logBox.textContent='';$('srv-status').textContent='Online';$('srv-status').className='sbadge sb-on'};
 ws.onclose=()=>{$('srv-status').textContent='Offline';$('srv-status').className='sbadge sb-off';setTimeout(conectarWS,3000)}}
 conectarWS();
 
-/* Gallery */
+/* ─── Gallery ─── */
 const MN=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 let _allDays=[];
-function filterDays(q){const g=$('days-grid');g.innerHTML='';const f=q.toLowerCase();const days=f?_allDays.filter(d=>`${d.fecha} ${MN[parseInt(d.mes,10)]} ${d.anio}`.toLowerCase().includes(f)):_allDays;if(!days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--ink4);font-size:13px">${f?'No matches':'No photos yet'}</div>`;return}renderDayCards(days,g)}
-function renderDayCards(days,g){days.forEach((d,i)=>{const m=parseInt(d.mes,10);const el=document.createElement('div');el.className=`dcard m${m}`;el.style.animation=`slideIn .25s ease ${i*30}ms both`;el.innerHTML=`<div class="dcard-head"><span class="dcard-month">${MN[m]} ${d.anio}</span><div class="dcard-count">${d.cantidad_fotos}</div></div><div class="dcard-body"><div class="dcard-day">${parseInt(d.dia,10)}</div><div class="dcard-meta">${d.tamano_total_mb} MB${d.ruta_zip?` <span class="dcard-zip"><svg width="8" height="8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>zipped</span>`:''}</div></div>`;g.appendChild(el)})}
-async function loadDays(){try{const d=await api('/api/days');_allDays=d.days;$('stat-days').textContent=d.total_days;$('stat-photos').textContent=d.total_photos.toLocaleString();$('stat-size').textContent=d.total_mb.toLocaleString();$('day-filter').value='';const g=$('days-grid');g.innerHTML='';if(!d.days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:64px 20px;color:var(--ink4)"><svg style="width:52px;height:52px;margin:0 auto 14px;color:var(--ink5)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><div style="font-weight:700;font-size:15px;margin-bottom:4px">No photos organized yet</div><div style="font-size:12px">Run the Pipeline to scan and organize.</div></div>`;return}renderDayCards(d.days,g)}catch(e){$('days-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:#dc2626"><div style="font-weight:700;font-size:15px;margin-bottom:4px">Could not load gallery</div><div style="font-size:12px;color:var(--ink3);margin-bottom:12px">${e.message}</div><button onclick="loadDays()" class="bg" style="font-size:11px">Retry</button></div>`}}
+function filterDays(q){const g=$('days-grid');g.innerHTML='';const f=q.toLowerCase();const days=f?_allDays.filter(d=>`${d.fecha} ${MN[parseInt(d.mes,10)]} ${d.anio}`.toLowerCase().includes(f)):_allDays;if(!days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--ink4);font-weight:500">${f?'No matches for "'+f+'"':'No photos organized yet'}</div>`;return}renderDayCards(days,g)}
+function renderDayCards(days,g){days.forEach((d,i)=>{const m=parseInt(d.mes,10);const el=document.createElement('div');el.className=`dcard m${m}`;el.style.animation=`slideIn .25s ease ${i*25}ms both`;el.innerHTML=`<div class="dcard-head"><span class="dcard-month">${MN[m]} ${d.anio}</span><div class="dcard-count">${d.cantidad_fotos}</div></div><div class="dcard-body"><div class="dcard-day">${parseInt(d.dia,10)}</div><div class="dcard-meta">${d.tamano_total_mb} MB${d.ruta_zip?` <span class="dcard-zip"><svg width="8" height="8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>zipped</span>`:''}</div></div>`;el.onclick=()=>openDayGallery(d);g.appendChild(el)})}
+async function loadDays(){
+  try{
+    const d=await api('/api/days');
+    const f=await api('/api/favourites');
+    const tg=await api('/api/tags').catch(()=>({tags:[]}));
+    _allDays=d.days;
+    $('stat-days').textContent=d.total_days;
+    $('stat-photos').textContent=d.total_photos.toLocaleString();
+    $('stat-favs').textContent=(f.favourites||[]).length;
+    $('stat-size').textContent=d.total_mb.toLocaleString();
+    $('day-filter').value='';
+    const g=$('days-grid');
+    g.innerHTML='';
+    if(!d.days.length){
+      g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:64px 20px;color:var(--ink4)">
+        <svg style="width:52px;height:52px;margin:0 auto 14px;color:var(--ink5)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
+          <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <div style="font-weight:700;font-size:15px;margin-bottom:4px">No photos organized yet</div>
+        <div style="font-size:12px">Run the Pipeline to scan and organize.</div>
+      </div>`;
+      return;
+    }
+    renderDayCards(d.days,g);
+    const cloud=$('tag-cloud');
+    cloud.innerHTML='';
+    (tg.tags||[]).slice(0,20).forEach(({tag,count})=>{
+      const b=document.createElement('button');
+      b.className='tag-chip '+tag;
+      b.style.cssText='cursor:pointer;border:1.5px solid transparent;transition:.15s;font-size:10px;padding:3px 10px';
+      b.textContent=tag+' '+count;
+      cloud.appendChild(b);
+    });
+  }catch(e){
+    $('days-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:#dc2626">
+      <div style="font-weight:700;font-size:15px;margin-bottom:6px">Could not load gallery</div>
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:12px">${e.message}</div>
+      <button onclick="loadDays()" class="bg" style="font-size:11px">Retry</button>
+    </div>`;
+  }
+}
 loadDays();
 
-/* Pipeline */
+/* ─── Day Gallery Panel ─── */
+let _gpPhotos=[],_gpFilter='all',_gpTagFilter='',_gpDate='';
+async function openDayGallery(day){
+  _gpDate=day.fecha;_gpFilter='all';_gpTagFilter='';
+  document.querySelectorAll('.gp-filter-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelector('.gp-filter-btn').classList.add('on');
+  $('gp-title').textContent=`${MN[parseInt(day.mes,10)]} ${parseInt(day.dia,10)}, ${day.anio}`;
+  $('gp-sub').textContent='Loading photos…';
+  $('gp-grid').innerHTML='<div class="gp-loading"><div style="width:24px;height:24px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div></div>';
+  $('gallery-panel').classList.add('open');
+  try{
+    const d=await api(`/api/days/${day.fecha}/photos`);
+    _gpPhotos=d.photos;
+    $('gp-sub').textContent=`${d.count} photos · ${day.tamano_total_mb} MB`;
+    // Build tag filter buttons from distinct tags in this day
+    const allTags=[...new Set(d.photos.flatMap(p=>p.tags||[]))].sort();
+    const tagBtns=$('gp-tag-btns');tagBtns.innerHTML='';
+    if(allTags.length){
+      $('gp-tags').style.display='flex';
+      allTags.forEach(t=>{
+        const b=document.createElement('button');b.className='gp-tag-filter tag-chip '+t;b.textContent=t;
+        b.onclick=()=>{
+          if(b.classList.contains('on')){b.classList.remove('on');_gpTagFilter=''}
+          else{document.querySelectorAll('.gp-tag-filter').forEach(x=>x.classList.remove('on'));b.classList.add('on');_gpTagFilter=t}
+          renderGpGrid();
+        };
+        tagBtns.appendChild(b);
+      });
+    }else{$('gp-tags').style.display='none'}
+    renderGpGrid();
+  }catch(e){
+    $('gp-grid').innerHTML=`<div class="gp-empty">${e.message}</div>`;
+  }
+}
+function closeGallery(){$('gallery-panel').classList.remove('open');_gpPhotos=[];_gpDate=''}
+function setFilter(f,btn){_gpFilter=f;_gpTagFilter='';document.querySelectorAll('.gp-filter-btn').forEach(b=>b.classList.remove('on'));document.querySelectorAll('.gp-tag-filter').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderGpGrid()}
+function renderGpGrid(){
+  const g=$('gp-grid');g.innerHTML='';
+  let photos=_gpFilter==='favourites'?_gpPhotos.filter(p=>p.favourite):_gpPhotos;
+  if(_gpTagFilter)photos=photos.filter(p=>(p.tags||[]).includes(_gpTagFilter));
+  $('gp-count').textContent=photos.length+' photos';
+  if(!photos.length){g.innerHTML=`<div class="gp-empty">${_gpFilter==='favourites'?'No favourites yet — tap ♥ on any photo':'No photos found'}</div>`;return}
+  photos.forEach((p,i)=>{
+    const div=document.createElement('div');div.className='gp-photo';div.style.animation=`slideIn .2s ease ${i*15}ms both`;
+    const img=document.createElement('img');img.className='loading';img.alt=p.filename;
+    img.onload=()=>img.classList.replace('loading','loaded');
+    img.src=`/api/photo?path=${encodeURIComponent(p.id)}`;
+    const favBtn=document.createElement('button');favBtn.className='gp-photo-fav'+(p.favourite?' fav':'');
+    favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
+    favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(p);favBtn.classList.toggle('fav',p.favourite)};
+    // Tag chips shown on hover at bottom
+    if(p.tags&&p.tags.length){
+      const tc=document.createElement('div');tc.style.cssText='position:absolute;bottom:0;left:0;right:0;padding:4px 6px;display:flex;gap:3px;flex-wrap:wrap;background:linear-gradient(transparent,#0008);opacity:0;transition:opacity .2s';
+      p.tags.slice(0,3).forEach(t=>{const s=document.createElement('span');s.className='tag-chip '+t;s.textContent=t;tc.appendChild(s)});
+      div.onmouseenter=()=>tc.style.opacity='1';div.onmouseleave=()=>tc.style.opacity='0';
+      div.appendChild(tc);
+    }
+    div.appendChild(img);div.appendChild(favBtn);
+    div.onclick=(e)=>{if(e.target===favBtn||favBtn.contains(e.target))return;const idx=_gpFilter==='favourites'?_gpPhotos.filter(x=>x.favourite).indexOf(p):_gpPhotos.indexOf(p);openLightbox(idx)};
+    g.appendChild(div);
+  });
+}
+async function toggleFav(photo){
+  photo.favourite=!photo.favourite;
+  await api('/api/favourites',{method:'POST',body:{path:photo.id,favourite:photo.favourite}});
+  // Update fav count in stats
+  const favCount=_gpPhotos.filter(p=>p.favourite).length;
+  $('stat-favs').textContent=favCount;
+}
+
+/* ─── Lightbox ─── */
+let _lbIdx=0,_lbPhotos=[];
+function openLightbox(idx){
+  _lbPhotos=_gpFilter==='favourites'?_gpPhotos.filter(p=>p.favourite):_gpPhotos;
+  _lbIdx=idx;
+  $('lightbox').classList.add('open');
+  document.body.style.overflow='hidden';
+  renderLb();
+}
+function closeLightbox(){$('lightbox').classList.remove('open');document.body.style.overflow=''}
+function lbClickBg(e){if(e.target===$('lightbox'))closeLightbox()}
+function lbNav(dir){
+  _lbIdx=(_lbIdx+dir+_lbPhotos.length)%_lbPhotos.length;
+  renderLb();
+}
+function renderLb(){
+  const p=_lbPhotos[_lbIdx];
+  if(!p)return;
+  const img=$('lb-img');
+  img.style.opacity='0';
+  img.src=`/api/photo?path=${encodeURIComponent(p.id)}`;
+  img.onload=()=>{img.style.transition='opacity .2s';img.style.opacity='1'};
+  const fb=$('lb-fav-btn');fb.classList.toggle('fav',p.favourite);
+  const tagStr=(p.tags||[]).slice(0,4).join('  ·  ');
+  $('lb-info').textContent=p.filename+(p.capture_date?'  ·  '+p.capture_date.slice(0,10):'')+(tagStr?'  ·  '+tagStr:'');
+  $('lb-counter').textContent=`${_lbIdx+1} / ${_lbPhotos.length}`;
+}
+async function lbToggleFav(){
+  const p=_lbPhotos[_lbIdx];if(!p)return;
+  await toggleFav(p);
+  $('lb-fav-btn').classList.toggle('fav',p.favourite);
+  // Sync thumbnail in panel
+  renderGpGrid();
+}
+document.addEventListener('keydown',e=>{
+  if(!$('lightbox').classList.contains('open'))return;
+  if(e.key==='ArrowLeft')lbNav(-1);
+  if(e.key==='ArrowRight')lbNav(1);
+  if(e.key==='Escape')closeLightbox();
+  if(e.key===' '){e.preventDefault();lbToggleFav()}
+});
+
+/* ─── Pipeline ─── */
 async function initPipeline(){const p=await api('/api/pasos');const g=$('paso-checks');g.innerHTML='';p.forEach(x=>{const l=document.createElement('label');l.className='step-card';l.innerHTML=`<input type="checkbox" value="${x.id}" checked><span>${x.nombre}</span>`;g.appendChild(l)});pollEstado()}initPipeline();
 let pt;async function pollEstado(){const{corriendo}=await api('/api/pipeline/estado');setPipelineUI(corriendo);if(corriendo)pt=setTimeout(pollEstado,1500)}
 async function runPipeline(a){const c=[...document.querySelectorAll('#paso-checks input:checked')];const p=a?null:c.map(x=>+x.value);if(!a&&p.length===0)return;try{await api('/api/pipeline/ejecutar',{method:'POST',body:{pasos:p}});setPipelineUI(true);pt=setTimeout(pollEstado,1500)}catch(e){$('pipeline-status').textContent=e.message}}
 function setPipelineUI(r){$('spinner').style.display=r?'block':'none';$('pipeline-status').textContent=r?'Running pipeline…':'Ready.';$('btn-run-sel').disabled=r;$('btn-run-all').disabled=r;const d=$('dot-pipeline');if(d){d.className='conn-dot'+(r?' live':'');d.style.display=r?'block':'none'}}
 
-/* SSH */
+/* ─── SSH ─── */
 let _sr={};async function initSSH(){_sr=await api('/api/ssh/roles');const s=$('ssh-rol');s.innerHTML='';_sr.roles.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;s.appendChild(o)});onRolChange();await renderSSH()}
 async function renderSSH(){const l=await api('/api/ssh');const tb=document.querySelector('#ssh-table tbody');tb.innerHTML='';if(!l.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--ink4);font-size:13px">No SSH connections yet</td></tr>';return}l.forEach(c=>{const tc={origen:'tag-origen',destino:'tag-destino',ambos:'tag-ambos'}[c.rol]||'';const tr=document.createElement('tr');tr.innerHTML=`<td><a href="#" onclick="editSSH(${JSON.stringify(c).replace(/"/g,'&quot;')});return false" style="color:var(--b);font-weight:600;text-decoration:none">${c.alias}</a></td><td>${c.host}:${c.puerto}</td><td>${c.usuario}</td><td style="font-family:'Space Mono';font-size:11px;color:var(--ink3)">${c.ruta_remota}</td><td style="font-family:'Space Mono';font-size:11px;color:var(--ink3)">${c.ruta_remota_destino||'—'}</td><td><span class="tag ${tc}">${c.rol}</span></td><td><button onclick="borrarSSH('${c.alias}')" style="font-size:11px;color:#dc2626;background:none;border:none;cursor:pointer;font-weight:600">Delete</button></td>`;tb.appendChild(tr)})}
 function onRolChange(){const r=$('ssh-rol').value,d=$('ssh-ruta-dest'),s=_sr;d.disabled=!(s.requiere_ruta_destino||[]).includes(r);$('ssh-rol-hint').textContent=(s.descripcion||{})[r]||'';const o=(s.ruta_destino_obligatoria||[]).includes(r);d.placeholder=o?'REQUIRED: different from source':'optional: empty = use source';$('ssh-ruta-dest-hint').textContent=o?'Must differ from source to avoid re-scan loops.':''}
@@ -294,13 +491,13 @@ async function guardarSSH(){try{await api('/api/ssh',{method:'POST',body:{alias:
 async function borrarSSH(a){if(!confirm('Delete "'+a+'"?'))return;await api('/api/ssh/'+encodeURIComponent(a),{method:'DELETE'});renderSSH()}
 function limpiarFormSSH(){['ssh-alias','ssh-host','ssh-usuario','ssh-ruta','ssh-ruta-dest','ssh-clave'].forEach(i=>$(i).value='');$('ssh-puerto').value='22';if($('ssh-rol').options.length){$('ssh-rol').selectedIndex=0;onRolChange()}}
 
-/* WebDAV */
+/* ─── WebDAV ─── */
 async function initWebDAV(){const{libres}=await api('/api/webdav/letras');const s=$('wd-letra');s.innerHTML='';(libres.length?libres:['Z:']).forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;s.appendChild(o)});await renderWD()}
 async function renderWD(){const l=await api('/api/webdav');const tb=document.querySelector('#wd-table tbody');tb.innerHTML='';if(!l.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink4);font-size:13px">No WebDAV drives</td></tr>';return}l.forEach(c=>{const ok=c.montada;const tr=document.createElement('tr');tr.innerHTML=`<td style="font-weight:600">${c.letra}</td><td>${c.alias||''}</td><td style="font-family:'Space Mono';font-size:12px">${c.ip}</td><td>${c.puerto}</td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:${ok?'#22c55e':'#ef4444'}${ok?';box-shadow:0 0 6px #22c55e60':''}"></span>${ok?'Connected':'Disconnected'}</span></td><td>${ok?`<button onclick="disconnectWD('${c.letra}')" style="font-size:11px;color:#dc2626;background:none;border:none;cursor:pointer;font-weight:600">Disconnect</button>`:'—'}</td>`;tb.appendChild(tr)})}
 async function conectarWD(){const b=$('btn-wd-conectar');b.disabled=true;b.textContent='Connecting…';try{const r=await api('/api/webdav/connect',{method:'POST',body:{letra:$('wd-letra').value,ip:$('wd-ip').value.trim(),puerto:$('wd-puerto').value.trim()||'8080',alias:$('wd-alias').value.trim()}});showMsg('wd-msg',r.mensaje,r.ok);await initWebDAV()}catch(e){showMsg('wd-msg',e.message,false)}finally{b.disabled=false;b.textContent='Connect drive'}}
 async function disconnectWD(l){const r=await api('/api/webdav/disconnect/'+encodeURIComponent(l),{method:'POST'});showMsg('wd-msg',r.mensaje,r.ok);await initWebDAV()}
 
-/* Folders */
+/* ─── Folders ─── */
 async function initCarpetas(){const d=await api('/api/carpetas');renderOrigen(d.origen);renderDestinoSSH(d.servidores_ssh_destino);const c=d.destino||{};if(c.tipo==='ssh'){$('dest-tipo').value='ssh';destTipoChange();$('dest-ssh-alias').value=c.alias||''}else{$('dest-tipo').value='local';destTipoChange();$('dest-ruta').value=c.ruta||''}}
 function renderOrigen(l){const c=$('carpetas-origen-list');c.innerHTML='';if(!l||!l.length){c.innerHTML='<span style="font-size:12px;color:var(--ink4)">No source folders added.</span>';return}l.forEach(p=>{const d=document.createElement('div');d.className='pill';d.innerHTML=`<span>${p}</span><button onclick="quitarCarpeta('${p.replace(/'/g,"\\'")}',this.parentNode)">&times;</button>`;c.appendChild(d)})}
 function renderDestinoSSH(s){const sel=$('dest-ssh-alias'),pv=sel.value;sel.innerHTML='<option value="">— choose server —</option>';(s||[]).forEach(x=>{const o=document.createElement('option');o.value=x.alias;o.textContent=x.alias+' ('+x.host+')';if(x.alias===pv)o.selected=true;sel.appendChild(o)});$('dest-ssh-hint').textContent=s&&!s.length?'No SSH servers with dest/ambos role.':''}
@@ -310,5 +507,352 @@ function destTipoChange(){$('dest-local-wrap').style.display=$('dest-tipo').valu
 async function guardarDestino(){const t=$('dest-tipo').value,b=t==='local'?{tipo:'local',ruta:$('dest-ruta').value.trim()}:{tipo:'ssh',alias:$('dest-ssh-alias').value};try{await api('/api/carpetas/destino',{method:'POST',body:b});showMsg('destino-msg','Destination saved.',true)}catch(e){showMsg('destino-msg',e.message,false)}}
 async function quitarDestino(){if(!confirm('Remove destination?'))return;try{await api('/api/carpetas/destino/quitar',{method:'POST'});$('dest-ruta').value='';$('dest-ssh-alias').value='';showMsg('destino-msg','Destination removed.',true)}catch(e){showMsg('destino-msg',e.message,false)}}
 </script>
+
+<!-- ─── First-run Setup Wizard ─── -->
+<div id="wizard" style="display:none;position:fixed;inset:0;z-index:600;background:#0007;backdrop-filter:blur(4px);animation:fadeIn .25s ease">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,95vw);background:var(--card);border-radius:20px;box-shadow:0 32px 80px #0003;overflow:hidden">
+
+    <!-- Progress bar -->
+    <div style="height:3px;background:var(--brd)"><div id="wiz-bar" style="height:100%;background:linear-gradient(90deg,var(--b),var(--b2));transition:width .4s ease;width:0%"></div></div>
+
+    <!-- Header -->
+    <div style="padding:28px 28px 0;display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--b);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Setup wizard</div>
+        <div id="wiz-title" style="font-size:20px;font-weight:800;letter-spacing:-.02em"></div>
+        <div id="wiz-sub" style="font-size:13px;color:var(--ink3);margin-top:4px"></div>
+      </div>
+      <div id="wiz-step-badge" style="background:var(--bg);border:1px solid var(--brd);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--ink4);white-space:nowrap"></div>
+    </div>
+
+    <!-- Body -->
+    <div id="wiz-body" style="padding:20px 28px 8px;min-height:200px"></div>
+
+    <!-- Footer -->
+    <div style="padding:16px 28px 24px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--brd);margin-top:8px">
+      <button id="wiz-skip" onclick="wizSkip()" style="font-size:12px;color:var(--ink4);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:3px">Skip setup</button>
+      <div style="display:flex;gap:8px">
+        <button id="wiz-back" onclick="wizNav(-1)" class="bg" style="display:none">← Back</button>
+        <button id="wiz-next" onclick="wizNav(1)" class="bp">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Setup Wizard ────────────────────────────────────────────────────────────
+const WIZ_STEPS = [
+  {
+    title: "Welcome to Photos Sync",
+    sub: "Let's get you set up in 3 quick steps.",
+    id: "welcome",
+    render: () => `
+      <div style="text-align:center;padding:12px 0">
+        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--b),var(--b2));display:grid;place-items:center;margin:0 auto 16px;box-shadow:0 4px 20px #0b6bcb30">
+          <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="1.8"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:8px">Sync · Organize · Classify</div>
+        <div style="font-size:13px;color:var(--ink3);line-height:1.6;max-width:380px;margin:0 auto">
+          Photos Sync connects to your phone over Wi-Fi, organizes photos by date,
+          classifies them automatically, and stores them locally or on a remote server.
+        </div>
+        <div style="display:flex;gap:6px;justify-content:center;margin-top:20px;flex-wrap:wrap">
+          ${['Source','Destination','Ready'].map((s,i)=>`
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink3)">
+              <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--b),var(--b2));color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center">${i+1}</div>
+              ${s}
+            </div>${i<2?'<div style="color:var(--ink5)">→</div>':''}`).join('')}
+        </div>
+      </div>`
+  },
+  {
+    title: "Connect a photo source",
+    sub: "How will photos reach this computer?",
+    id: "source",
+    render: () => `
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div onclick="wizSelectSource('webdav')" id="opt-webdav" style="border:2px solid var(--brd);border-radius:12px;padding:14px;cursor:pointer;transition:.18s;display:flex;gap:12px;align-items:flex-start">
+          <div style="width:38px;height:38px;border-radius:9px;background:#dbeafe;display:grid;place-items:center;flex-shrink:0">
+            <svg width="19" height="19" fill="none" viewBox="0 0 24 24" stroke="#1d4ed8" stroke-width="1.8"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700">WebDAV (Wi-Fi)
+              <span style="font-size:9px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:20px;font-weight:700;margin-left:5px">Recommended</span>
+            </div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:3px;line-height:1.5">
+              Mount your Android as a network drive via <b>CX File Explorer</b> or <b>Total Commander</b>.
+              Same Wi-Fi network. <em>Windows only for mounting.</em>
+            </div>
+          </div>
+        </div>
+        <div onclick="wizSelectSource('ssh')" id="opt-ssh-src" style="border:2px solid var(--brd);border-radius:12px;padding:14px;cursor:pointer;transition:.18s;display:flex;gap:12px;align-items:flex-start">
+          <div style="width:38px;height:38px;border-radius:9px;background:#f0fdf4;display:grid;place-items:center;flex-shrink:0">
+            <svg width="19" height="19" fill="none" viewBox="0 0 24 24" stroke="#15803d" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15l3-3-3-3"/><line x1="14" y1="15" x2="17" y2="15"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700">SSH Server</div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:3px;line-height:1.5">
+              Sync from a Linux server or NAS.
+              Requires <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:10px">pip install paramiko</code>. Works on all platforms.
+            </div>
+          </div>
+        </div>
+        <div id="wiz-source-hint" style="font-size:11px;color:var(--ink4);text-align:center;padding:2px 0">
+          Select a source to continue
+        </div>
+      </div>`
+  },
+  {
+    title: "Set a destination",
+    sub: "Where should organized photos be stored?",
+    id: "dest",
+    render: () => `
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div onclick="wizSelectDest('local')" id="opt-local" style="border:2px solid var(--brd);border-radius:12px;padding:14px;cursor:pointer;transition:.18s;display:flex;gap:12px;align-items:flex-start">
+          <div style="width:38px;height:38px;border-radius:9px;background:#f0fdf4;display:grid;place-items:center;flex-shrink:0">
+            <svg width="19" height="19" fill="none" viewBox="0 0 24 24" stroke="#15803d" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:700">Local folder
+              <span style="font-size:9px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:20px;font-weight:700;margin-left:5px">Simplest</span>
+            </div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:3px">
+              Store organized photos in a folder on this computer.
+            </div>
+            <div id="wiz-local-wrap" style="display:none;margin-top:10px">
+              <input id="wiz-local-path" placeholder="e.g. C:\\Photos  or  /home/user/photos" class="inp" style="font-size:12px">
+              <div style="font-size:10px;color:var(--ink4);margin-top:4px">
+                Leave blank to use the default: <code style="background:var(--bg);padding:1px 4px;border-radius:3px">~/PhotosSync/screenshots_agrupados</code>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div onclick="wizSelectDest('ssh')" id="opt-ssh-dest" style="border:2px solid var(--brd);border-radius:12px;padding:14px;cursor:pointer;transition:.18s;display:flex;gap:12px;align-items:flex-start">
+          <div style="width:38px;height:38px;border-radius:9px;background:#dbeafe;display:grid;place-items:center;flex-shrink:0">
+            <svg width="19" height="19" fill="none" viewBox="0 0 24 24" stroke="#1d4ed8" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15l3-3-3-3"/><line x1="14" y1="15" x2="17" y2="15"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:700">SSH Server</div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:3px">
+              Upload organized photos to a Linux server or NAS.
+            </div>
+            <div id="wiz-ssh-wrap" style="display:none;margin-top:10px">
+              <div id="wiz-ssh-servers" style="font-size:11px;color:var(--ink4)">Loading servers…</div>
+            </div>
+          </div>
+        </div>
+        <div id="wiz-dest-hint" style="font-size:11px;color:var(--ink4);text-align:center;padding:2px 0">
+          Select a destination to continue
+        </div>
+      </div>`
+  },
+  {
+    title: "You're all set! 🎉",
+    sub: "Here's your setup summary.",
+    id: "done",
+    render: () => `
+      <div style="padding:4px 0">
+        <div id="wiz-summary" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+        <div style="background:var(--bg);border:1px solid var(--brd);border-radius:12px;padding:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px">▶ Next: run the Pipeline</div>
+          <div style="font-size:12px;color:var(--ink3);line-height:1.6">
+            Go to the <b>Pipeline</b> tab and click <b>Run ALL</b> to sync, organize
+            and classify your photos for the first time.
+          </div>
+        </div>
+      </div>`
+  },
+];
+
+let _wizStep = 0, _wizSource = '', _wizDest = '', _wizSshAlias = '', _wizLocalPath = '';
+
+function wizOpen() {
+  _wizStep = 0; _wizSource = ''; _wizDest = ''; _wizSshAlias = ''; _wizLocalPath = '';
+  $('wizard').style.display = 'block';
+  wizRender();
+}
+
+function wizClose() {
+  $('wizard').style.display = 'none';
+  localStorage.setItem('photos_sync_setup_done', '1');
+}
+
+function wizSkip() {
+  if(confirm('Skip setup? You can configure later in the SSH, WebDAV and Folders tabs.')) wizClose();
+}
+
+function wizNav(dir) {
+  if(dir === 1 && _wizStep === WIZ_STEPS.length - 1) { wizClose(); return; }
+  if(dir === 1) { if(!wizValidate()) return; wizCommit(); }
+  _wizStep = Math.max(0, Math.min(WIZ_STEPS.length - 1, _wizStep + dir));
+  wizRender();
+}
+
+function wizRender() {
+  const step = WIZ_STEPS[_wizStep];
+  const pct = Math.round((_wizStep / (WIZ_STEPS.length - 1)) * 100);
+  $('wiz-bar').style.width = pct + '%';
+  $('wiz-title').textContent = step.title;
+  $('wiz-sub').textContent   = step.sub;
+  $('wiz-step-badge').textContent = `${_wizStep + 1} / ${WIZ_STEPS.length}`;
+  $('wiz-body').innerHTML = step.render();
+  $('wiz-back').style.display = _wizStep > 0 ? 'inline-flex' : 'none';
+  $('wiz-next').textContent   = _wizStep === WIZ_STEPS.length - 1 ? 'Go to dashboard →' : 'Next →';
+  if(step.id === 'source' && _wizSource) wizSelectSource(_wizSource, true);
+  if(step.id === 'dest')   _wizRenderDest();
+  if(step.id === 'done')   wizBuildSummary();
+}
+
+function _wizRenderDest() {
+  if(!_wizDest) return;
+  wizSelectDest(_wizDest, true);
+  if(_wizDest === 'local' && _wizLocalPath) {
+    const inp = $('wiz-local-path');
+    if(inp) inp.value = _wizLocalPath;
+  }
+}
+
+// ── Source step ──────────────────────────────────────────────────────────────
+function wizSelectSource(type, silent) {
+  _wizSource = type;
+  ['opt-webdav','opt-ssh-src'].forEach(id => {
+    const el = $(id); if(!el) return;
+    el.style.borderColor = 'var(--brd)'; el.style.background = '';
+  });
+  const el = type === 'webdav' ? $('opt-webdav') : $('opt-ssh-src');
+  if(el) { el.style.borderColor = 'var(--b)'; el.style.background = '#0b6bcb06'; }
+  const h = $('wiz-source-hint'); if(!h) return;
+  h.style.color   = 'var(--b)';
+  h.textContent   = type === 'webdav'
+    ? '✅ WebDAV selected — configure the connection in the WebDAV tab after setup.'
+    : '✅ SSH selected — configure the server in the SSH tab after setup.';
+}
+
+// ── Destination step ─────────────────────────────────────────────────────────
+function wizSelectDest(type, silent) {
+  _wizDest = type;
+  ['opt-local','opt-ssh-dest'].forEach(id => {
+    const el = $(id); if(!el) return;
+    el.style.borderColor = 'var(--brd)'; el.style.background = '';
+  });
+  const el = type === 'local' ? $('opt-local') : $('opt-ssh-dest');
+  if(el) { el.style.borderColor = 'var(--b)'; el.style.background = '#0b6bcb06'; }
+
+  const localWrap = $('wiz-local-wrap');
+  const sshWrap   = $('wiz-ssh-wrap');
+  if(localWrap) localWrap.style.display = type === 'local' ? 'block' : 'none';
+  if(sshWrap)   sshWrap.style.display   = type === 'ssh'   ? 'block' : 'none';
+
+  if(type === 'ssh' && !silent) _wizLoadSshServers();
+
+  const h = $('wiz-dest-hint'); if(!h) return;
+  h.style.color = 'var(--b)';
+  h.textContent = type === 'local'
+    ? '✅ Local folder selected — enter a path below or leave blank for the default.'
+    : '✅ SSH server selected.';
+}
+
+async function _wizLoadSshServers() {
+  const wrap = $('wiz-ssh-servers'); if(!wrap) return;
+  try {
+    const data = await api('/api/ssh');
+    const destServers = data.filter(s => s.rol === 'destino' || s.rol === 'ambos');
+    if(!destServers.length) {
+      wrap.innerHTML = `<div style="color:#b45309;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.5">
+        <b>No SSH servers configured yet.</b><br>
+        Click <b>Skip setup</b> now, then go to the <b>SSH tab</b> to add a server
+        with role <em>destino</em> or <em>ambos</em>, then reopen this wizard.
+      </div>`;
+      _wizSshAlias = '';
+      return;
+    }
+    _wizSshAlias = destServers[0].alias;
+    wrap.innerHTML = `
+      <label class="lbl">Select server</label>
+      <select id="wiz-ssh-alias" class="inp" style="font-size:12px" onchange="_wizSshAlias=this.value">
+        ${destServers.map(s => `<option value="${s.alias}" ${s.alias===_wizSshAlias?'selected':''}>${s.alias} (${s.host})</option>`).join('')}
+      </select>`;
+  } catch(e) {
+    wrap.innerHTML = `<div style="font-size:11px;color:#dc2626">Could not load servers: ${e.message}</div>`;
+  }
+}
+
+// ── Validation ───────────────────────────────────────────────────────────────
+function wizValidate() {
+  const id = WIZ_STEPS[_wizStep].id;
+  if(id === 'source' && !_wizSource) {
+    const h = $('wiz-source-hint');
+    if(h) { h.textContent = '⚠️ Please select a source type.'; h.style.color = '#dc2626'; }
+    return false;
+  }
+  if(id === 'dest') {
+    if(!_wizDest) {
+      const h = $('wiz-dest-hint');
+      if(h) { h.textContent = '⚠️ Please select a destination.'; h.style.color = '#dc2626'; }
+      return false;
+    }
+    if(_wizDest === 'local') {
+      _wizLocalPath = ($('wiz-local-path') && $('wiz-local-path').value.trim()) || '';
+    }
+    if(_wizDest === 'ssh') {
+      const sel = $('wiz-ssh-alias');
+      if(sel) _wizSshAlias = sel.value;
+      if(!_wizSshAlias) {
+        const h = $('wiz-dest-hint');
+        if(h) { h.textContent = '⚠️ Add an SSH server first (SSH tab → role: destino).'; h.style.color = '#dc2626'; }
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+// ── Save to backend ──────────────────────────────────────────────────────────
+async function wizCommit() {
+  const id = WIZ_STEPS[_wizStep].id;
+  if(id !== 'dest') return;
+  try {
+    if(_wizDest === 'local') {
+      await api('/api/carpetas/destino', {method:'POST',
+        body: {tipo:'local', ruta: _wizLocalPath || ''}});
+    } else if(_wizDest === 'ssh' && _wizSshAlias) {
+      await api('/api/carpetas/destino', {method:'POST',
+        body: {tipo:'ssh', alias: _wizSshAlias}});
+    }
+  } catch(e) {
+    console.warn('wizCommit error:', e);
+  }
+}
+
+// ── Summary ──────────────────────────────────────────────────────────────────
+function wizBuildSummary() {
+  const s = $('wiz-summary'); if(!s) return;
+  const destValue = _wizDest === 'local'
+    ? (_wizLocalPath || 'Default folder (~/.../screenshots_agrupados)')
+    : (_wizSshAlias ? `SSH: ${_wizSshAlias}` : 'SSH server');
+  const rows = [
+    { icon:'📡', label:'Source',      value: _wizSource === 'webdav' ? 'WebDAV (Wi-Fi)' : 'SSH Server', ok: !!_wizSource },
+    { icon:'📁', label:'Destination', value: destValue,                                                  ok: !!_wizDest  },
+  ];
+  s.innerHTML = rows.map(r => `
+    <div style="display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:12px 14px">
+      <span style="font-size:18px">${r.icon}</span>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:700;color:var(--ink2)">${r.label}</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">${r.value}</div>
+      </div>
+      <span style="font-size:16px">${r.ok ? '✅' : '⚠️'}</span>
+    </div>`).join('');
+}
+
+// ── Auto-show ─────────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const st = await api('/api/setup-status');
+    if(!st.done) { localStorage.removeItem('photos_sync_setup_done'); wizOpen(); }
+  } catch(e) {}
+})();
+</script>
+
 </body>
 </html>

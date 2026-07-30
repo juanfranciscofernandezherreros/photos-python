@@ -12,6 +12,8 @@ phone-side setting).
 On non-Windows systems, the functions are no-ops so the rest of the code
 works the same on any platform.
 """
+from __future__ import annotations
+
 import contextlib
 import sys
 from typing import Iterator

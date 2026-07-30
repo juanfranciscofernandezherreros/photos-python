@@ -1,4 +1,6 @@
 """Slim main window — imports tab widgets and wires them together."""
+from __future__ import annotations
+
 import sys
 from typing import Callable
 
@@ -16,11 +18,12 @@ from .web_server import iniciar_servidor_web, WEB_PORT
 from .gui.workers import PipelineWorker, PasoPipeline
 from .gui.webdav_tab import WebDAVTab
 from .gui.ssh_tab import SSHTab
-from . import download, organize, compress, summary, upload_ssh
+from .pipeline import download, organize, classify, compress, summary, upload_ssh
 
 PASOS: list[PasoPipeline] = [
     ("Download metadata", download.export_metadata_json),
     ("Organize by date", organize.organize_captures_by_date),
+    ("Classify photos", classify.classify_captures),
     ("Compress by day", compress.compress_folders_by_day),
     ("Generate summary", summary.generate_daily_summary),
     ("Upload to SSH", upload_ssh.upload_organized_to_ssh),

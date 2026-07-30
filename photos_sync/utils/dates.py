@@ -1,4 +1,6 @@
 """Centralized date format constant and helpers."""
+from __future__ import annotations
+
 from datetime import datetime
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"

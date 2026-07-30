@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import logging
 import sys
@@ -7,13 +9,14 @@ from .config import ORCHESTRATOR_LOG
 from .keep_awake import prevent_sleep
 from . import ssh_connection
 from .pipeline import (export_metadata_json, organize_captures_by_date,
-    compress_folders_by_day, generate_daily_summary, upload_organized_to_ssh)
+    classify_captures, compress_folders_by_day, generate_daily_summary, upload_organized_to_ssh)
 
 PasoPipeline = tuple[str, Callable[[], None]]
 
 PASOS: list[PasoPipeline] = [
     ("Download metadata", export_metadata_json),
     ("Organize by date", organize_captures_by_date),
+    ("Classify photos", classify_captures),
     ("Compress by day", compress_folders_by_day),
     ("Generate summary", generate_daily_summary),
     ("Upload to SSH", upload_organized_to_ssh),

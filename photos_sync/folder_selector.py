@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QPushButton,
                              QLabel, QListWidget, QFileDialog, QGroupBox, QAbstractItemView,

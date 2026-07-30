@@ -49,6 +49,7 @@ class Capture:
     ssh_remote_path: Optional[str] = None
     dest_path: Optional[str] = None
     zip_path: Optional[str] = None
+    tags: list[str] = field(default_factory=list)
 
     # ── serialization ─────────────────────────────────────────────────────
 
@@ -73,6 +74,8 @@ class Capture:
             d["ruta_destino"] = self.dest_path
         if self.zip_path is not None:
             d["ruta_zip"] = self.zip_path
+        if self.tags:
+            d["tags"] = self.tags
         return d
 
     @classmethod
@@ -90,6 +93,7 @@ class Capture:
             ssh_remote_path=d.get("ssh_ruta_remota"),
             dest_path=d.get("ruta_destino"),
             zip_path=d.get("ruta_zip"),
+            tags=d.get("tags", []),
         )
 
 

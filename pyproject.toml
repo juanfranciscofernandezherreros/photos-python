@@ -14,23 +14,55 @@ dependencies = [
     "PyQt6>=6.6",
     "fastapi>=0.110",
     "uvicorn[standard]>=0.29",
+    "pydantic>=2.0",
 ]
 
 [project.optional-dependencies]
 ssh = [
     "paramiko>=3.4",
 ]
+images = [
+    "Pillow>=10.0",
+]
 dev = [
-    "mypy>=1.0",
-    "pytest>=7.0",
+    "mypy>=1.9",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "ruff>=0.4",
+    "paramiko>=3.4",
+    "Pillow>=10.0",
 ]
 
 [project.scripts]
-photos-sync = "photos_sync.cli:main"
-photos-sync-gui = "photos_sync.main_window:main"
-photos-sync-web = "photos_sync.web_server:app"
+photos-sync         = "photos_sync.cli:main"
+photos-sync-gui     = "photos_sync.main_window:main"
+photos-sync-web     = "photos_sync.web_server:app"
 photos-sync-folders = "photos_sync.folder_selector:main"
-photos-sync-summary = "photos_sync.summary:generate_daily_summary"
+photos-sync-summary = "photos_sync.pipeline.summary:generate_daily_summary"
 
 [tool.setuptools.packages.find]
 include = ["photos_sync*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = [
+    "E501",   # line too long — handled by formatter
+    "F403",   # star imports in facade modules
+    "F401",   # imported but unused (facades)
+    "UP007",  # Optional[X] → X | None (too noisy for now)
+]
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = true
+warn_return_any = false
+warn_unused_ignores = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

@@ -14,10 +14,10 @@ from datetime import datetime
 
 import pytest
 
-from photos_sync.download import get_actual_date, load_existing_metadata
-from photos_sync.summary import group_by_day, generate_daily_summary
-from photos_sync.compress import zip_is_valid, compress_folders_by_day
-from photos_sync.organize import organize_captures_by_date
+from photos_sync.pipeline.download import get_actual_date, load_existing_metadata
+from photos_sync.pipeline.summary import group_by_day, generate_daily_summary
+from photos_sync.pipeline.compress import zip_is_valid, compress_folders_by_day
+from photos_sync.pipeline.organize import organize_captures_by_date
 from photos_sync.config import (
     METADATA_JSON, DAILY_SUMMARY_JSON,
     VALID_EXTENSIONS,
@@ -88,7 +88,7 @@ class TestOrganizarCapturas:
         for nombre in ["Screenshot_20231024_153020.png", "Screenshot_20231025_090000.jpg"]:
             (tmp_path / nombre).write_bytes(b"fake")
 
-        from photos_sync import folders as _folders
+        from photos_sync.storage import folders as _folders
         _folders.save_destination(str(tmp_path / "organizado"))
         organize_captures_by_date()
 
@@ -99,7 +99,7 @@ class TestOrganizarCapturas:
         for nombre in ["Screenshot_20231024_153020.png", "Screenshot_20231025_090000.jpg"]:
             (tmp_path / nombre).write_bytes(b"fake")
 
-        from photos_sync import folders as _folders
+        from photos_sync.storage import folders as _folders
         _folders.save_destination(str(tmp_path / "organizado"))
 
         organize_captures_by_date()
@@ -115,7 +115,7 @@ class TestOrganizarCapturas:
         for nombre in ["Screenshot_20231024_153020.png", "Screenshot_20231025_090000.jpg"]:
             (tmp_path / nombre).write_bytes(b"fake")
 
-        from photos_sync import folders as _folders
+        from photos_sync.storage import folders as _folders
         _folders.save_destination(str(tmp_path / "organizado"))
         organize_captures_by_date()
 
@@ -127,7 +127,7 @@ class TestOrganizarCapturas:
 
 class TestComprimir:
     def test_crea_zip_por_dia(self, tmp_path, carpeta_organizada):
-        from photos_sync import folders as _folders
+        from photos_sync.storage import folders as _folders
         _folders.save_destination(str(carpeta_organizada))
         compress_folders_by_day()
 
@@ -135,7 +135,7 @@ class TestComprimir:
         assert len(zips) == 2  # un zip por cada día del fixture
 
     def test_zip_valido(self, tmp_path, carpeta_organizada):
-        from photos_sync import folders as _folders
+        from photos_sync.storage import folders as _folders
         _folders.save_destination(str(carpeta_organizada))
         compress_folders_by_day()
 
@@ -143,7 +143,7 @@ class TestComprimir:
             assert zip_is_valid(z), f"{z.name} no pasó la verificación de integridad"
 
     def test_no_duplica_zips_existentes(self, tmp_path, carpeta_organizada):
-        from photos_sync import folders as _folders
+        from photos_sync.storage import folders as _folders
         _folders.save_destination(str(carpeta_organizada))
         compress_folders_by_day()
         compress_folders_by_day()  # segunda vez, no debe duplicar
@@ -218,7 +218,7 @@ class TestResumen:
         generate_daily_summary()  # solo imprime aviso
 
     def test_summary_includes_zip_path(self, tmp_path, carpeta_organizada, metadatos_json):
-        from photos_sync import folders as _folders
+        from photos_sync.storage import folders as _folders
         _folders.save_destination(str(carpeta_organizada))
         compress_folders_by_day()
         generate_daily_summary()

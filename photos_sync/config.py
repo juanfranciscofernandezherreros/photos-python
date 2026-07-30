@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 BASE_DIR: Path = Path.home() / "PhotosSync"
@@ -14,6 +16,7 @@ DAILY_SUMMARY_JSON: str          = str(_DATA_DIR / "resumen_por_dia.json")
 ORCHESTRATOR_LOG: str       = str(_DATA_DIR / "orquestador.log")
 WEBDAV_CONNECTIONS_JSON: str       = str(_DATA_DIR / "conexiones_webdav.json")
 SSH_CONNECTIONS_JSON: str   = str(_DATA_DIR / "conexiones_ssh.json")
+FAVOURITES_JSON: str        = str(_DATA_DIR / "favourites.json")
 
 # Create the data directory if it does not exist
 _DATA_DIR.mkdir(parents=True, exist_ok=True)

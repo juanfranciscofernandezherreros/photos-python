@@ -9,37 +9,83 @@ falla a mitad). Este paso simplemente refleja esa misma carpeta local en
 el servidor remoto, manteniendo la estructura AAAA/MM/DD, y no vuelve a
 upload un fichero si ya existe en remoto con el mismo tamaño.
 """
+from __future__ import annotations
+
 from pathlib import Path
 
-from ..folders import load_saved_destination, load_destination_config
+from ..storage.folders import load_saved_destination, load_destination_config
 from ..config import ORGANIZED_DIR, VALID_EXTENSIONS
+from ..utils.retry import retry
 from .. import ssh_connection
 
 from rich.progress import track
 
 
 def _local_organized_folder() -> Path:
-    """La misma carpeta local que usa organizar.py, sea la configurada
-    explícitamente o la de por defecto."""
     destino_str = load_saved_destination()
     return Path(destino_str) if destino_str else ORGANIZED_DIR
 
 
 def _destination_servers() -> list[ssh_connection.SSHConnection]:
-    """Servidores SSH a los que hay que upload: los de rol 'destino'/'ambos',
-    más el marcado explícitamente como destino principal en carpetas.py
-    (por si el usuario eligió un servidor SSH como destino desde el
-    selector de carpetas en vez de desde el panel de conexiones SSH)."""
     servidores = {c["alias"]: c for c in ssh_connection.connections_by_role("destino")}
-
     config_destino = load_destination_config()
     if config_destino.get("tipo") == "ssh":
         alias = config_destino.get("alias", "")
         c = ssh_connection.get_connection(alias)
         if c:
             servidores[alias] = c
-
     return list(servidores.values())
+
+
+def _upload_with_retry(
+    conexion_ssh: ssh_connection.SSHConnection,
+    archivos_locales: list[Path],
+    carpeta_local: Path,
+) -> tuple[int, int, int]:
+    """Upload files to one SSH server, retrying the whole connection up to 3 times
+    on session-level failures. Returns (uploaded, already_existed, errors)."""
+    ruta_remota_base = ssh_connection.effective_destination_path(conexion_ssh)
+    subidas = 0
+    ya_existian = 0
+    errores: list[str] = []
+    max_session_retries = 3
+
+    for session_attempt in range(1, max_session_retries + 1):
+        session_errors = 0
+        try:
+            with ssh_connection.SSHClient(conexion_ssh) as cliente:
+                for archivo_local in track(
+                    archivos_locales,
+                    description=f"Uploading to {conexion_ssh['alias']}…"
+                ):
+                    ruta_relativa = archivo_local.relative_to(carpeta_local).as_posix()
+                    ruta_remota = f"{ruta_remota_base}/{ruta_relativa}"
+                    try:
+                        remote_size = cliente.remote_exists(ruta_remota)
+                        if remote_size is not None and remote_size == archivo_local.stat().st_size:
+                            ya_existian += 1
+                            continue
+                        # SSHClient.upload already has per-file retry via @retry
+                        cliente.upload(archivo_local, ruta_remota)
+                        subidas += 1
+                    except Exception as e:
+                        errores.append(ruta_relativa)
+                        session_errors += 1
+            # Session completed without a connection-level crash — done
+            break
+        except Exception as e:
+            if session_attempt < max_session_retries:
+                import time
+                wait = 5 * session_attempt
+                print(f"\n  ⚠️  SSH session dropped (attempt {session_attempt}/{max_session_retries}): {e}."
+                      f" Reconnecting in {wait}s…")
+                time.sleep(wait)
+            else:
+                print(f"\n  ❌ Could not connect to '{conexion_ssh['alias']}' after "
+                      f"{max_session_retries} attempts: {e}")
+                raise
+
+    return subidas, ya_existian, len(errores)
 
 
 def upload_organized_to_ssh() -> None:
@@ -51,9 +97,7 @@ def upload_organized_to_ssh() -> None:
 
     servidores = _destination_servers()
     if not servidores:
-        print("⏭️ No SSH server configured as destination — skipping this step. "
-              "(Configure one in 'Conexión SSH' with role 'destino' or 'ambos' if you want a "
-              "backup copy on a Linux server.)")
+        print("⏭️ No SSH server configured as destination — skipping this step.")
         return
 
     carpeta_local = _local_organized_folder()
@@ -74,37 +118,19 @@ def upload_organized_to_ssh() -> None:
         print(f"📡 Uploading to '{conexion_ssh['alias']}' "
               f"({conexion_ssh['usuario']}@{conexion_ssh['host']}:{ruta_remota_base})...")
 
-        subidas = 0
-        ya_existian = 0
-        errores = 0
-
         try:
-            with ssh_connection.SSHClient(conexion_ssh) as cliente:
-                for archivo_local in track(archivos_locales, description=f"Uploading to {conexion_ssh['alias']}..."):
-                    ruta_relativa = archivo_local.relative_to(carpeta_local).as_posix()
-                    ruta_remota = f"{ruta_remota_base}/{ruta_relativa}"
-
-                    try:
-                        tamano_remoto = cliente.remote_exists(ruta_remota)
-                        if tamano_remoto is not None and tamano_remoto == archivo_local.stat().st_size:
-                            ya_existian += 1
-                            continue
-
-                        cliente.upload(archivo_local, ruta_remota)
-                        subidas += 1
-                    except OSError as e:
-                        print(f"⚠️ Could not upload '{ruta_relativa}': {e}")
-                        errores += 1
-
+            subidas, ya_existian, errores = _upload_with_retry(
+                conexion_ssh, archivos_locales, carpeta_local
+            )
         except Exception as e:
-            print(f"❌ Could not connect to '{conexion_ssh['alias']}': {e}")
+            print(f"❌ Upload to '{conexion_ssh['alias']}' failed: {e}")
             continue
 
         print("-" * 50)
         print(f"UPLOAD SUMMARY for '{conexion_ssh['alias']}':")
         print(f"  - New files uploaded: {subidas}")
         print(f"  - Already existed on server: {ya_existian}")
-        if errores > 0:
+        if errores:
             print(f"  - Errors: {errores}")
         print()
 

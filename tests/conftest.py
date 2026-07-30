@@ -20,16 +20,16 @@ def cwd_temporal(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
     # Patch every path constant in config and every module that imported it —
-    # including both the facade modules (photos_sync.folders, etc.) and the
+    # including both the facade modules (photos_sync.storage.folders, etc.) and the
     # actual implementation modules (photos_sync.storage.folders, etc.)
     import photos_sync.config as cfg
-    import photos_sync.folders as folders_facade
-    import photos_sync.connection as connection_facade
+    import photos_sync.storage.folders as folders_facade
+    import photos_sync.storage.connection as connection_facade
     import photos_sync.ssh_connection as ssh_facade
-    import photos_sync.download as download_facade
-    import photos_sync.compress as compress_facade
-    import photos_sync.summary as summary_facade
-    import photos_sync.organize as organize_facade
+    import photos_sync.pipeline.download as download_facade
+    import photos_sync.pipeline.compress as compress_facade
+    import photos_sync.pipeline.summary as summary_facade
+    import photos_sync.pipeline.organize as organize_facade
     import photos_sync.storage.folders as folders_impl
     import photos_sync.storage.connection as connection_impl
     import photos_sync.storage.ssh_repo as ssh_repo_impl
@@ -37,6 +37,7 @@ def cwd_temporal(tmp_path, monkeypatch):
     import photos_sync.pipeline.compress as compress_impl
     import photos_sync.pipeline.summary as summary_impl
     import photos_sync.pipeline.organize as organize_impl
+    import photos_sync.pipeline.classify as classify_impl
     import photos_sync.pipeline.upload_ssh as upload_impl
 
     all_modules = (
@@ -44,7 +45,7 @@ def cwd_temporal(tmp_path, monkeypatch):
         folders_facade, connection_facade, ssh_facade,
         download_facade, compress_facade, summary_facade, organize_facade,
         folders_impl, connection_impl, ssh_repo_impl,
-        download_impl, compress_impl, summary_impl, organize_impl, upload_impl,
+        download_impl, compress_impl, summary_impl, organize_impl, classify_impl, upload_impl,
     )
 
     data_dir = tmp_path / "data"

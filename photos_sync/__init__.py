@@ -9,5 +9,6 @@ Run the pipeline:
     photos-sync --all
     photos-sync            # opens the interactive menu
 """
+from __future__ import annotations
 
 __version__ = "0.1.0"

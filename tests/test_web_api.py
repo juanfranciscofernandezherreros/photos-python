@@ -8,17 +8,17 @@ destination folders.
 import json
 import pytest
 from photos_sync import ssh_connection
-from photos_sync.folders import save_destination
+from photos_sync.storage.folders import save_destination
 
 
 # ═══════════════════════════════════════ /api/pasos ══════════════════════════
 
 class TestPasos:
-    def test_returns_5_steps(self, cliente_api):
+    def test_returns_6_steps(self, cliente_api):
         r = cliente_api.get("/api/pasos")
         assert r.status_code == 200
         pasos = r.json()
-        assert len(pasos) == 5
+        assert len(pasos) == 6
 
     def test_estructura_paso(self, cliente_api):
         pasos = cliente_api.get("/api/pasos").json()
@@ -28,7 +28,7 @@ class TestPasos:
 
     def test_ids_are_sequential(self, cliente_api):
         ids = [p["id"] for p in cliente_api.get("/api/pasos").json()]
-        assert ids == list(range(5))
+        assert ids == list(range(6))
 
 
 # ═══════════════════════════════════════ /api/pipeline ═══════════════════════
@@ -148,7 +148,7 @@ class TestWebDAVApi:
         assert len(data["todas"]) == 23
 
     def test_letras_libres_excluye_usadas(self, cliente_api):
-        from photos_sync import connection as _c
+        from photos_sync.storage import connection as _c
         _c.add_or_update_connection("Z:", "1.1.1.1", "8080", "test")
         data = cliente_api.get("/api/webdav/letras").json()
         assert "Z:" not in data["libres"]

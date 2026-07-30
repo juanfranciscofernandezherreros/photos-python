@@ -1,4 +1,6 @@
 """Backward-compatible facade — re-exports from ssh/ and storage/ssh_repo."""
+from __future__ import annotations
+
 from .ssh.client import SSHClient, paramiko_available, _require_paramiko
 from .ssh.validation import (
     SSHConnection, VALID_ROLES, DEFAULT_SSH_PORT,

@@ -1,4 +1,5 @@
 """Simple console progress bar (no external dependency)."""
+from __future__ import annotations
 
 
 def progress_bar(iterable, description: str = "", total: int | None = None):

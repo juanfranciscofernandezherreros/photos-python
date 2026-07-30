@@ -18,15 +18,17 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-from . import connection, download, organize, compress, summary, ssh_connection, upload_ssh
-from .folders import (load_saved_folders, save_folders,
+from .storage import connection
+from .pipeline import download, organize, classify, compress, summary, upload_ssh
+from . import ssh_connection
+from .storage.folders import (load_saved_folders, save_folders,
                        load_destination_config, save_destination, save_ssh_destination)
 from .keep_awake import prevent_sleep
 
@@ -35,6 +37,7 @@ from .keep_awake import prevent_sleep
 PASOS: list[tuple[str, Any]] = [
     ("Download metadata",   download.export_metadata_json),
     ("Organize by date",    organize.organize_captures_by_date),
+    ("Classify photos",     classify.classify_captures),
     ("Compress by day",     compress.compress_folders_by_day),
     ("Generate summary",    summary.generate_daily_summary),
     ("Upload to SSH",       upload_ssh.upload_organized_to_ssh),
@@ -260,6 +263,130 @@ def get_days():
     return {"days": days, "total_photos": total_photos, "total_mb": total_mb, "total_days": len(days)}
 
 
+@app.get("/api/days/{date}/photos")
+def get_day_photos(date: str):
+    """Return all photo file info for a specific day (YYYY-MM-DD)."""
+    from .config import ORGANIZED_DIR, METADATA_JSON, FAVOURITES_JSON
+    from .json_io import read_json
+
+    # Build expected folder path: ORGANIZED_DIR/YYYY/MM/DD
+    parts = date.split("-")
+    if len(parts) != 3:
+        raise HTTPException(400, "Date must be YYYY-MM-DD")
+    year, month, day = parts
+    day_folder = Path(ORGANIZED_DIR) / year / month / day
+
+    # Load favourites set
+    favs: set[str] = set(read_json(FAVOURITES_JSON, default=[]) or [])
+
+    # Try to get file list from METADATA_JSON for rich metadata
+    raw_meta = read_json(METADATA_JSON, default=[])
+    meta_by_dest: dict[str, dict] = {}
+    if isinstance(raw_meta, list):
+        for m in raw_meta:
+            dest = m.get("ruta_destino") or m.get("dest_path")
+            if dest:
+                meta_by_dest[dest] = m
+
+    photos = []
+    if day_folder.exists():
+        for f in sorted(day_folder.iterdir()):
+            if f.is_file() and f.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}:
+                meta = meta_by_dest.get(str(f), {})
+                photos.append({
+                    "id":           str(f),
+                    "filename":     f.name,
+                    "size_mb":      round(f.stat().st_size / 1048576, 2),
+                    "capture_date": meta.get("fecha_captura", ""),
+                    "tags":         meta.get("tags", []),
+                    "favourite":    str(f) in favs,
+                    "url":          f"/api/photo?path={f}",
+                })
+    return {"date": date, "photos": photos, "count": len(photos)}
+
+
+@app.get("/api/photo")
+def serve_photo(path: str):
+    """Serve a photo file by its absolute path (only from ORGANIZED_DIR)."""
+    from .config import ORGANIZED_DIR
+    from fastapi.responses import FileResponse
+    import mimetypes
+
+    p = Path(path)
+    # Security: only serve files inside ORGANIZED_DIR
+    try:
+        p.resolve().relative_to(Path(ORGANIZED_DIR).resolve())
+    except ValueError:
+        raise HTTPException(403, "Access denied")
+    if not p.is_file():
+        raise HTTPException(404, "File not found")
+    mime = mimetypes.guess_type(p.name)[0] or "image/jpeg"
+    return FileResponse(p, media_type=mime)
+
+
+@app.get("/api/favourites")
+def get_favourites():
+    from .config import FAVOURITES_JSON
+    from .json_io import read_json
+    favs = read_json(FAVOURITES_JSON, default=[])
+    return {"favourites": favs if isinstance(favs, list) else []}
+
+
+class FavouriteToggleIn(BaseModel):
+    path: str
+    favourite: bool
+
+
+@app.post("/api/favourites")
+def toggle_favourite(req: FavouriteToggleIn):
+    """Add or remove a photo from favourites and persist to FAVOURITES_JSON."""
+    from .config import FAVOURITES_JSON
+    from .json_io import read_json, write_json
+
+    favs: list[str] = read_json(FAVOURITES_JSON, default=[]) or []
+    if not isinstance(favs, list):
+        favs = []
+
+    if req.favourite and req.path not in favs:
+        favs.append(req.path)
+    elif not req.favourite and req.path in favs:
+        favs.remove(req.path)
+
+    write_json(FAVOURITES_JSON, favs)
+    return {"ok": True, "total_favourites": len(favs)}
+
+
+
+
+
+@app.get("/api/tags")
+def get_tags():
+    """Return all distinct tags across all captures with their counts."""
+    from .config import METADATA_JSON
+    from .json_io import read_json
+    from .models import Capture
+
+    raw = read_json(METADATA_JSON, default=[])
+    if not isinstance(raw, list):
+        return {"tags": []}
+
+    tag_counts: dict[str, int] = {}
+    for item in raw:
+        for tag in item.get("tags", []):
+            tag_counts[tag] = tag_counts.get(tag, 0) + 1
+
+    tags = sorted(
+        [{"tag": t, "count": c} for t, c in tag_counts.items()],
+        key=lambda x: -x["count"],
+    )
+    return {"tags": tags, "total_captures": len(raw)}
+
+
+
+def pipeline_estado():
+    return {"corriendo": pipeline.is_running()}
+
+
 @app.get("/api/pipeline/estado")
 def pipeline_estado():
     return {"corriendo": pipeline.is_running()}
@@ -474,6 +601,35 @@ def quitar_destino():
     return {"ok": True, "destino": load_destination_config()}
 
 
+# ═══════════════════════════════════════════ Setup wizard ═══════════════════
+
+@app.get("/api/setup-status")
+def setup_status():
+    """Returns which essential configuration steps are complete.
+    Used by the first-run wizard in the frontend."""
+    from .storage.folders import load_destination_config
+    from .storage.connection import load_connections
+    from .storage import ssh_repo
+
+    dest   = load_destination_config()
+    webdav = load_connections()
+    ssh    = ssh_repo.load_ssh_connections()
+
+    has_dest   = bool(dest.get("tipo"))
+    has_source = bool(webdav or ssh)
+    is_done    = has_dest and has_source
+
+    return {
+        "done":       is_done,
+        "has_source": has_source,
+        "has_dest":   has_dest,
+        "webdav_count": len(webdav),
+        "ssh_count":    len(ssh),
+        "dest_type":    dest.get("tipo", ""),
+        "dest_detail":  dest.get("ruta") or dest.get("alias") or "",
+    }
+
+
 # ═══════════════════════════════════════════ UI HTML ════════════════════════
 
 @app.get("/", response_class=HTMLResponse)
@@ -483,7 +639,7 @@ def ui():
 
 # ──────────────────────────── lanzador de fondo ─────────────────────────────
 
-_server_thread: threading.Thread | None = None
+_server_thread: Optional[threading.Thread] = None
 WEB_PORT = 8765
 
 

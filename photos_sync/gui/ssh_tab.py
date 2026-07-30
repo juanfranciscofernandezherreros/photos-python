@@ -1,4 +1,6 @@
 """SSH connection management tab widget."""
+from __future__ import annotations
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QComboBox, QLineEdit,
     QPushButton, QLabel, QListWidget, QListWidgetItem, QMessageBox,

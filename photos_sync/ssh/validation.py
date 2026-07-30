@@ -1,4 +1,6 @@
 """SSH connection types and validation rules."""
+from __future__ import annotations
+
 from typing import TypedDict
 
 VALID_ROLES: list[str] = ["origen", "destino", "ambos"]

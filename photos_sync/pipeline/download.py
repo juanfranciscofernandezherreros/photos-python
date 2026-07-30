@@ -1,16 +1,19 @@
+from __future__ import annotations
+
 import uuid
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 
-from ..folders import load_saved_folders
+from ..storage.folders import load_saved_folders
 from ..config import METADATA_JSON, VALID_EXTENSIONS
 from ..json_io import read_json, write_json
 from ..models import Capture
 from ..utils.progress import progress_bar
 from ..utils.dates import format_date, DATE_FORMAT
-from .. import connection, ssh_connection
+from ..storage import connection
+from .. import ssh_connection
 
 # Maximum parallel SFTP connections when scanning multiple SSH sources.
 # Each connection opens one SSH session + one SFTP channel, so keep this
