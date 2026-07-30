@@ -418,18 +418,18 @@ async function showView(view){
     tv.appendChild(sec);
     const grid=sec.querySelector('.tl-grid');
     photos.forEach((ph,i)=>{
-      const div=document.createElement('div');div.className='tl-thumb';div.style.animation=`slideIn .2s ease ${Math.min(i,20)*20}ms both`;
+      const div=document.createElement('div');div.className='tl-thumb';div.style.animation=`slideIn .2s ease ${Math.min(i,20)*20}ms both`;div.dataset.photoId=ph.id;
       const img=document.createElement('img');img.className='loading';img.alt=ph.filename;
       img.onload=()=>img.classList.replace('loading','loaded');
       img.src=`/api/photo?path=${encodeURIComponent(ph.id)}`;
       const favBtn=document.createElement('button');favBtn.className='tl-thumb-fav'+(ph.favourite?' fav':'');
       favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
-      favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(ph);favBtn.classList.toggle('fav',ph.favourite);$('stat-favs').textContent=_tlPhotos.filter(x=>x.favourite).length;};
+      favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(ph);favBtn.classList.toggle('fav',ph.favourite);$('stat-favs').textContent=_tlPhotos.filter(x=>x.favourite).length;renderGpGrid&&typeof renderGpGrid==='function'&&_lbSource!=='timeline'&&renderGpGrid();};
       div.appendChild(img);div.appendChild(favBtn);
       // Open lightbox on click
       div.onclick=(e)=>{if(e.target===favBtn||favBtn.contains(e.target))return;
-        _lbPhotos=_tlPhotos;_lbIdx=_tlPhotos.findIndex(x=>x.id===ph.id);
-        openLightbox(_lbIdx);};
+        const tlIdx=_tlPhotos.findIndex(x=>x.id===ph.id);
+        openLightbox(tlIdx, _tlPhotos, 'timeline');};
       grid.appendChild(div);
     });
   });
@@ -550,45 +550,94 @@ async function toggleFav(photo){
 }
 
 /* ─── Lightbox ─── */
-let _lbIdx=0,_lbPhotos=[];
-function openLightbox(idx){
-  _lbPhotos=_gpFilter==='favourites'?_gpPhotos.filter(p=>p.favourite):_gpPhotos;
-  _lbIdx=idx;
+let _lbIdx=0, _lbPhotos=[], _lbSource='panel', _lbLoadId=0;
+
+// openLightbox(idx, photos?, source?)
+//   photos  — array to navigate (defaults to panel photos)
+//   source  — 'panel' | 'timeline' (controls which grid to sync)
+function openLightbox(idx, photos, source){
+  if(photos) _lbPhotos=photos;
+  else _lbPhotos=_gpFilter==='favourites'?_gpPhotos.filter(p=>p.favourite):_gpPhotos;
+  _lbSource = source || 'panel';
+  _lbIdx = Math.max(0, Math.min(idx, _lbPhotos.length-1));
   $('lightbox').classList.add('open');
   document.body.style.overflow='hidden';
   renderLb();
 }
-function closeLightbox(){$('lightbox').classList.remove('open');document.body.style.overflow=''}
-function lbClickBg(e){if(e.target===$('lightbox'))closeLightbox()}
+
+function closeLightbox(){
+  $('lightbox').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function lbClickBg(e){
+  if(e.target===$('lightbox')) closeLightbox();
+}
+
 function lbNav(dir){
+  if(!_lbPhotos.length) return;
   _lbIdx=(_lbIdx+dir+_lbPhotos.length)%_lbPhotos.length;
   renderLb();
 }
+
 function renderLb(){
-  const p=_lbPhotos[_lbIdx];
-  if(!p)return;
+  const photo=_lbPhotos[_lbIdx];
+  if(!photo) return;
+
+  // Use a load-ID so stale onload callbacks from previous nav are ignored
+  const loadId=++_lbLoadId;
   const img=$('lb-img');
+
+  // Fade out current image immediately
+  img.style.transition='none';
   img.style.opacity='0';
-  img.src=`/api/photo?path=${encodeURIComponent(p.id)}`;
-  img.onload=()=>{img.style.transition='opacity .2s';img.style.opacity='1'};
-  const fb=$('lb-fav-btn');fb.classList.toggle('fav',p.favourite);
-  const tagStr=(p.tags||[]).slice(0,4).join('  ·  ');
-  $('lb-info').textContent=p.filename+(p.capture_date?'  ·  '+p.capture_date.slice(0,10):'')+(tagStr?'  ·  '+tagStr:'');
+
+  // Remove old handler to prevent accumulation
+  img.onload=null;
+  img.onerror=null;
+
+  img.onload=()=>{
+    if(loadId!==_lbLoadId) return; // stale — a newer nav happened
+    img.style.transition='opacity .18s ease';
+    img.style.opacity='1';
+  };
+  img.onerror=()=>{
+    if(loadId!==_lbLoadId) return;
+    img.style.opacity='1'; // show broken image rather than blank
+  };
+
+  img.src=`/api/photo?path=${encodeURIComponent(photo.id)}`;
+
+  // Update UI immediately (don't wait for image to load)
+  const fb=$('lb-fav-btn');
+  fb.classList.toggle('fav', !!photo.favourite);
+  const tagStr=(photo.tags||[]).slice(0,4).join('  ·  ');
+  $('lb-info').textContent=photo.filename
+    +(photo.capture_date?'  ·  '+photo.capture_date.slice(0,10):'')
+    +(tagStr?'  ·  '+tagStr:'');
   $('lb-counter').textContent=`${_lbIdx+1} / ${_lbPhotos.length}`;
 }
+
 async function lbToggleFav(){
-  const p=_lbPhotos[_lbIdx];if(!p)return;
-  await toggleFav(p);
-  $('lb-fav-btn').classList.toggle('fav',p.favourite);
-  // Sync thumbnail in panel
-  renderGpGrid();
+  const photo=_lbPhotos[_lbIdx]; if(!photo) return;
+  await toggleFav(photo);
+  $('lb-fav-btn').classList.toggle('fav', !!photo.favourite);
+  // Sync the correct grid
+  if(_lbSource==='panel') renderGpGrid();
+  // For timeline: update the specific thumb
+  if(_lbSource==='timeline'){
+    const thumb=document.querySelector(`[data-photo-id="${CSS.escape(photo.id)}"]`);
+    if(thumb) thumb.classList.toggle('fav', photo.favourite);
+    $('stat-favs').textContent=_tlPhotos.filter(x=>x.favourite).length;
+  }
 }
+
 document.addEventListener('keydown',e=>{
-  if(!$('lightbox').classList.contains('open'))return;
-  if(e.key==='ArrowLeft')lbNav(-1);
-  if(e.key==='ArrowRight')lbNav(1);
-  if(e.key==='Escape')closeLightbox();
-  if(e.key===' '){e.preventDefault();lbToggleFav()}
+  if(!$('lightbox').classList.contains('open')) return;
+  if(e.key==='ArrowLeft')  { e.preventDefault(); lbNav(-1); }
+  if(e.key==='ArrowRight') { e.preventDefault(); lbNav(1);  }
+  if(e.key==='Escape')     closeLightbox();
+  if(e.key===' ')          { e.preventDefault(); lbToggleFav(); }
 });
 
 /* ─── Pipeline ─── */
