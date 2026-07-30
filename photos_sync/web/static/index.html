@@ -131,6 +131,19 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .pill{display:inline-flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--brd);border-radius:8px;padding:6px 12px;font-family:'Space Mono',monospace;font-size:12px;transition:border .15s}
 .pill:hover{border-color:var(--ink5)}.pill button{background:none;border:none;color:#dc2626;cursor:pointer;font-size:15px;line-height:1;padding:2px 4px;border-radius:4px;opacity:.45;transition:.15s}
 .pill button:hover{opacity:1;background:#fef2f2}
+.tl-section{margin-bottom:28px}
+.tl-date{font-size:13px;font-weight:700;color:var(--ink2);padding:8px 0 10px;border-bottom:1px solid var(--brd);margin-bottom:10px;display:flex;align-items:baseline;gap:8px}
+.tl-date span{font-size:11px;font-weight:500;color:var(--ink4)}
+.tl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:4px}
+.tl-thumb{aspect-ratio:1;border-radius:6px;overflow:hidden;cursor:pointer;position:relative;background:var(--bg)}
+.tl-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .2s,transform .2s}
+.tl-thumb img.loading{opacity:0}
+.tl-thumb img.loaded{opacity:1}
+.tl-thumb:hover img{transform:scale(1.05)}
+.tl-thumb-fav{position:absolute;bottom:4px;right:4px;width:22px;height:22px;border-radius:50%;background:#000a;backdrop-filter:blur(4px);border:none;cursor:pointer;display:grid;place-items:center;opacity:0;transition:opacity .15s}
+.tl-thumb:hover .tl-thumb-fav,.tl-thumb-fav.fav{opacity:1}
+.tl-thumb-fav svg{width:11px;height:11px;fill:transparent;stroke:#fff;stroke-width:2.5}
+.tl-thumb-fav.fav svg{fill:#f43f5e;stroke:#f43f5e}
 .tag-chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:#f1f5f9;color:var(--ink3);white-space:nowrap}
 .tag-chip.screenshot{background:#dbeafe;color:#1d4ed8}
 .tag-chip.camera{background:#dcfce7;color:#15803d}
@@ -203,15 +216,31 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
-        <div class="scard"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="scard-val" id="stat-days">—</div><div class="scard-label">Days</div></div>
-        <div class="scard"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div><div class="scard-val" id="stat-photos">—</div><div class="scard-label">Photos</div></div>
-        <div class="scard"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div><div class="scard-val" id="stat-favs">—</div><div class="scard-label">Favourites</div></div>
+        <div class="scard" title="Show all days" onclick="showView('days')" style="cursor:pointer"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="scard-val" id="stat-days">—</div><div class="scard-label">Days</div></div>
+        <div class="scard" title="Browse all photos" onclick="showView('all')" style="cursor:pointer"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div><div class="scard-val" id="stat-photos">—</div><div class="scard-label">Photos</div></div>
+        <div class="scard" title="Show favourites" onclick="showView('favs')" style="cursor:pointer"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div><div class="scard-val" id="stat-favs">—</div><div class="scard-label">Favourites</div></div>
         <div class="scard"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="10"/><path d="M2 12h20M12 2a15 15 0 014 10 15 15 0 01-4 10 15 15 0 01-4-10 15 15 0 014-10z"/></svg></div><div class="scard-val" id="stat-size">—</div><div class="scard-label">MB Total</div></div>
       </div>
-      <div id="tag-cloud" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:22px;min-height:26px"></div>
+      <div id="tag-cloud" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;min-height:26px"></div>
+      <!-- View toggle -->
+      <div id="view-bar" style="display:flex;align-items:center;gap:6px;margin-bottom:16px">
+        <button onclick="showView('days')" id="vbtn-days" class="gp-filter-btn on" style="font-size:11px">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="1"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Days
+        </button>
+        <button onclick="showView('all')" id="vbtn-all" class="gp-filter-btn" style="font-size:11px">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> All photos
+        </button>
+        <button onclick="showView('favs')" id="vbtn-favs" class="gp-filter-btn" style="font-size:11px">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> Favourites
+        </button>
+        <span id="view-count" style="margin-left:auto;font-size:11px;color:var(--ink4);font-weight:600"></span>
+      </div>
+      <!-- Days grid (default view) -->
       <div id="days-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px">
         <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--ink4)"><div style="font-weight:500">Loading…</div></div>
       </div>
+      <!-- Timeline view (All / Favourites) -->
+      <div id="timeline-view" style="display:none"></div>
     </section>
 
     <!-- PIPELINE -->
@@ -318,9 +347,93 @@ conectarWS();
 
 /* ─── Gallery ─── */
 const MN=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-let _allDays=[];
-function filterDays(q){const g=$('days-grid');g.innerHTML='';const f=q.toLowerCase();const days=f?_allDays.filter(d=>`${d.fecha} ${MN[parseInt(d.mes,10)]} ${d.anio}`.toLowerCase().includes(f)):_allDays;if(!days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--ink4);font-weight:500">${f?'No matches for "'+f+'"':'No photos organized yet'}</div>`;return}renderDayCards(days,g)}
-function renderDayCards(days,g){days.forEach((d,i)=>{const m=parseInt(d.mes,10);const el=document.createElement('div');el.className=`dcard m${m}`;el.style.animation=`slideIn .25s ease ${i*25}ms both`;el.innerHTML=`<div class="dcard-head"><span class="dcard-month">${MN[m]} ${d.anio}</span><div class="dcard-count">${d.cantidad_fotos}</div></div><div class="dcard-body"><div class="dcard-day">${parseInt(d.dia,10)}</div><div class="dcard-meta">${d.tamano_total_mb} MB${d.ruta_zip?` <span class="dcard-zip"><svg width="8" height="8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>zipped</span>`:''}</div></div>`;el.onclick=()=>openDayGallery(d);g.appendChild(el)})}
+let _allDays=[], _currentView='days', _tlPhotos=[];
+
+function filterDays(q){
+  const g=$('days-grid');g.innerHTML='';
+  const f=q.toLowerCase();
+  const days=f?_allDays.filter(d=>`${d.fecha} ${MN[parseInt(d.mes,10)]} ${d.anio}`.toLowerCase().includes(f)):_allDays;
+  if(!days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--ink4);font-weight:500">${f?'No matches for "'+f+'"':'No photos yet'}</div>`;return}
+  renderDayCards(days,g);
+}
+
+function renderDayCards(days,g){
+  days.forEach((d,i)=>{
+    const m=parseInt(d.mes,10);
+    const el=document.createElement('div');el.className=`dcard m${m}`;el.style.animation=`slideIn .25s ease ${i*25}ms both`;
+    el.innerHTML=`<div class="dcard-head"><span class="dcard-month">${MN[m]} ${d.anio}</span><div class="dcard-count">${d.cantidad_fotos}</div></div><div class="dcard-body"><div class="dcard-day">${parseInt(d.dia,10)}</div><div class="dcard-meta">${d.tamano_total_mb} MB${d.ruta_zip?` <span class="dcard-zip"><svg width="8" height="8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>zipped</span>`:''}</div></div>`;
+    el.onclick=()=>openDayGallery(d);
+    g.appendChild(el);
+  });
+}
+
+async function showView(view){
+  _currentView=view;
+  // Update toggle buttons
+  ['days','all','favs'].forEach(v=>{
+    const b=$('vbtn-'+v);if(!b)return;
+    b.classList.toggle('on',v===view);
+  });
+  $('days-grid').style.display   = view==='days'?'grid':'none';
+  $('timeline-view').style.display = view!=='days'?'block':'none';
+  $('day-filter').style.display  = view==='days'?'':'none';
+
+  if(view==='days'){
+    $('view-count').textContent = _allDays.length+' days';
+    return;
+  }
+
+  const tv=$('timeline-view');
+  tv.innerHTML=`<div style="text-align:center;padding:40px;color:var(--ink4)"><div style="width:20px;height:20px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite;margin:0 auto 10px"></div>Loading photos…</div>`;
+
+  // Load all photos from all days
+  const isFavs = view==='favs';
+  _tlPhotos=[];
+  const sections=[];
+
+  for(const day of _allDays){
+    try{
+      const d=await api(`/api/days/${day.fecha}/photos`);
+      let photos=d.photos||[];
+      if(isFavs) photos=photos.filter(p=>p.favourite);
+      if(!photos.length) continue;
+      _tlPhotos.push(...photos.map(p=>({...p,_date:day.fecha,_day:day})));
+      sections.push({day, photos});
+    }catch(e){ continue; }
+  }
+
+  $('view-count').textContent = _tlPhotos.length+' photos';
+
+  if(!sections.length){
+    tv.innerHTML=`<div style="text-align:center;padding:64px;color:var(--ink4)"><div style="font-weight:600;font-size:14px">${isFavs?'No favourites yet':'No photos found'}</div></div>`;
+    return;
+  }
+
+  tv.innerHTML='';
+  sections.forEach(({day,photos})=>{
+    const m=parseInt(day.mes,10);
+    const sec=document.createElement('div');sec.className='tl-section';
+    const dateLabel=`${MN[m]} ${parseInt(day.dia,10)}, ${day.anio}`;
+    sec.innerHTML=`<div class="tl-date">${dateLabel} <span>${photos.length} photos · ${day.tamano_total_mb} MB</span></div><div class="tl-grid" id="tl-${day.fecha}"></div>`;
+    tv.appendChild(sec);
+    const grid=sec.querySelector('.tl-grid');
+    photos.forEach((ph,i)=>{
+      const div=document.createElement('div');div.className='tl-thumb';div.style.animation=`slideIn .2s ease ${Math.min(i,20)*20}ms both`;
+      const img=document.createElement('img');img.className='loading';img.alt=ph.filename;
+      img.onload=()=>img.classList.replace('loading','loaded');
+      img.src=`/api/photo?path=${encodeURIComponent(ph.id)}`;
+      const favBtn=document.createElement('button');favBtn.className='tl-thumb-fav'+(ph.favourite?' fav':'');
+      favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
+      favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(ph);favBtn.classList.toggle('fav',ph.favourite);$('stat-favs').textContent=_tlPhotos.filter(x=>x.favourite).length;};
+      div.appendChild(img);div.appendChild(favBtn);
+      // Open lightbox on click
+      div.onclick=(e)=>{if(e.target===favBtn||favBtn.contains(e.target))return;
+        _lbPhotos=_tlPhotos;_lbIdx=_tlPhotos.findIndex(x=>x.id===ph.id);
+        openLightbox(_lbIdx);};
+      grid.appendChild(div);
+    });
+  });
+}
 async function loadDays(){
   try{
     const d=await api('/api/days');
@@ -345,6 +458,7 @@ async function loadDays(){
       return;
     }
     renderDayCards(d.days,g);
+    $('view-count').textContent=d.total_days+' days';
     const cloud=$('tag-cloud');
     cloud.innerHTML='';
     (tg.tags||[]).slice(0,20).forEach(({tag,count})=>{
