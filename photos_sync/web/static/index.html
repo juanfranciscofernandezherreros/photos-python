@@ -139,6 +139,28 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .tl-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .2s,transform .2s}
 .tl-thumb img.loading{opacity:0}
 .tl-thumb{background:linear-gradient(135deg,#eef2f7,#e2e8f0)}
+.gp-photo{background:var(--bg)}
+/* Selection mode */
+.sel-check{position:absolute;top:6px;left:6px;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid #fff;box-shadow:0 1px 4px #0003;display:grid;place-items:center;opacity:0;transition:.15s;z-index:3;pointer-events:none}
+.tl-thumb:hover .sel-check,.gp-photo:hover .sel-check{opacity:1}
+.tl-thumb.selected .sel-check,.gp-photo.selected .sel-check{opacity:1;background:var(--b);border-color:var(--b)}
+.tl-thumb.selected .sel-check::after,.gp-photo.selected .sel-check::after{content:'';display:block;width:5px;height:9px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px)}
+.tl-thumb.selected,.gp-photo.selected{outline:2.5px solid var(--b);outline-offset:-2.5px}
+/* Bulk toolbar */
+#bulk-toolbar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:500;
+  background:#1e293b;color:#fff;border-radius:14px;padding:10px 16px;
+  display:none;align-items:center;gap:10px;box-shadow:0 8px 32px #0005;
+  white-space:nowrap;animation:up .2s ease}
+#bulk-toolbar.show{display:flex}
+.tb-count{font-size:13px;font-weight:700;min-width:80px}
+.tb-sep{width:1px;height:20px;background:#334155}
+.tb-btn{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;
+  border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:.15s}
+.tb-btn:hover{filter:brightness(1.15)}
+.tb-btn-fav{background:#0b6bcb;color:#fff}
+.tb-btn-unfav{background:#334155;color:#94a3b8}
+.tb-btn-del{background:#dc2626;color:#fff}
+.tb-btn-cancel{background:#475569;color:#e2e8f0}
 .tl-thumb img.loaded{opacity:1}
 .tl-thumb:hover img{transform:scale(1.05)}
 .tl-thumb-fav{position:absolute;bottom:4px;right:4px;width:22px;height:22px;border-radius:50%;background:#000a;backdrop-filter:blur(4px);border:none;cursor:pointer;display:grid;place-items:center;opacity:0;transition:opacity .15s}
@@ -294,6 +316,26 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   </main>
 </div>
 
+<!-- ─── Bulk action toolbar ─── -->
+<div id="bulk-toolbar">
+  <span class="tb-count" id="bulk-count">0 selected</span>
+  <div class="tb-sep"></div>
+  <button class="tb-btn tb-btn-fav" onclick="bulkAction('favourite')">
+    <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+    Favourite
+  </button>
+  <button class="tb-btn tb-btn-unfav" onclick="bulkAction('unfavourite')">
+    <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+    Unfavourite
+  </button>
+  <button class="tb-btn tb-btn-del" onclick="bulkAction('delete')">
+    <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/></svg>
+    Delete
+  </button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn tb-btn-cancel" onclick="selClear()">✕ Cancel</button>
+</div>
+
 <!-- ─── Day Gallery Panel ─── -->
 <div id="gallery-panel">
   <div class="gp-header">
@@ -388,7 +430,7 @@ let _showViewToken=0;  // cancels in-flight loads when the view changes
 
 async function showView(view){
   _currentView=view;
-  const token=++_showViewToken;
+  selClear();const token=++_showViewToken;
 
   ['days','all','favs'].forEach(v=>{
     const b=$('vbtn-'+v);if(!b)return;
@@ -461,9 +503,15 @@ function _renderTlSection(day, photos, tv){
     favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
     favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(ph);favBtn.classList.toggle('fav',ph.favourite);$('stat-favs').textContent=_tlPhotos.filter(x=>x.favourite).length;};
     div.appendChild(img);div.appendChild(favBtn);
-    div.onclick=(e)=>{if(e.target===favBtn||favBtn.contains(e.target))return;
+    // Add selection checkbox overlay
+    const chk=document.createElement('div');chk.className='sel-check';div.appendChild(chk);
+    div.onclick=(e)=>{
+      if(e.target===favBtn||favBtn.contains(e.target)) return;
+      if(_selThumb(div,ph,e)) return;
       const tlIdx=_tlPhotos.findIndex(x=>x.id===ph.id);
-      openLightbox(tlIdx, _tlPhotos, 'timeline');};
+      openLightbox(tlIdx, _tlPhotos, 'timeline');
+    };
+    div.oncontextmenu=(e)=>{e.preventDefault();_selMode=true;_selThumb(div,ph,{shiftKey:false});};
     grid.appendChild(div);
   });
 }
@@ -546,7 +594,7 @@ async function openDayGallery(day){
     $('gp-grid').innerHTML=`<div class="gp-empty">${e.message}</div>`;
   }
 }
-function closeGallery(){$('gallery-panel').classList.remove('open');_gpPhotos=[];_gpDate=''}
+function closeGallery(){$('gallery-panel').classList.remove('open');_gpPhotos=[];_gpDate='';selClear();}
 function setFilter(f,btn){_gpFilter=f;_gpTagFilter='';document.querySelectorAll('.gp-filter-btn').forEach(b=>b.classList.remove('on'));document.querySelectorAll('.gp-tag-filter').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderGpGrid()}
 function renderGpGrid(){
   const g=$('gp-grid');g.innerHTML='';
@@ -571,7 +619,15 @@ function renderGpGrid(){
       div.appendChild(tc);
     }
     div.appendChild(img);div.appendChild(favBtn);
-    div.onclick=(e)=>{if(e.target===favBtn||favBtn.contains(e.target))return;const idx=_gpFilter==='favourites'?_gpPhotos.filter(x=>x.favourite).indexOf(p):_gpPhotos.indexOf(p);openLightbox(idx)};
+    div.dataset.photoId=p.id;
+    const chk2=document.createElement('div');chk2.className='sel-check';div.appendChild(chk2);
+    div.onclick=(e)=>{
+      if(e.target===favBtn||favBtn.contains(e.target)) return;
+      if(_selThumb(div,p,e)) return;
+      const idx=_gpFilter==='favourites'?_gpPhotos.filter(x=>x.favourite).indexOf(p):_gpPhotos.indexOf(p);
+      openLightbox(idx);
+    };
+    div.oncontextmenu=(e)=>{e.preventDefault();_selMode=true;_selThumb(div,p,{shiftKey:false});};
     g.appendChild(div);
   });
 }
@@ -673,6 +729,86 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape')     closeLightbox();
   if(e.key===' ')          { e.preventDefault(); lbToggleFav(); }
 });
+
+/* ─── Multi-select ─── */
+let _selPaths=new Set(), _selMode=false, _lastSelEl=null;
+
+function _selThumb(div, ph, e){
+  // enter selection mode on long-press or shift-click or if already active
+  if(!_selMode && !e.shiftKey) return false;
+  _selMode=true;
+  if(e.shiftKey && _lastSelEl){
+    // range selection: select all thumbs between _lastSelEl and div
+    const allThumbs=[...document.querySelectorAll('.tl-thumb,.gp-photo')];
+    const a=allThumbs.indexOf(_lastSelEl), b=allThumbs.indexOf(div);
+    const [lo,hi]=[Math.min(a,b),Math.max(a,b)];
+    allThumbs.slice(lo,hi+1).forEach(el=>{
+      const id=el.dataset.photoId;
+      if(id){_selPaths.add(id);el.classList.add('selected');}
+    });
+  }else{
+    if(_selPaths.has(ph.id)){_selPaths.delete(ph.id);div.classList.remove('selected');}
+    else{_selPaths.add(ph.id);div.classList.add('selected');}
+    _lastSelEl=div;
+  }
+  _selUpdateToolbar();
+  return true;
+}
+
+function _selUpdateToolbar(){
+  const n=_selPaths.size;
+  $('bulk-count').textContent=n+' selected';
+  $('bulk-toolbar').classList.toggle('show', n>0);
+  if(n===0){_selMode=false;_lastSelEl=null;}
+}
+
+function selClear(){
+  _selPaths.clear();_selMode=false;_lastSelEl=null;
+  document.querySelectorAll('.tl-thumb.selected,.gp-photo.selected')
+    .forEach(el=>el.classList.remove('selected'));
+  $('bulk-toolbar').classList.remove('show');
+}
+
+async function bulkAction(action){
+  if(!_selPaths.size) return;
+  const paths=[..._selPaths];
+  if(action==='delete'){
+    if(!confirm(`Move ${paths.length} photo(s) to trash?`)) return;
+  }
+  try{
+    const r=await api('/api/photos/bulk',{method:'POST',body:{paths,action}});
+    if(action==='delete'){
+      // Remove deleted thumbs from DOM
+      paths.forEach(id=>{
+        document.querySelectorAll(`[data-photo-id="${CSS.escape(id)}"]`)
+          .forEach(el=>el.closest('.tl-thumb,.gp-photo')?.remove());
+        _tlPhotos=_tlPhotos.filter(x=>x.id!==id);
+        _gpPhotos=_gpPhotos.filter(x=>x.id!==id);
+      });
+      // Update stat cards
+      await loadDays();
+    }else{
+      // Update fav state on visible thumbs
+      paths.forEach(id=>{
+        const isFav=action==='favourite';
+        document.querySelectorAll(`[data-photo-id="${CSS.escape(id)}"]`)
+          .forEach(el=>{
+            const btn=el.closest('.tl-thumb,.gp-photo')?.querySelector('.tl-thumb-fav,.gp-photo-fav');
+            if(btn) btn.classList.toggle('fav',isFav);
+          });
+        // Update in memory arrays
+        [_tlPhotos,_gpPhotos].forEach(arr=>{
+          const ph=arr.find(x=>x.id===id); if(ph) ph.favourite=isFav;
+        });
+      });
+      $('stat-favs').textContent=_tlPhotos.filter(x=>x.favourite).length||
+        _gpPhotos.filter(x=>x.favourite).length;
+    }
+    selClear();
+  }catch(err){
+    alert('Action failed: '+err.message);
+  }
+}
 
 /* ─── Pipeline ─── */
 async function initPipeline(){const p=await api('/api/pasos');const g=$('paso-checks');g.innerHTML='';p.forEach(x=>{const l=document.createElement('label');l.className='step-card';l.innerHTML=`<input type="checkbox" value="${x.id}" checked><span>${x.nombre}</span>`;g.appendChild(l)});pollEstado()}initPipeline();

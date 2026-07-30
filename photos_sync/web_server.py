@@ -460,6 +460,64 @@ def get_favourites():
     return {"favourites": favs if isinstance(favs, list) else []}
 
 
+class BulkActionIn(BaseModel):
+    paths: list[str]
+    action: str  # "favourite" | "unfavourite" | "delete"
+
+
+@app.post("/api/photos/bulk")
+def bulk_action(req: BulkActionIn):
+    """Perform a bulk action on a list of photo paths.
+    action: 'favourite' | 'unfavourite' | 'delete'
+    delete: moves files to a .trash/ subfolder next to the photo."""
+    from .config import FAVOURITES_JSON
+    from .json_io import read_json, write_json
+    import shutil
+
+    if req.action not in ("favourite", "unfavourite", "delete"):
+        raise HTTPException(400, f"Unknown action: {req.action!r}")
+
+    ok_paths = [p for p in req.paths if _is_allowed(Path(p))]
+    if not ok_paths:
+        raise HTTPException(403, "No allowed paths in request")
+
+    if req.action in ("favourite", "unfavourite"):
+        favs: list[str] = read_json(FAVOURITES_JSON, default=[]) or []
+        if not isinstance(favs, list):
+            favs = []
+        if req.action == "favourite":
+            for p in ok_paths:
+                if p not in favs:
+                    favs.append(p)
+        else:
+            favs = [f for f in favs if f not in set(ok_paths)]
+        write_json(FAVOURITES_JSON, favs)
+        return {"ok": True, "affected": len(ok_paths), "total_favourites": len(favs)}
+
+    # delete → move to .trash/
+    moved, errors = 0, []
+    for path_str in ok_paths:
+        src = Path(path_str)
+        if not src.is_file():
+            continue
+        trash = src.parent.parent.parent / ".trash"  # YYYY/MM/DD → base/.trash
+        trash.mkdir(parents=True, exist_ok=True)
+        dest = trash / src.name
+        # Avoid name collisions in trash
+        if dest.exists():
+            stem, suffix = src.stem, src.suffix
+            dest = trash / f"{stem}_{src.stat().st_ino}{suffix}"
+        try:
+            shutil.move(str(src), str(dest))
+            moved += 1
+        except Exception as e:
+            errors.append(str(e))
+    return {"ok": True, "moved": moved, "errors": errors}
+
+
+
+
+
 class FavouriteToggleIn(BaseModel):
     path: str
     favourite: bool

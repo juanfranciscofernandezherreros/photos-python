@@ -353,3 +353,58 @@ class TestThumbnails:
         # Oversized request should still succeed (clamped to 1024)
         r = cliente_api.get(f"/api/thumb?path={img}&size=99999")
         assert r.status_code == 200
+
+
+# ═══════════════════════════════════════ /api/photos/bulk ════════════════════
+
+class TestBulkActions:
+    def _make_photos(self, base, n=3):
+        day = base / "organizado" / "2024" / "02" / "10"
+        day.mkdir(parents=True, exist_ok=True)
+        paths = []
+        for i in range(n):
+            f = day / f"IMG_{i:03}.jpg"
+            f.write_bytes(b"fake")
+            paths.append(str(f))
+        return paths
+
+    def test_bulk_favourite(self, cliente_api, cwd_temporal):
+        paths = self._make_photos(cwd_temporal)
+        r = cliente_api.post("/api/photos/bulk", json={"paths": paths, "action": "favourite"})
+        assert r.status_code == 200
+        d = r.json()
+        assert d["ok"] is True
+        assert d["affected"] == 3
+        assert d["total_favourites"] >= 3  # may include other favourites from fixtures
+
+    def test_bulk_unfavourite(self, cliente_api, cwd_temporal):
+        paths = self._make_photos(cwd_temporal)
+        # Favourite all 3, then unfavourite the first
+        r1 = cliente_api.post("/api/photos/bulk", json={"paths": paths, "action": "favourite"})
+        before = r1.json()["total_favourites"]
+        r2 = cliente_api.post("/api/photos/bulk", json={"paths": [paths[0]], "action": "unfavourite"})
+        assert r2.json()["total_favourites"] == before - 1
+
+    def test_bulk_delete_moves_to_trash(self, cliente_api, cwd_temporal):
+        paths = self._make_photos(cwd_temporal)
+        r = cliente_api.post("/api/photos/bulk", json={"paths": paths[:2], "action": "delete"})
+        assert r.status_code == 200
+        assert r.json()["moved"] == 2
+        # Files should be gone from original location
+        from pathlib import Path
+        assert not Path(paths[0]).exists()
+        assert not Path(paths[1]).exists()
+        # And present in .trash/
+        trash = Path(paths[0]).parent.parent.parent / ".trash"
+        assert trash.exists()
+        assert len(list(trash.iterdir())) == 2
+
+    def test_bulk_rejects_outside_paths(self, cliente_api, cwd_temporal):
+        r = cliente_api.post("/api/photos/bulk",
+                             json={"paths": ["/etc/passwd"], "action": "favourite"})
+        assert r.status_code == 403
+
+    def test_bulk_unknown_action(self, cliente_api, cwd_temporal):
+        paths = self._make_photos(cwd_temporal)
+        r = cliente_api.post("/api/photos/bulk", json={"paths": paths, "action": "explode"})
+        assert r.status_code == 400
