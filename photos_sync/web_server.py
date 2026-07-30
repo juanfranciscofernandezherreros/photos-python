@@ -229,95 +229,167 @@ def get_pasos():
 
 @app.get("/api/days")
 def get_days():
-    """Returns the daily summary from the organized destination folder."""
+    """Scan the configured destination folder for YYYY/MM/DD structure.
+    Works with or without any JSON files — the filesystem is the source
+    of truth. Falls back to DAILY_SUMMARY_JSON only for extra metadata
+    (zip paths, etc.) that the filesystem alone cannot provide."""
     from .config import DAILY_SUMMARY_JSON, ORGANIZED_DIR
+    from .storage.folders import load_saved_destination, load_destination_config
     from .json_io import read_json
-    days = read_json(DAILY_SUMMARY_JSON, default=[])
-    if not isinstance(days, list):
-        days = []
-    org = Path(ORGANIZED_DIR)
-    if org.exists() and not days:
-        for year_dir in sorted(org.iterdir()):
-            if not year_dir.is_dir() or year_dir.name == "Comprimidos":
+
+    # Resolve actual destination
+    dest_config = load_destination_config()
+    if dest_config.get("tipo") == "local" and dest_config.get("ruta"):
+        base_dir = Path(dest_config["ruta"])
+    else:
+        dest_str = load_saved_destination()
+        base_dir = Path(dest_str) if dest_str else Path(ORGANIZED_DIR)
+
+    # Load summary JSON for extra metadata (zip paths) — optional
+    summary_raw = read_json(DAILY_SUMMARY_JSON, default=[])
+    summary_by_date: dict[str, dict] = {}
+    if isinstance(summary_raw, list):
+        for s in summary_raw:
+            if s.get("fecha"):
+                summary_by_date[s["fecha"]] = s
+
+    VALID_IMG = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff",
+                 ".mp4", ".mov", ".avi", ".mkv"}
+    days = []
+
+    if base_dir.exists():
+        for year_dir in sorted(base_dir.iterdir()):
+            if not year_dir.is_dir() or year_dir.name in ("Comprimidos", "data"):
+                continue
+            if not year_dir.name.isdigit():
                 continue
             for month_dir in sorted(year_dir.iterdir()):
-                if not month_dir.is_dir():
+                if not month_dir.is_dir() or not month_dir.name.isdigit():
                     continue
                 for day_dir in sorted(month_dir.iterdir()):
-                    if not day_dir.is_dir():
+                    if not day_dir.is_dir() or not day_dir.name.isdigit():
                         continue
-                    files = [f for f in day_dir.iterdir() if f.is_file()]
-                    if files:
-                        days.append({
-                            "fecha": f"{year_dir.name}-{month_dir.name}-{day_dir.name}",
-                            "anio": year_dir.name,
-                            "mes": month_dir.name,
-                            "dia": day_dir.name,
-                            "cantidad_fotos": len(files),
-                            "tamano_total_mb": round(sum(f.stat().st_size for f in files) / 1048576, 2),
-                            "destino": str(day_dir),
-                        })
-    days.sort(key=lambda d: d.get("fecha", ""), reverse=True)
-    total_photos = sum(d.get("cantidad_fotos", 0) for d in days)
-    total_mb = round(sum(d.get("tamano_total_mb", 0) for d in days), 1)
-    return {"days": days, "total_photos": total_photos, "total_mb": total_mb, "total_days": len(days)}
+                    files = [
+                        f for f in day_dir.iterdir()
+                        if f.is_file() and f.suffix.lower() in VALID_IMG
+                    ]
+                    if not files:
+                        continue
+                    date_str = f"{year_dir.name}-{month_dir.name}-{day_dir.name}"
+                    extra = summary_by_date.get(date_str, {})
+                    days.append({
+                        "fecha":          date_str,
+                        "anio":           year_dir.name,
+                        "mes":            month_dir.name,
+                        "dia":            day_dir.name,
+                        "cantidad_fotos": len(files),
+                        "tamano_total_mb": round(
+                            sum(f.stat().st_size for f in files) / 1048576, 2
+                        ),
+                        "destino":        str(day_dir),
+                        "ruta_zip":       extra.get("ruta_zip", ""),
+                    })
+
+    days.sort(key=lambda d: d["fecha"], reverse=True)
+    total_photos = sum(d["cantidad_fotos"] for d in days)
+    total_mb     = round(sum(d["tamano_total_mb"] for d in days), 1)
+    return {
+        "days":         days,
+        "total_photos": total_photos,
+        "total_mb":     total_mb,
+        "total_days":   len(days),
+        "base_dir":     str(base_dir),
+    }
 
 
 @app.get("/api/days/{date}/photos")
 def get_day_photos(date: str):
-    """Return all photo file info for a specific day (YYYY-MM-DD)."""
+    """Return all photo files for a specific day (YYYY-MM-DD).
+    Scans the filesystem directly — works with zero JSON files.
+    Enriches with capture_date and tags from METADATA_JSON when available."""
     from .config import ORGANIZED_DIR, METADATA_JSON, FAVOURITES_JSON
+    from .storage.folders import load_saved_destination, load_destination_config
     from .json_io import read_json
+    from urllib.parse import quote
 
-    # Build expected folder path: ORGANIZED_DIR/YYYY/MM/DD
+    # Resolve actual destination
+    dest_config = load_destination_config()
+    if dest_config.get("tipo") == "local" and dest_config.get("ruta"):
+        base_dir = Path(dest_config["ruta"])
+    else:
+        dest_str = load_saved_destination()
+        base_dir = Path(dest_str) if dest_str else Path(ORGANIZED_DIR)
+
     parts = date.split("-")
     if len(parts) != 3:
         raise HTTPException(400, "Date must be YYYY-MM-DD")
     year, month, day = parts
-    day_folder = Path(ORGANIZED_DIR) / year / month / day
+    day_folder = base_dir / year / month / day
 
-    # Load favourites set
+    # Load favourites
     favs: set[str] = set(read_json(FAVOURITES_JSON, default=[]) or [])
 
-    # Try to get file list from METADATA_JSON for rich metadata
-    raw_meta = read_json(METADATA_JSON, default=[])
+    # Optional: enrich from metadata JSON
     meta_by_dest: dict[str, dict] = {}
+    raw_meta = read_json(METADATA_JSON, default=[])
     if isinstance(raw_meta, list):
         for m in raw_meta:
             dest = m.get("ruta_destino") or m.get("dest_path")
             if dest:
                 meta_by_dest[dest] = m
 
+    VALID_IMG = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff"}
     photos = []
+
     if day_folder.exists():
         for f in sorted(day_folder.iterdir()):
-            if f.is_file() and f.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}:
-                meta = meta_by_dest.get(str(f), {})
-                photos.append({
-                    "id":           str(f),
-                    "filename":     f.name,
-                    "size_mb":      round(f.stat().st_size / 1048576, 2),
-                    "capture_date": meta.get("fecha_captura", ""),
-                    "tags":         meta.get("tags", []),
-                    "favourite":    str(f) in favs,
-                    "url":          f"/api/photo?path={f}",
-                })
-    return {"date": date, "photos": photos, "count": len(photos)}
+            if not f.is_file() or f.suffix.lower() not in VALID_IMG:
+                continue
+            meta  = meta_by_dest.get(str(f), {})
+            fpath = str(f)
+            photos.append({
+                "id":           fpath,
+                "filename":     f.name,
+                "size_mb":      round(f.stat().st_size / 1048576, 2),
+                "capture_date": meta.get("fecha_captura", ""),
+                "tags":         meta.get("tags", []),
+                "favourite":    fpath in favs,
+                "url":          f"/api/photo?path={quote(fpath)}",
+            })
+
+    return {
+        "date":   date,
+        "photos": photos,
+        "count":  len(photos),
+        "folder": str(day_folder),
+        "exists": day_folder.exists(),
+    }
 
 
 @app.get("/api/photo")
 def serve_photo(path: str):
-    """Serve a photo file by its absolute path (only from ORGANIZED_DIR)."""
+    """Serve a photo file by its absolute path.
+    Allows files inside ORGANIZED_DIR or the user-configured destination."""
     from .config import ORGANIZED_DIR
+    from .storage.folders import load_saved_destination, load_destination_config
     from fastapi.responses import FileResponse
     import mimetypes
 
     p = Path(path)
-    # Security: only serve files inside ORGANIZED_DIR
-    try:
-        p.resolve().relative_to(Path(ORGANIZED_DIR).resolve())
-    except ValueError:
-        raise HTTPException(403, "Access denied")
+
+    # Resolve all allowed base directories
+    allowed_bases = [Path(ORGANIZED_DIR).resolve()]
+    dest_config = load_destination_config()
+    if dest_config.get("tipo") == "local" and dest_config.get("ruta"):
+        allowed_bases.append(Path(dest_config["ruta"]).resolve())
+    dest_str = load_saved_destination()
+    if dest_str:
+        allowed_bases.append(Path(dest_str).resolve())
+
+    resolved = p.resolve()
+    resolved_str = str(resolved)
+    if not any(resolved_str.startswith(str(b)) for b in allowed_bases):
+        raise HTTPException(403, f"Access denied — path not inside any configured destination")
     if not p.is_file():
         raise HTTPException(404, "File not found")
     mime = mimetypes.guess_type(p.name)[0] or "image/jpeg"

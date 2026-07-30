@@ -377,7 +377,8 @@ async function openDayGallery(day){
   try{
     const d=await api(`/api/days/${day.fecha}/photos`);
     _gpPhotos=d.photos;
-    $('gp-sub').textContent=`${d.count} photos · ${day.tamano_total_mb} MB`;
+    $('gp-sub').textContent=d.count>0?`${d.count} photos · ${day.tamano_total_mb} MB`:(d.exists?`Folder found but no photos`:`Folder not found`);
+    if(!d.exists){$('gp-grid').innerHTML=`<div class="gp-empty" style="color:#b45309"><b>Folder not found:</b><br><code style="font-size:10px;word-break:break-all">${d.folder||''}</code><br><br>Run <b>Organize</b> in the Pipeline tab to populate this folder.</div>`;return;}
     // Build tag filter buttons from distinct tags in this day
     const allTags=[...new Set(d.photos.flatMap(p=>p.tags||[]))].sort();
     const tagBtns=$('gp-tag-btns');tagBtns.innerHTML='';
