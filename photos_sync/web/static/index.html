@@ -4,294 +4,774 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Photos Sync</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<script>tailwind.config={theme:{extend:{fontFamily:{sans:['DM Sans','system-ui'],mono:['Space Mono','monospace']}}}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--b:#0b6bcb;--b2:#3898ff;--b3:#79bbff;--bg:#f6f8fb;--card:#fff;--ink:#0f172a;--ink2:#334155;--ink3:#64748b;--ink4:#94a3b8;--ink5:#cbd5e1;--brd:#e8ecf1;--rad:14px}
+/* ── Design tokens ──────────────────────────────────────── */
+:root{
+  --bg:       #0c0e14;
+  --bg2:      #12141c;
+  --bg3:      #1a1d28;
+  --bg4:      #222536;
+  --surface:  #1e2130;
+  --brd:      rgba(255,255,255,.07);
+  --brd2:     rgba(255,255,255,.04);
+
+  --b:        #6366f1;
+  --b2:       #818cf8;
+  --b3:       #a78bfa;
+  --b-glow:   rgba(99,102,241,.25);
+
+  --ink:      #f1f5f9;
+  --ink2:     #cbd5e1;
+  --ink3:     #94a3b8;
+  --ink4:     #475569;
+  --ink5:     #334155;
+
+  --green:    #34d399;--green-bg:#052e16;
+  --red:      #f87171;--red-bg:  #450a0a;
+  --amber:    #fbbf24;--amber-bg:#451a03;
+  --rose:     #fb7185;
+
+  --r:12px;--r2:8px;--r3:6px;
+  --sb-w:220px;
+  --hdr-h:52px;
+
+  --sh:     0 1px 3px rgba(0,0,0,.4);
+  --sh-md:  0 4px 16px rgba(0,0,0,.5);
+  --sh-lg:  0 16px 48px rgba(0,0,0,.6);
+  --sh-glow:0 0 0 1px rgba(99,102,241,.4), 0 4px 24px rgba(99,102,241,.15);
+}
+
+/* ── Reset ──────────────────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
-[data-s]{display:none}[data-s].on{display:block;animation:up .25s ease both}
-@keyframes up{from{opacity:0;transform:translateY(6px)}}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-@keyframes heartPop{0%{transform:scale(1)}40%{transform:scale(1.5)}70%{transform:scale(.85)}100%{transform:scale(1)}}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;overflow:hidden}
+::selection{background:rgba(99,102,241,.35)}
 
-/* Sidebar */
-.sb{width:240px;background:var(--card);border-right:1px solid var(--brd);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
+/* ── Animations ─────────────────────────────────────────── */
+@keyframes fadeIn   {from{opacity:0}to{opacity:1}}
+@keyframes fadeUp   {from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn  {from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideRight{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}
+@keyframes spin     {to{transform:rotate(360deg)}}
+@keyframes pulse    {0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes heartPop {0%{transform:scale(1)}40%{transform:scale(1.45)}70%{transform:scale(.9)}100%{transform:scale(1)}}
+@keyframes shimmer  {from{background-position:200% 0}to{background-position:-200% 0}}
+
+[data-s]{display:none}[data-s].on{display:block;animation:fadeUp .2s ease both}
+
+/* ── Layout shell ───────────────────────────────────────── */
+.shell{display:flex;height:100vh;overflow:hidden}
+
+/* ── Sidebar ────────────────────────────────────────────── */
+.sb{
+  width:var(--sb-w);flex-shrink:0;
+  background:var(--bg2);
+  border-right:1px solid var(--brd);
+  display:flex;flex-direction:column;
+  height:100%;overflow-y:auto;
+}
 .sb::-webkit-scrollbar{width:0}
-.logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--b),var(--b2));display:grid;place-items:center;box-shadow:0 2px 10px #0b6bcb30}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:500;color:var(--ink3);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all .18s;position:relative}
-.nav-item:hover{background:#f0f7ff;color:var(--b)}
-.nav-item.on{background:var(--b);color:#fff;font-weight:600;box-shadow:0 2px 12px #0b6bcb2a}
-.nav-item.on svg{opacity:1}.nav-item svg{width:17px;height:17px;opacity:.4;flex-shrink:0;transition:opacity .18s}
-.sbadge{margin:14px 16px;padding:6px 12px;border-radius:8px;font-size:10px;font-weight:700;text-align:center;letter-spacing:.05em;text-transform:uppercase;transition:all .2s}
-.sb-on{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
-.sb-off{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
-.sb-load{background:#dbeafe;color:var(--b);border:1px solid #bfdbfe}
-.conn-dot{width:7px;height:7px;border-radius:50%;position:absolute;right:12px;top:50%;transform:translateY(-50%)}
-.conn-dot.live{background:#22c55e;box-shadow:0 0 6px #22c55e80;animation:pulse 2s ease infinite}
 
-/* Stats */
-.scard{background:var(--card);border:1px solid var(--brd);border-radius:var(--rad);padding:20px;text-align:center;position:relative;overflow:hidden;transition:all .2s}
-.scard:hover{border-color:var(--b3);box-shadow:0 8px 24px #0b6bcb0a;transform:translateY(-1px)}
-.scard-val{font-size:30px;font-weight:800;letter-spacing:-.04em;background:linear-gradient(135deg,var(--b),var(--b2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
-.scard-label{font-size:10px;font-weight:600;color:var(--ink4);text-transform:uppercase;letter-spacing:.1em;margin-top:6px}
-.scard-icon{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#0b6bcb0a,#3898ff0a);display:grid;place-items:center}
-.scard-icon svg{width:14px;height:14px;color:var(--b3)}
+.sb-logo{
+  padding:20px 16px 16px;
+  display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--brd);
+}
+.sb-logo-mark{
+  width:32px;height:32px;border-radius:9px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--b),var(--b3));
+  display:grid;place-items:center;
+  box-shadow:0 0 0 1px rgba(99,102,241,.3), 0 4px 12px var(--b-glow);
+}
+.sb-logo-mark svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round}
+.sb-title{font-size:13px;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+.sb-sub  {font-size:9px;color:var(--ink4);letter-spacing:.06em;text-transform:uppercase;margin-top:1px}
 
-/* Day cards */
-.dcard{background:var(--card);border:1px solid var(--brd);border-radius:var(--rad);overflow:hidden;transition:all .22s;cursor:pointer;position:relative}
-.dcard:hover{border-color:var(--b3);transform:translateY(-3px);box-shadow:0 12px 32px #0b6bcb0f}
-.dcard-head{padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
-.dcard-month{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
-.dcard-count{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700}
-.dcard-body{padding:4px 14px 14px}
-.dcard-day{font-size:38px;font-weight:800;letter-spacing:-.04em;line-height:1}
-.dcard-meta{font-size:11px;color:var(--ink4);margin-top:6px;display:flex;align-items:center;gap:6px}
-.dcard-zip{display:inline-flex;align-items:center;gap:3px;background:#f0fdf4;color:#16a34a;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase}
-.m1 .dcard-head,.m2 .dcard-head{background:linear-gradient(135deg,#7dd3fc,#38bdf8)}.m1 .dcard-head *,.m2 .dcard-head *{color:#fff}.m1 .dcard-count,.m2 .dcard-count{background:#fff;color:#0284c7}
-.m3 .dcard-head,.m4 .dcard-head,.m5 .dcard-head{background:linear-gradient(135deg,#86efac,#22c55e)}.m3 .dcard-head *,.m4 .dcard-head *,.m5 .dcard-head *{color:#fff}.m3 .dcard-count,.m4 .dcard-count,.m5 .dcard-count{background:#fff;color:#16a34a}
-.m6 .dcard-head,.m7 .dcard-head,.m8 .dcard-head{background:linear-gradient(135deg,#fbbf24,#f59e0b)}.m6 .dcard-head *,.m7 .dcard-head *,.m8 .dcard-head *{color:#fff}.m6 .dcard-count,.m7 .dcard-count,.m8 .dcard-count{background:#fff;color:#b45309}
-.m9 .dcard-head,.m10 .dcard-head,.m11 .dcard-head{background:linear-gradient(135deg,#fb923c,#ea580c)}.m9 .dcard-head *,.m10 .dcard-head *,.m11 .dcard-head *{color:#fff}.m9 .dcard-count,.m10 .dcard-count,.m11 .dcard-count{background:#fff;color:#c2410c}
-.m12 .dcard-head{background:linear-gradient(135deg,var(--b),var(--b2))}.m12 .dcard-head *{color:#fff}.m12 .dcard-count{background:#fff;color:var(--b)}
-.m0 .dcard-head{background:linear-gradient(135deg,#a78bfa,#7c3aed)}.m0 .dcard-head *{color:#fff}.m0 .dcard-count{background:#fff;color:#7c3aed}
+#srv-status{
+  margin:10px 12px 4px;padding:4px 10px;
+  border-radius:20px;font-size:9px;font-weight:700;
+  text-align:center;letter-spacing:.06em;text-transform:uppercase;
+}
+.s-on {background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.2)}
+.s-off{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.s-load{background:rgba(99,102,241,.1);color:var(--b2);border:1px solid var(--brd)}
 
-/* ─── Day Gallery Panel ─── */
-#gallery-panel{position:fixed;top:0;right:0;bottom:0;width:520px;background:var(--card);border-left:1px solid var(--brd);box-shadow:-8px 0 32px #0001;z-index:200;display:none;flex-direction:column;overflow:hidden}
-#gallery-panel.open{display:flex;animation:slideInRight .28s cubic-bezier(.4,0,.2,1) both}
-@keyframes slideInRight{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
-.gp-header{padding:18px 20px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.gp-title{font-size:16px;font-weight:800;letter-spacing:-.02em}
-.gp-sub{font-size:11px;color:var(--ink4);margin-top:2px}
-.gp-close{width:32px;height:32px;border-radius:8px;border:1px solid var(--brd);background:none;cursor:pointer;display:grid;place-items:center;transition:.15s}
-.gp-close:hover{background:var(--bg);border-color:var(--ink5)}
-.gp-filters{padding:10px 20px;border-bottom:1px solid var(--brd);display:flex;gap:8px;align-items:center;flex-shrink:0}
-.gp-filter-btn{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--brd);background:none;cursor:pointer;transition:.15s;color:var(--ink3)}
-.gp-filter-btn:hover{border-color:var(--b3);color:var(--b)}
-.gp-filter-btn.on{background:var(--b);color:#fff;border-color:var(--b);box-shadow:0 2px 8px #0b6bcb25}
-.gp-grid{flex:1;overflow-y:auto;padding:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-content:start;scrollbar-width:thin;scrollbar-color:var(--ink5) transparent}
-.gp-grid::-webkit-scrollbar{width:5px}.gp-grid::-webkit-scrollbar-thumb{background:var(--ink5);border-radius:3px}
-.gp-photo{border-radius:10px;overflow:hidden;aspect-ratio:1;position:relative;cursor:pointer;background:var(--bg);border:1px solid var(--brd);transition:all .2s}
-.gp-photo:hover{transform:scale(1.03);box-shadow:0 8px 20px #0002;z-index:2}
+.sb-label{
+  padding:12px 16px 4px;
+  font-size:9px;font-weight:700;color:var(--ink5);
+  text-transform:uppercase;letter-spacing:.12em;
+}
+
+.nb{
+  display:flex;align-items:center;gap:9px;
+  padding:7px 12px;margin:1px 6px;
+  border-radius:var(--r3);font-size:12.5px;font-weight:500;
+  color:var(--ink3);cursor:pointer;border:none;background:none;
+  width:calc(100% - 12px);text-align:left;transition:all .15s;
+  position:relative;
+}
+.nb:hover{background:var(--bg3);color:var(--ink2)}
+.nb.on{
+  background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(167,139,250,.08));
+  color:var(--b2);font-weight:600;
+  box-shadow:inset 0 0 0 1px rgba(99,102,241,.2);
+}
+.nb.on::before{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:3px;height:60%;background:linear-gradient(to bottom,var(--b),var(--b3));
+  border-radius:0 2px 2px 0;
+}
+.nb svg{width:15px;height:15px;flex-shrink:0;opacity:.5;transition:.15s}
+.nb.on svg{opacity:1}
+.nb-badge{font-size:8px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:auto;background:rgba(99,102,241,.15);color:var(--b2)}
+.nb-dot{width:5px;height:5px;border-radius:50%;position:absolute;right:10px;top:50%;transform:translateY(-50%)}
+.nb-dot.live{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+
+.sb-bottom{margin-top:auto;padding:12px 10px;border-top:1px solid var(--brd)}
+.sb-storage{background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r2);padding:10px 12px}
+.sb-st-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.sb-st-label{font-size:9px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.08em}
+.sb-st-val{font-size:9px;font-weight:600;color:var(--ink3);font-family:'JetBrains Mono',monospace}
+.sb-st-track{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.sb-st-fill{height:100%;background:linear-gradient(90deg,var(--b),var(--b3));border-radius:2px;transition:width .6s ease}
+.sb-setup{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 12px;margin:6px 6px 0;
+  border-radius:var(--r3);font-size:12px;font-weight:500;
+  color:var(--ink4);cursor:pointer;border:1px solid var(--brd);
+  background:none;width:calc(100% - 12px);transition:.15s;
+}
+.sb-setup:hover{background:var(--bg3);color:var(--ink3);border-color:rgba(255,255,255,.1)}
+.sb-setup svg{width:13px;height:13px;opacity:.5}
+
+/* ── Content column ─────────────────────────────────────── */
+.content{flex:1;min-width:0;display:flex;flex-direction:column;height:100%;overflow:hidden}
+
+/* ── Header ─────────────────────────────────────────────── */
+.hdr{
+  height:var(--hdr-h);flex-shrink:0;
+  display:flex;align-items:center;gap:12px;
+  padding:0 20px;
+  background:var(--bg2);
+  border-bottom:1px solid var(--brd);
+}
+.hdr-search{
+  flex:1;max-width:380px;
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg3);border:1px solid var(--brd);
+  border-radius:var(--r2);padding:6px 11px;transition:.15s;
+}
+.hdr-search:focus-within{border-color:rgba(99,102,241,.4);box-shadow:0 0 0 3px var(--b-glow)}
+.hdr-search svg{width:13px;height:13px;color:var(--ink4);flex-shrink:0}
+.hdr-search input{border:none;background:none;font-size:12.5px;color:var(--ink);outline:none;flex:1;font-family:inherit}
+.hdr-search input::placeholder{color:var(--ink5)}
+.hdr-kbd{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--ink5);background:var(--bg4);border:1px solid var(--brd);border-radius:3px;padding:1px 5px}
+.bc{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink4)}
+.bc span{color:var(--ink5)}
+.bc b{color:var(--ink2);font-weight:600}
+.hdr-actions{display:flex;align-items:center;gap:6px;margin-left:auto}
+.hdr-btn{
+  width:32px;height:32px;border-radius:var(--r3);
+  border:1px solid var(--brd);background:none;
+  cursor:pointer;display:grid;place-items:center;
+  color:var(--ink4);transition:.15s;
+}
+.hdr-btn:hover{background:var(--bg3);color:var(--ink3);border-color:rgba(255,255,255,.1)}
+.hdr-btn svg{width:14px;height:14px}
+.hdr-avatar{
+  width:30px;height:30px;border-radius:50%;
+  background:linear-gradient(135deg,var(--b),var(--b3));
+  display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff;
+  box-shadow:0 0 0 2px var(--bg2), 0 0 0 3px var(--b);cursor:pointer;
+}
+
+/* ── Main scroll ─────────────────────────────────────────── */
+.main{flex:1;overflow-y:auto;padding:20px 24px 40px;scrollbar-width:thin;scrollbar-color:var(--bg4) transparent}
+.main::-webkit-scrollbar{width:4px}
+.main::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.main>section{max-width:1240px;margin:0 auto}
+
+/* ── Page header ─────────────────────────────────────────── */
+.ph{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap}
+.ph-title{font-size:19px;font-weight:700;color:var(--ink);letter-spacing:-.02em;line-height:1}
+.ph-sub{font-size:11px;color:var(--ink4);margin-top:3px}
+
+/* ── Stat cards ─────────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.sc{
+  background:var(--surface);border:1px solid var(--brd);
+  border-radius:var(--r);padding:16px;
+  display:flex;flex-direction:column;gap:12px;
+  transition:.18s;cursor:pointer;position:relative;overflow:hidden;
+}
+.sc::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(99,102,241,.04),transparent);
+  pointer-events:none;opacity:0;transition:.18s;
+}
+.sc:hover{border-color:rgba(99,102,241,.25);transform:translateY(-1px);box-shadow:var(--sh-md)}
+.sc:hover::after{opacity:1}
+.sc-top{display:flex;align-items:center;justify-content:space-between}
+.sc-icon{width:34px;height:34px;border-radius:var(--r3);display:grid;place-items:center;flex-shrink:0}
+.sc-icon svg{width:16px;height:16px}
+.sc-trend{font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px}
+.sc-trend.up{background:rgba(52,211,153,.12);color:var(--green)}
+.sc-trend.neu{background:var(--bg4);color:var(--ink4)}
+.sc-body{}
+.sc-val{font-size:28px;font-weight:700;color:var(--ink);letter-spacing:-.04em;line-height:1;font-family:'JetBrains Mono',monospace}
+.sc-label{font-size:11px;color:var(--ink4);margin-top:4px}
+
+/* ── Filter bar ─────────────────────────────────────────── */
+.filter-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;gap:12px;flex-wrap:wrap;
+}
+.ftabs{
+  display:flex;align-items:center;
+  background:var(--bg3);border:1px solid var(--brd);
+  border-radius:var(--r2);padding:3px;gap:2px;
+}
+.ftab{
+  padding:5px 13px;border-radius:6px;
+  font-size:11.5px;font-weight:500;color:var(--ink4);
+  cursor:pointer;border:none;background:none;
+  transition:.14s;white-space:nowrap;
+}
+.ftab:hover{color:var(--ink2)}
+.ftab.on{
+  background:var(--b);color:#fff;font-weight:600;
+  box-shadow:0 1px 4px var(--b-glow);
+}
+.vc{font-size:11px;color:var(--ink4);font-weight:500;font-family:'JetBrains Mono',monospace}
+
+/* ── Day photo cards ─────────────────────────────────────── */
+#days-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.dcard{
+  background:var(--surface);border:1px solid var(--brd);
+  border-radius:var(--r);overflow:hidden;cursor:pointer;
+  transition:all .2s;position:relative;
+}
+.dcard:hover{
+  border-color:rgba(99,102,241,.3);
+  transform:translateY(-2px);
+  box-shadow:var(--sh-md),0 0 0 1px rgba(99,102,241,.15);
+}
+.dcard-cover{
+  aspect-ratio:3/2;overflow:hidden;position:relative;
+  background:var(--bg3);
+}
+/* Shimmer placeholder */
+.dcard-shimmer{
+  position:absolute;inset:0;
+  background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);
+  background-size:200% 100%;animation:shimmer 1.8s infinite;
+}
+.dcard-cover-img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  opacity:0;transition:opacity .3s;position:relative;z-index:1;
+}
+.dcard-cover-img.loaded{opacity:1}
+.dcard-cover-overlay{
+  position:absolute;inset:0;z-index:2;
+  background:linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 55%);
+  pointer-events:none;
+}
+.dcard-badges{position:absolute;top:8px;left:8px;right:8px;z-index:3;display:flex;align-items:flex-start;justify-content:space-between}
+.dcard-month{
+  font-size:10px;font-weight:700;color:#fff;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(8px);
+  padding:3px 8px;border-radius:20px;letter-spacing:.03em;
+  text-transform:uppercase;
+}
+.dcard-count{
+  font-size:10px;font-weight:600;color:#fff;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(8px);
+  padding:3px 8px;border-radius:20px;
+  display:flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace;
+}
+.dcard-bottom{
+  position:absolute;bottom:0;left:0;right:0;z-index:3;
+  padding:8px 10px;
+}
+.dcard-day{
+  font-size:28px;font-weight:800;color:#fff;
+  letter-spacing:-.04em;line-height:1;font-family:'JetBrains Mono',monospace;
+  text-shadow:0 2px 8px rgba(0,0,0,.5);
+}
+.dcard-info{
+  padding:10px 12px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.dcard-meta{font-size:11px;color:var(--ink4)}
+.dcard-meta b{color:var(--ink2);font-weight:600;display:block;margin-bottom:1px}
+.dcard-zip{
+  display:inline-flex;align-items:center;gap:3px;
+  background:rgba(99,102,241,.12);color:var(--b2);
+  font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;
+  text-transform:uppercase;
+}
+
+/* ── Tag cloud ──────────────────────────────────────────── */
+#tag-cloud{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px}
+.tc{
+  display:inline-flex;align-items:center;
+  padding:3px 9px;border-radius:20px;
+  font-size:9px;font-weight:700;
+  background:var(--bg3);border:1px solid var(--brd);
+  color:var(--ink4);text-transform:uppercase;letter-spacing:.04em;
+  cursor:default;
+}
+
+/* ── Timeline ───────────────────────────────────────────── */
+#timeline-view{display:none}
+.tl-section{margin-bottom:24px}
+.tl-date-row{
+  display:flex;align-items:baseline;gap:8px;
+  padding:4px 0 8px;border-bottom:1px solid var(--brd);margin-bottom:8px;
+}
+.tl-date-label{font-size:13px;font-weight:700;color:var(--ink)}
+.tl-date-meta{font-size:11px;color:var(--ink4);font-family:'JetBrains Mono',monospace}
+.tl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:3px}
+.tl-thumb{aspect-ratio:1;border-radius:5px;overflow:hidden;cursor:pointer;position:relative;background:var(--bg3)}
+.tl-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .2s,transform .2s}
+.tl-thumb img.loading{opacity:0}.tl-thumb img.loaded{opacity:1}
+.tl-thumb:hover img{transform:scale(1.07)}
+.tl-thumb-fav{position:absolute;bottom:4px;right:4px;width:20px;height:20px;border-radius:50%;background:#0009;backdrop-filter:blur(6px);border:none;cursor:pointer;display:grid;place-items:center;opacity:0;transition:.15s}
+.tl-thumb:hover .tl-thumb-fav,.tl-thumb-fav.fav{opacity:1}
+.tl-thumb-fav svg{width:10px;height:10px;fill:transparent;stroke:#fff;stroke-width:2.5}
+.tl-thumb-fav.fav svg{fill:var(--rose);stroke:var(--rose)}
+
+/* ── Day panel ──────────────────────────────────────────── */
+#gallery-panel{
+  position:fixed;top:0;right:0;bottom:0;width:460px;
+  background:var(--bg2);border-left:1px solid var(--brd);
+  box-shadow:-24px 0 64px rgba(0,0,0,.5);
+  z-index:200;display:none;flex-direction:column;
+}
+#gallery-panel.open{display:flex;animation:slideRight .22s cubic-bezier(.4,0,.2,1) both}
+.gph{
+  padding:12px 16px;border-bottom:1px solid var(--brd);
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.gph-close{
+  width:26px;height:26px;border-radius:var(--r3);
+  border:1px solid var(--brd);background:none;cursor:pointer;
+  display:grid;place-items:center;margin-left:auto;
+  color:var(--ink4);transition:.14s;
+}
+.gph-close:hover{background:var(--bg3);color:var(--ink2)}
+.gph-close svg{width:13px;height:13px}
+.gpf{
+  padding:8px 16px;border-bottom:1px solid var(--brd);
+  display:flex;gap:4px;align-items:center;flex-shrink:0;
+  overflow-x:auto;scrollbar-width:none;background:var(--bg3);
+}
+.gpf::-webkit-scrollbar{display:none}
+.gpfb{
+  padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;
+  border:1px solid var(--brd);background:none;cursor:pointer;
+  transition:.14s;color:var(--ink4);white-space:nowrap;
+}
+.gpfb:hover{border-color:rgba(99,102,241,.35);color:var(--b2)}
+.gpfb.on{background:var(--b);color:#fff;border-color:var(--b)}
+.gp-grid{
+  flex:1;overflow-y:auto;padding:10px;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:4px;
+  align-content:start;
+  scrollbar-width:thin;scrollbar-color:var(--bg4) transparent;
+}
+.gp-grid::-webkit-scrollbar{width:3px}
+.gp-grid::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.gp-photo{
+  border-radius:5px;overflow:hidden;aspect-ratio:1;
+  position:relative;cursor:pointer;background:var(--bg3);transition:.16s;
+}
+.gp-photo:hover{transform:scale(1.04);box-shadow:var(--sh-lg);z-index:2}
 .gp-photo img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .2s}
 .gp-photo img.loading{opacity:0}.gp-photo img.loaded{opacity:1}
-.gp-photo-fav{position:absolute;bottom:6px;right:6px;width:28px;height:28px;border-radius:50%;background:#000a;backdrop-filter:blur(6px);border:none;cursor:pointer;display:grid;place-items:center;opacity:0;transition:opacity .2s}
+.gp-photo-fav{
+  position:absolute;bottom:4px;right:4px;width:22px;height:22px;
+  border-radius:50%;background:#0009;border:none;cursor:pointer;
+  display:grid;place-items:center;opacity:0;transition:.15s;
+}
 .gp-photo:hover .gp-photo-fav,.gp-photo-fav.fav{opacity:1}
-.gp-photo-fav svg{width:14px;height:14px;fill:transparent;stroke:#fff;stroke-width:2;transition:all .18s}
-.gp-photo-fav.fav svg{fill:#f43f5e;stroke:#f43f5e;animation:heartPop .35s ease}
-.gp-empty{grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--ink4);font-size:13px}
-.gp-loading{grid-column:1/-1;display:flex;justify-content:center;padding:40px}
+.gp-photo-fav svg{width:11px;height:11px;fill:transparent;stroke:#fff;stroke-width:2;transition:.16s}
+.gp-photo-fav.fav svg{fill:var(--rose);stroke:var(--rose);animation:heartPop .3s ease}
 
-/* ─── Lightbox ─── */
-#lightbox{position:fixed;inset:0;z-index:400;background:#000c;display:none;flex-direction:column;align-items:center;justify-content:center;animation:fadeIn .2s ease}
-#lightbox.open{display:flex}
-.lb-img-wrap{position:relative;max-width:90vw;max-height:78vh;display:flex;align-items:center;justify-content:center}
-#lb-img{max-width:90vw;max-height:78vh;object-fit:contain;border-radius:10px;box-shadow:0 32px 80px #0008;user-select:none}
-.lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:#fff1;backdrop-filter:blur(8px);border:1px solid #fff2;color:#fff;cursor:pointer;display:grid;place-items:center;transition:.18s}
-.lb-nav:hover{background:#fff3;border-color:#fff4}
-.lb-nav.prev{left:-60px}.lb-nav.next{right:-60px}
-.lb-nav svg{width:20px;height:20px}
-.lb-bar{display:flex;align-items:center;gap:12px;margin-top:16px}
-.lb-fav{width:40px;height:40px;border-radius:50%;background:#fff1;backdrop-filter:blur(8px);border:1px solid #fff2;cursor:pointer;display:grid;place-items:center;transition:.18s}
-.lb-fav:hover{background:#fff3}
-.lb-fav svg{width:22px;height:22px;fill:transparent;stroke:#fff;stroke-width:2;transition:.18s}
-.lb-fav.fav svg{fill:#f43f5e;stroke:#f43f5e;animation:heartPop .35s ease}
-.lb-info{color:#ffffffcc;font-size:12px;font-weight:500}
-.lb-close{position:fixed;top:20px;right:24px;width:38px;height:38px;border-radius:50%;background:#fff1;border:1px solid #fff2;color:#fff;cursor:pointer;display:grid;place-items:center;transition:.15s}
-.lb-close:hover{background:#fff3}
-.lb-close svg{width:18px;height:18px}
-.lb-counter{color:#ffffff80;font-size:11px;font-weight:600;font-family:'Space Mono',monospace}
+/* ── Lightbox ───────────────────────────────────────────── */
+#lightbox{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,.92);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  backdrop-filter:blur(2px);
+}
+#lightbox.open{display:flex;animation:fadeIn .16s ease}
+#lb-img{max-width:88vw;max-height:76vh;object-fit:contain;border-radius:var(--r2);box-shadow:var(--sh-lg)}
+.lb-wrap{position:relative;max-width:88vw;max-height:76vh;display:flex;align-items:center;justify-content:center}
+.lb-nav{
+  position:absolute;top:50%;transform:translateY(-50%);
+  width:38px;height:38px;border-radius:50%;
+  background:rgba(255,255,255,.06);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.1);color:#fff;
+  cursor:pointer;display:grid;place-items:center;transition:.15s;
+}
+.lb-nav:hover{background:rgba(255,255,255,.12)}
+.lb-nav.prev{left:-52px}.lb-nav.next{right:-52px}
+.lb-nav svg{width:17px;height:17px}
+.lb-bar{display:flex;align-items:center;gap:10px;margin-top:14px}
+.lb-fav{
+  width:34px;height:34px;border-radius:50%;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  cursor:pointer;display:grid;place-items:center;transition:.15s;
+}
+.lb-fav:hover{background:rgba(255,255,255,.12)}
+.lb-fav svg{width:16px;height:16px;fill:transparent;stroke:#fff;stroke-width:2;transition:.16s}
+.lb-fav.fav svg{fill:var(--rose);stroke:var(--rose);animation:heartPop .3s ease}
+.lb-info{color:rgba(255,255,255,.6);font-size:11px;font-weight:500;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-counter{color:rgba(255,255,255,.3);font-size:10px;font-family:'JetBrains Mono',monospace}
+.lb-close{
+  position:fixed;top:16px;right:18px;width:32px;height:32px;border-radius:50%;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
+  color:#fff;cursor:pointer;display:grid;place-items:center;transition:.15s;
+}
+.lb-close:hover{background:rgba(255,255,255,.14)}
+.lb-close svg{width:14px;height:14px}
 
-/* Forms/common */
-.card{background:var(--card);border:1px solid var(--brd);border-radius:var(--rad);padding:22px;box-shadow:0 1px 3px #0001}
-.card-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.card-title svg{width:16px;height:16px;color:var(--ink4)}
-.lbl{display:block;font-size:10px;font-weight:600;color:var(--ink4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
-.inp{width:100%;background:var(--bg);border:1px solid var(--brd);color:var(--ink);font-size:13px;font-family:inherit;padding:9px 12px;border-radius:8px;outline:none;transition:.15s}
-.inp:focus{border-color:var(--b2);box-shadow:0 0 0 3px #0b6bcb10}
-.inp:disabled{opacity:.3;cursor:not-allowed}
-.bp{padding:9px 18px;font-size:12px;font-weight:600;color:#fff;background:linear-gradient(135deg,var(--b),var(--b2));border:none;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.18s;box-shadow:0 2px 8px #0b6bcb20}
-.bp:hover{box-shadow:0 4px 16px #0b6bcb30;transform:translateY(-1px)}.bp:disabled{opacity:.3;transform:none;box-shadow:none;cursor:not-allowed}
-.bg{padding:9px 18px;font-size:12px;font-weight:600;color:var(--ink3);background:var(--card);border:1px solid var(--brd);border-radius:8px;cursor:pointer;transition:.15s}
-.bg:hover{border-color:var(--ink4);color:var(--ink2)}
-.bd{padding:9px 18px;font-size:12px;font-weight:600;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;cursor:pointer;transition:.15s}
-.bd:hover{background:#fee2e2}
-.tbl{width:100%;font-size:13px;border-collapse:separate;border-spacing:0}
-.tbl th{text-align:left;font-size:9px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.08em;padding:10px 12px;border-bottom:2px solid var(--brd)}
-.tbl td{padding:11px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
-.tbl tbody tr:hover td{background:#fafbfd}
-.tag{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
-.tag-origen{background:#dbeafe;color:#1d4ed8}.tag-destino{background:#dcfce7;color:#15803d}.tag-ambos{background:#fef3c7;color:#b45309}
-.msg{font-size:12px;font-weight:500;padding:10px 14px;border-radius:8px;display:none;margin-top:12px}
-.msg-ok{display:block;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
-.msg-err{display:block;background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
-.pill{display:inline-flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--brd);border-radius:8px;padding:6px 12px;font-family:'Space Mono',monospace;font-size:12px;transition:border .15s}
-.pill:hover{border-color:var(--ink5)}.pill button{background:none;border:none;color:#dc2626;cursor:pointer;font-size:15px;line-height:1;padding:2px 4px;border-radius:4px;opacity:.45;transition:.15s}
-.pill button:hover{opacity:1;background:#fef2f2}
-.tl-section{margin-bottom:28px}
-.tl-date{font-size:13px;font-weight:700;color:var(--ink2);padding:8px 0 10px;border-bottom:1px solid var(--brd);margin-bottom:10px;display:flex;align-items:baseline;gap:8px}
-.tl-date span{font-size:11px;font-weight:500;color:var(--ink4)}
-.tl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:4px}
-.tl-thumb{aspect-ratio:1;border-radius:6px;overflow:hidden;cursor:pointer;position:relative;background:var(--bg)}
-.tl-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .2s,transform .2s}
-.tl-thumb img.loading{opacity:0}
-.tl-thumb{background:linear-gradient(135deg,#eef2f7,#e2e8f0)}
-.gp-photo{background:var(--bg)}
-/* Selection mode */
-.sel-check{position:absolute;top:6px;left:6px;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid #fff;box-shadow:0 1px 4px #0003;display:grid;place-items:center;opacity:0;transition:.15s;z-index:3;pointer-events:none}
-.tl-thumb:hover .sel-check,.gp-photo:hover .sel-check{opacity:1}
+/* ── Selection ──────────────────────────────────────────── */
+.sel-check{
+  position:absolute;top:5px;left:5px;width:17px;height:17px;
+  border-radius:50%;background:#fff2;border:1.5px solid rgba(255,255,255,.4);
+  display:grid;place-items:center;opacity:0;transition:.12s;z-index:3;pointer-events:none;
+}
+.tl-thumb:hover .sel-check,.gp-photo:hover .sel-check{opacity:.85}
 .tl-thumb.selected .sel-check,.gp-photo.selected .sel-check{opacity:1;background:var(--b);border-color:var(--b)}
-.tl-thumb.selected .sel-check::after,.gp-photo.selected .sel-check::after{content:'';display:block;width:5px;height:9px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px)}
-.tl-thumb.selected,.gp-photo.selected{outline:2.5px solid var(--b);outline-offset:-2.5px}
-/* Bulk toolbar */
-#bulk-toolbar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:500;
-  background:#1e293b;color:#fff;border-radius:14px;padding:10px 16px;
-  display:none;align-items:center;gap:10px;box-shadow:0 8px 32px #0005;
-  white-space:nowrap;animation:up .2s ease}
+.tl-thumb.selected .sel-check::after,.gp-photo.selected .sel-check::after{content:'';display:block;width:4px;height:7px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px)}
+.tl-thumb.selected,.gp-photo.selected{outline:2px solid var(--b);outline-offset:-2px}
+
+/* ── Bulk toolbar ───────────────────────────────────────── */
+#bulk-toolbar{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:600;
+  background:var(--bg2);border:1px solid var(--brd);
+  border-radius:var(--r);padding:8px 12px;
+  display:none;align-items:center;gap:8px;
+  box-shadow:var(--sh-lg);white-space:nowrap;animation:fadeUp .18s ease;
+}
 #bulk-toolbar.show{display:flex}
-.tb-count{font-size:13px;font-weight:700;min-width:80px}
-.tb-sep{width:1px;height:20px;background:#334155}
-.tb-btn{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;
-  border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:.15s}
-.tb-btn:hover{filter:brightness(1.15)}
-.tb-btn-fav{background:#0b6bcb;color:#fff}
-.tb-btn-unfav{background:#334155;color:#94a3b8}
-.tb-btn-del{background:#dc2626;color:#fff}
-.tb-btn-cancel{background:#475569;color:#e2e8f0}
-.tl-thumb img.loaded{opacity:1}
-.tl-thumb:hover img{transform:scale(1.05)}
-.tl-thumb-fav{position:absolute;bottom:4px;right:4px;width:22px;height:22px;border-radius:50%;background:#000a;backdrop-filter:blur(4px);border:none;cursor:pointer;display:grid;place-items:center;opacity:0;transition:opacity .15s}
-.tl-thumb:hover .tl-thumb-fav,.tl-thumb-fav.fav{opacity:1}
-.tl-thumb-fav svg{width:11px;height:11px;fill:transparent;stroke:#fff;stroke-width:2.5}
-.tl-thumb-fav.fav svg{fill:#f43f5e;stroke:#f43f5e}
-.tag-chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:#f1f5f9;color:var(--ink3);white-space:nowrap}
-.tag-chip.screenshot{background:#dbeafe;color:#1d4ed8}
-.tag-chip.camera{background:#dcfce7;color:#15803d}
-.tag-chip.whatsapp{background:#dcfce7;color:#059669}
-.tag-chip.telegram{background:#dbeafe;color:#0284c7}
-.tag-chip.instagram{background:#fce7f3;color:#be185d}
-.tag-chip.download{background:#f3f4f6;color:#374151}
-.tag-chip.panorama{background:#e0e7ff;color:#4338ca}
-.tag-chip.edited{background:#fef3c7;color:#b45309}
-.tag-chip.has_gps{background:#d1fae5;color:#065f46}
-.tag-chip.no_exif{background:#f3f4f6;color:#6b7280}
-.tag-chip.portrait{background:#faf5ff;color:#7c3aed}
-.tag-chip.landscape_photo{background:#ecfdf5;color:#047857}
-.tag-chip.screen_recording{background:#fff7ed;color:#c2410c}
-.tag-chip.other{background:#f3f4f6;color:#9ca3af}
-.tag-chip.gif{background:#fdf4ff;color:#a21caf}
-.gp-tags{padding:0 20px 10px;border-bottom:1px solid var(--brd);display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;align-items:center}
-.gp-tag-filter{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border:1.5px solid var(--brd);background:none;cursor:pointer;transition:.15s;color:var(--ink3)}
-.gp-tag-filter:hover{border-color:var(--b3);color:var(--b)}
-.gp-tag-filter.on{border-color:currentColor}
-.notice{border-radius:10px;padding:12px 16px;font-size:13px;display:flex;gap:10px;align-items:start;line-height:1.5}
-.notice svg{width:16px;height:16px;flex-shrink:0;margin-top:1px}
-.notice code{font-family:'Space Mono',monospace;font-size:11px;padding:1px 6px;border-radius:4px}
-#log-box{background:#0c1222;border:1px solid #1e293b;border-radius:12px;padding:16px 18px;height:360px;overflow-y:auto;font-family:'Space Mono',monospace;font-size:11.5px;line-height:1.75;color:#8892a8;white-space:pre-wrap;word-break:break-all;scrollbar-width:thin;scrollbar-color:#1e293b transparent}
-#log-box::-webkit-scrollbar{width:5px}#log-box::-webkit-scrollbar-thumb{background:#1e293b;border-radius:3px}
-.step-card{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:10px 14px;cursor:pointer;transition:all .18s;user-select:none}
-.step-card:hover{border-color:var(--b3);background:#f0f7ff}.step-card input{width:16px;height:16px;accent-color:var(--b);cursor:pointer;flex-shrink:0}.step-card span{font-size:13px;font-weight:500;color:var(--ink2)}
-@media(max-width:768px){.shell{flex-direction:column!important}.sb{width:100%;height:auto;position:static;border-right:none;border-bottom:1px solid var(--brd)}.sb nav{display:flex;gap:4px;flex-wrap:wrap}.nav-item{padding:7px 12px;font-size:12px}#gallery-panel{width:100%!important}.lb-nav.prev{left:-4px}.lb-nav.next{right:-4px}}
+.tbc{font-size:12px;font-weight:700;min-width:68px;color:var(--ink4);font-family:'JetBrains Mono',monospace}
+.tbsep{width:1px;height:18px;background:var(--brd)}
+.tbb{padding:5px 11px;border-radius:var(--r3);font-size:11px;font-weight:600;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:.12s}
+.tbb:hover{filter:brightness(1.15)}
+.tbb-fav{background:rgba(99,102,241,.2);color:var(--b2);border:1px solid rgba(99,102,241,.2)}
+.tbb-unfav{background:var(--bg3);color:var(--ink4);border:1px solid var(--brd)}
+.tbb-del{background:rgba(248,113,113,.15);color:var(--red);border:1px solid rgba(248,113,113,.15)}
+.tbb-cancel{background:var(--bg3);color:var(--ink4);border:1px solid var(--brd)}
+
+/* ── Forms + cards ──────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--brd);border-radius:var(--r);padding:18px}
+.card-title{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.card-title svg{width:13px;height:13px;color:var(--ink4)}
+.lbl{display:block;font-size:9px;font-weight:700;color:var(--ink5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.inp{
+  width:100%;background:var(--bg3);border:1px solid var(--brd);
+  color:var(--ink);font-size:12.5px;font-family:inherit;
+  padding:7px 10px;border-radius:var(--r3);outline:none;transition:.14s;
+}
+.inp:focus{border-color:rgba(99,102,241,.4);box-shadow:0 0 0 3px var(--b-glow)}
+.inp:disabled{opacity:.25;cursor:not-allowed}
+select.inp{cursor:pointer}
+.bp{
+  padding:7px 15px;font-size:12px;font-weight:600;color:#fff;
+  background:var(--b);border:none;border-radius:var(--r3);
+  cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:.14s;
+  box-shadow:0 0 0 1px rgba(99,102,241,.4),0 2px 8px var(--b-glow);
+}
+.bp:hover{background:var(--b2);box-shadow:0 0 0 1px rgba(99,102,241,.5),0 4px 12px var(--b-glow)}
+.bp:disabled{opacity:.3;cursor:not-allowed;box-shadow:none}
+.bg{
+  padding:7px 15px;font-size:12px;font-weight:600;
+  color:var(--ink3);background:var(--bg3);
+  border:1px solid var(--brd);border-radius:var(--r3);cursor:pointer;transition:.14s;
+}
+.bg:hover{background:var(--bg4);color:var(--ink2)}
+.bd{padding:7px 15px;font-size:12px;font-weight:600;color:var(--red);background:var(--red-bg);border:1px solid rgba(248,113,113,.2);border-radius:var(--r3);cursor:pointer;transition:.14s}
+.bd:hover{background:rgba(248,113,113,.15)}
+.tbl{width:100%;font-size:12.5px;border-collapse:separate;border-spacing:0}
+.tbl th{text-align:left;font-size:9px;font-weight:700;color:var(--ink5);text-transform:uppercase;letter-spacing:.08em;padding:7px 10px;border-bottom:1px solid var(--brd)}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--brd2);vertical-align:middle}
+.tbl tbody tr:hover td{background:var(--bg3)}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tag{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.tag-origen{background:rgba(99,102,241,.15);color:var(--b2)}
+.tag-destino{background:rgba(52,211,153,.12);color:var(--green)}
+.tag-ambos{background:rgba(251,191,36,.12);color:var(--amber)}
+.msg{font-size:12px;font-weight:500;padding:8px 12px;border-radius:var(--r3);display:none;margin-top:10px}
+.msg-ok{display:block;background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.2)}
+.msg-err{display:block;background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r3);padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink3)}
+.pill button{background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;line-height:1;padding:1px 2px;opacity:.4;transition:.12s}
+.pill button:hover{opacity:1}
+.notice{border-radius:var(--r3);padding:10px 12px;font-size:12px;display:flex;gap:8px;align-items:start;line-height:1.5;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);color:var(--amber)}
+.notice svg{width:13px;height:13px;flex-shrink:0;margin-top:1px}
+#log-box{background:#0a0b0f;border:1px solid var(--brd);border-radius:var(--r2);padding:14px;height:320px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.75;color:#6b7280;white-space:pre-wrap;word-break:break-all;scrollbar-width:thin;scrollbar-color:var(--bg4) transparent}
+#log-box::-webkit-scrollbar{width:3px}#log-box::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.log-bar{display:flex;align-items:center;gap:5px;margin-bottom:6px}
+.log-dot{width:9px;height:9px;border-radius:50%}
+.step-card{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r3);padding:8px 12px;cursor:pointer;transition:.14s}
+.step-card:hover{border-color:rgba(99,102,241,.3);background:rgba(99,102,241,.06)}
+.step-card input{width:14px;height:14px;accent-color:var(--b);cursor:pointer;flex-shrink:0}
+.step-card span{font-size:12.5px;font-weight:500;color:var(--ink3)}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+/* ── Wizard ─────────────────────────────────────────────── */
+#wizard{display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);animation:fadeIn .2s ease}
+.wiz-card{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(500px,92vw);background:var(--bg2);border:1px solid var(--brd);border-radius:16px;box-shadow:0 32px 80px rgba(0,0,0,.6);overflow:hidden}
+.wiz-prog{height:2px;background:var(--bg4)}.wiz-bar{height:100%;background:linear-gradient(90deg,var(--b),var(--b3));transition:width .35s}
+.wiz-head{padding:20px 20px 0;display:flex;justify-content:space-between;align-items:start}
+.wiz-lbl{font-size:9px;font-weight:700;color:var(--b2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}
+.wiz-title{font-size:16px;font-weight:700;color:var(--ink)}
+.wiz-sub{font-size:12px;color:var(--ink4);margin-top:3px}
+.wiz-badge{background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r3);padding:3px 9px;font-size:10px;font-weight:700;color:var(--ink4)}
+.wiz-body{padding:16px 20px 4px;min-height:180px}
+.wiz-foot{padding:12px 20px 18px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--brd);margin-top:8px}
+.wiz-skip{font-size:11px;color:var(--ink5);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.wiz-opt{border:1px solid var(--brd);border-radius:var(--r2);padding:12px;cursor:pointer;transition:.14s;display:flex;gap:10px;align-items:flex-start;margin-bottom:8px}
+.wiz-opt:hover{border-color:rgba(99,102,241,.3);background:rgba(99,102,241,.04)}
+.wiz-opt.on{border-color:var(--b);background:rgba(99,102,241,.08)}
+.wiz-opt-icon{width:32px;height:32px;border-radius:var(--r3);display:grid;place-items:center;flex-shrink:0}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media(min-width:1400px){
+  .main{padding:24px 32px 48px}
+  #days-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+  .stats{gap:14px}
+}
+@media(min-width:1680px){
+  :root{--sb-w:240px}
+  .main{padding:28px 40px 56px}
+  #gallery-panel{width:500px}
+}
+@media(max-width:1024px){
+  #days-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+  .stats{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:767px){
+  :root{--sb-w:0px}
+  .sb{display:none}
+  .main{padding:14px 16px 32px;overflow-y:auto}
+  .content{overflow:visible}
+  .stats{grid-template-columns:repeat(2,1fr);gap:8px}
+  #days-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+  #gallery-panel{top:0;right:0;bottom:0;border-radius:0;width:100%!important}
+  .lb-nav.prev{left:-4px}.lb-nav.next{right:-4px}
+  .fg2,.fg3{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
-<div class="shell" style="display:flex;min-height:100vh">
+<div class="shell">
 
-  <!-- Sidebar -->
-  <aside class="sb">
-    <div style="padding:20px 18px;border-bottom:1px solid var(--brd)">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="logo-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
-        <div><div style="font-size:15px;font-weight:800;letter-spacing:-.02em">Photos Sync</div><div style="font-size:9px;font-weight:600;color:var(--ink4);letter-spacing:.08em;margin-top:1px">DASHBOARD</div></div>
+<!-- ── Sidebar ──────────────────────────────────────────── -->
+<aside class="sb">
+  <div class="sb-logo">
+    <div class="sb-logo-mark">
+      <svg viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    </div>
+    <div>
+      <div class="sb-title">Photos Sync</div>
+      <div class="sb-sub">Dashboard</div>
+    </div>
+  </div>
+
+  <div id="srv-status" class="s-load">Connecting…</div>
+
+  <div class="sb-label">Library</div>
+  <nav>
+    <button class="nb on" onclick="tab('gallery',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Gallery
+    </button>
+    <button class="nb" onclick="tab('pipeline',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Pipeline
+      <span class="nb-dot" id="dot-pipeline" style="display:none"></span>
+    </button>
+  </nav>
+
+  <div class="sb-label" style="margin-top:6px">Configuration</div>
+  <nav>
+    <button class="nb" onclick="tab('ssh',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15l3-3-3-3"/><line x1="14" y1="15" x2="17" y2="15"/></svg>
+      SSH Servers
+    </button>
+    <button class="nb" onclick="tab('webdav',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20"/></svg>
+      WebDAV
+    </button>
+    <button class="nb" onclick="tab('folders',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+      Folders
+    </button>
+  </nav>
+
+  <div class="sb-bottom">
+    <div class="sb-storage">
+      <div class="sb-st-head">
+        <span class="sb-st-label">Storage</span>
+        <span class="sb-st-val" id="storage-val">—</span>
       </div>
+      <div class="sb-st-track"><div class="sb-st-fill" id="storage-fill" style="width:4%"></div></div>
     </div>
-    <div id="srv-status" class="sbadge sb-load">Connecting…</div>
-    <nav style="display:flex;flex-direction:column;gap:2px;padding:8px 12px">
-      <div style="font-size:9px;font-weight:700;color:var(--ink5);text-transform:uppercase;letter-spacing:.14em;padding:4px 14px 10px">Menu</div>
-      <button class="nav-item on" onclick="tab('gallery',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Gallery</button>
-      <button class="nav-item" onclick="tab('pipeline',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>Pipeline<span class="conn-dot" id="dot-pipeline" style="display:none"></span></button>
-      <button class="nav-item" onclick="tab('ssh',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15l3-3-3-3"/><line x1="14" y1="15" x2="17" y2="15"/></svg>SSH</button>
-      <button class="nav-item" onclick="tab('webdav',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20"/></svg>WebDAV</button>
-      <button class="nav-item" onclick="tab('folders',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Folders</button>
-    </nav>
-    <div style="margin-top:auto;padding:16px 18px;border-top:1px solid var(--brd);display:flex;flex-direction:column;gap:8px">
-      <button onclick="wizOpen()" style="width:100%;padding:7px 12px;font-size:11px;font-weight:600;color:var(--b);background:#f0f7ff;border:1px solid var(--b3);border-radius:8px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:6px;justify-content:center">
-        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
-        Setup wizard
-      </button>
-      <div style="font-size:10px;color:var(--ink5);text-align:center">Photos Sync v0.1.0</div>
-    </div>
-  </aside>
+    <button class="sb-setup" onclick="wizOpen()">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+      Setup wizard
+    </button>
+  </div>
+</aside>
 
-  <!-- Main -->
-  <main style="flex:1;min-width:0;padding:28px 36px 40px;max-width:960px">
+<!-- ── Content ──────────────────────────────────────────── -->
+<div class="content">
+  <header class="hdr">
+    <div class="bc">
+      Photos Sync <span>›</span> <b id="bc-section">Gallery</b>
+      <span id="bc-sep2" style="display:none">›</span>
+      <b id="bc-page" style="display:none"></b>
+    </div>
+    <div class="hdr-search">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="day-filter" placeholder="Search days…" oninput="filterDays(this.value)">
+      <span class="hdr-kbd">⌘K</span>
+    </div>
+    <div class="hdr-actions">
+      <button class="hdr-btn" title="Refresh" onclick="loadDays()">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      </button>
+      <button class="hdr-btn">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+      </button>
+      <div class="hdr-avatar">PS</div>
+    </div>
+  </header>
+
+  <main class="main">
 
     <!-- GALLERY -->
     <section data-s="gallery" class="on">
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px">
-        <div><h1 style="font-size:24px;font-weight:800;letter-spacing:-.03em">Gallery</h1><p style="font-size:13px;color:var(--ink3);margin-top:3px">Click any day to browse photos</p></div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input id="day-filter" placeholder="Search…" class="inp" style="width:140px;padding:7px 12px;font-size:12px" oninput="filterDays(this.value)">
-          <button onclick="loadDays()" class="bg" style="padding:7px 12px;font-size:11px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Refresh</button>
+      <div class="ph">
+        <div>
+          <div class="ph-title">Photo Library</div>
+          <div class="ph-sub">Organized by date from your devices</div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
-        <div class="scard" title="Show all days" onclick="showView('days')" style="cursor:pointer"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="scard-val" id="stat-days">—</div><div class="scard-label">Days</div></div>
-        <div class="scard" title="Browse all photos" onclick="showView('all')" style="cursor:pointer"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div><div class="scard-val" id="stat-photos">—</div><div class="scard-label">Photos</div></div>
-        <div class="scard" title="Show favourites" onclick="showView('favs')" style="cursor:pointer"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div><div class="scard-val" id="stat-favs">—</div><div class="scard-label">Favourites</div></div>
-        <div class="scard"><div class="scard-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="10"/><path d="M2 12h20M12 2a15 15 0 014 10 15 15 0 01-4 10 15 15 0 01-4-10 15 15 0 014-10z"/></svg></div><div class="scard-val" id="stat-size">—</div><div class="scard-label">MB Total</div></div>
+
+      <div class="stats">
+        <div class="sc" onclick="showView('days')">
+          <div class="sc-top">
+            <div class="sc-icon" style="background:rgba(99,102,241,.12)">
+              <svg fill="none" viewBox="0 0 24 24" stroke="#818cf8" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <span class="sc-trend up" id="stat-days-sub">— days</span>
+          </div>
+          <div class="sc-body">
+            <div class="sc-val" id="stat-days">—</div>
+            <div class="sc-label">Days with photos</div>
+          </div>
+        </div>
+        <div class="sc" onclick="showView('all')">
+          <div class="sc-top">
+            <div class="sc-icon" style="background:rgba(52,211,153,.1)">
+              <svg fill="none" viewBox="0 0 24 24" stroke="#34d399" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+            <span class="sc-trend up" id="stat-photos-sub">— files</span>
+          </div>
+          <div class="sc-body">
+            <div class="sc-val" id="stat-photos">—</div>
+            <div class="sc-label">Total photos</div>
+          </div>
+        </div>
+        <div class="sc" onclick="showView('favs')">
+          <div class="sc-top">
+            <div class="sc-icon" style="background:rgba(251,113,133,.1)">
+              <svg fill="none" viewBox="0 0 24 24" stroke="#fb7185" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+            </div>
+            <span class="sc-trend neu" id="stat-favs-sub">— saved</span>
+          </div>
+          <div class="sc-body">
+            <div class="sc-val" id="stat-favs">—</div>
+            <div class="sc-label">Favourites</div>
+          </div>
+        </div>
+        <div class="sc">
+          <div class="sc-top">
+            <div class="sc-icon" style="background:rgba(251,191,36,.1)">
+              <svg fill="none" viewBox="0 0 24 24" stroke="#fbbf24" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <span class="sc-trend neu" id="stat-size-sub">MB</span>
+          </div>
+          <div class="sc-body">
+            <div class="sc-val" id="stat-size">—</div>
+            <div class="sc-label">Disk usage</div>
+          </div>
+        </div>
       </div>
-      <div id="tag-cloud" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;min-height:26px"></div>
-      <!-- View toggle -->
-      <div id="view-bar" style="display:flex;align-items:center;gap:6px;margin-bottom:16px">
-        <button onclick="showView('days')" id="vbtn-days" class="gp-filter-btn on" style="font-size:11px">
-          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="1"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Days
-        </button>
-        <button onclick="showView('all')" id="vbtn-all" class="gp-filter-btn" style="font-size:11px">
-          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> All photos
-        </button>
-        <button onclick="showView('favs')" id="vbtn-favs" class="gp-filter-btn" style="font-size:11px">
-          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg> Favourites
-        </button>
-        <span id="view-count" style="margin-left:auto;font-size:11px;color:var(--ink4);font-weight:600"></span>
+
+      <div id="tag-cloud"></div>
+
+      <div class="filter-bar">
+        <div class="ftabs">
+          <button class="ftab on" id="vbtn-days" onclick="showView('days')">All Days</button>
+          <button class="ftab" id="vbtn-all"  onclick="showView('all')">Timeline</button>
+          <button class="ftab" id="vbtn-favs" onclick="showView('favs')">Favourites</button>
+        </div>
+        <span class="vc" id="view-count"></span>
       </div>
-      <!-- Days grid (default view) -->
-      <div id="days-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px">
-        <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--ink4)"><div style="font-weight:500">Loading…</div></div>
+
+      <div id="days-grid">
+        <div style="grid-column:1/-1;text-align:center;padding:56px;color:var(--ink5);font-size:13px">Loading…</div>
       </div>
-      <!-- Timeline view (All / Favourites) -->
-      <div id="timeline-view" style="display:none"></div>
+      <div id="timeline-view"></div>
     </section>
 
     <!-- PIPELINE -->
     <section data-s="pipeline">
-      <h1 style="font-size:24px;font-weight:800;letter-spacing:-.03em;margin-bottom:3px">Pipeline</h1>
-      <p style="font-size:13px;color:var(--ink3);margin-bottom:22px">Select steps and sync your photos.</p>
-      <div class="card" style="margin-bottom:16px">
-        <div id="paso-checks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:16px"></div>
-        <div style="display:flex;gap:8px"><button class="bp" id="btn-run-sel" onclick="runPipeline(false)"><svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run selected</button><button class="bg" id="btn-run-all" onclick="runPipeline(true)" style="display:inline-flex;align-items:center;gap:6px"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Run ALL</button></div>
+      <div class="ph"><div><div class="ph-title">Pipeline</div><div class="ph-sub">Sync, organize, classify and upload</div></div></div>
+      <div class="card" style="margin-bottom:12px">
+        <div id="paso-checks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-bottom:14px"></div>
+        <div style="display:flex;gap:7px">
+          <button class="bp" id="btn-run-sel" onclick="runPipeline(false)"><svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run selected</button>
+          <button class="bg" id="btn-run-all" onclick="runPipeline(true)" style="display:inline-flex;align-items:center;gap:5px"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Run ALL</button>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:0 2px">
-        <div id="spinner" style="display:none;width:14px;height:14px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div>
-        <span id="pipeline-status" style="font-size:13px;color:var(--ink3);font-weight:500">Ready.</span>
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">
+        <div id="spinner" style="display:none;width:12px;height:12px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div>
+        <span id="pipeline-status" style="font-size:12px;color:var(--ink4);font-weight:500;font-family:'JetBrains Mono',monospace">Ready.</span>
       </div>
-      <div><div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><div style="width:10px;height:10px;border-radius:50%;background:#ef4444"></div><div style="width:10px;height:10px;border-radius:50%;background:#f59e0b"></div><div style="width:10px;height:10px;border-radius:50%;background:#22c55e"></div><span style="font-size:11px;color:var(--ink4);font-weight:600;margin-left:6px">Terminal</span></div><div id="log-box"></div></div>
+      <div class="log-bar"><div class="log-dot" style="background:#ef4444"></div><div class="log-dot" style="background:#f59e0b"></div><div class="log-dot" style="background:#22c55e"></div><span style="font-size:10px;color:var(--ink5);font-weight:600;margin-left:6px;font-family:'JetBrains Mono',monospace">Terminal</span></div>
+      <div id="log-box"></div>
     </section>
 
     <!-- SSH -->
     <section data-s="ssh">
-      <h1 style="font-size:24px;font-weight:800;letter-spacing:-.03em;margin-bottom:3px">SSH Connections</h1>
-      <p style="font-size:13px;color:var(--ink3);margin-bottom:22px">Remote servers for source and destination.</p>
-      <div class="card" style="margin-bottom:14px">
+      <div class="ph"><div><div class="ph-title">SSH Connections</div><div class="ph-sub">Remote servers for source and destination</div></div></div>
+      <div class="card" style="margin-bottom:12px">
         <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/></svg>New connection</div>
-        <div style="display:grid;grid-template-columns:2fr 3fr 1fr;gap:10px"><div><label class="lbl">Alias</label><input id="ssh-alias" placeholder="Home NAS" class="inp"></div><div><label class="lbl">Host / IP</label><input id="ssh-host" placeholder="192.168.1.50" class="inp"></div><div><label class="lbl">Port</label><input id="ssh-puerto" value="22" type="number" class="inp"></div></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px"><div><label class="lbl">User</label><input id="ssh-usuario" placeholder="juan" class="inp"></div><div><label class="lbl">Remote path (source)</label><input id="ssh-ruta" placeholder="/home/juan/fotos" class="inp"></div></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px"><div><label class="lbl">Remote path (dest)</label><input id="ssh-ruta-dest" placeholder="only if role=ambos" disabled class="inp"><div id="ssh-ruta-dest-hint" style="font-size:10px;color:var(--ink4);margin-top:3px"></div></div><div><label class="lbl">Private key</label><input id="ssh-clave" placeholder="~/.ssh/id_rsa (optional)" class="inp"></div></div>
-        <div style="width:160px;margin-top:8px"><label class="lbl">Role</label><select id="ssh-rol" onchange="onRolChange()" class="inp"></select><div id="ssh-rol-hint" style="font-size:10px;color:var(--ink4);margin-top:3px"></div></div>
-        <div style="display:flex;gap:8px;margin-top:16px"><button class="bp" onclick="guardarSSH()">Save connection</button><button class="bg" onclick="limpiarFormSSH()">Clear</button></div>
+        <div class="fg3" style="gap:8px">
+          <div><label class="lbl">Alias</label><input id="ssh-alias" placeholder="home-nas" class="inp"></div>
+          <div><label class="lbl">Host / IP</label><input id="ssh-host" placeholder="192.168.1.50" class="inp"></div>
+          <div><label class="lbl">Port</label><input id="ssh-puerto" value="22" type="number" class="inp"></div>
+        </div>
+        <div class="fg2" style="gap:8px;margin-top:8px">
+          <div><label class="lbl">User</label><input id="ssh-usuario" placeholder="juan" class="inp"></div>
+          <div><label class="lbl">Remote path (source)</label><input id="ssh-ruta" placeholder="/home/juan/fotos" class="inp"></div>
+        </div>
+        <div class="fg2" style="gap:8px;margin-top:8px">
+          <div><label class="lbl">Remote path (dest)</label><input id="ssh-ruta-dest" placeholder="only if role=ambos" disabled class="inp"><div id="ssh-ruta-dest-hint" style="font-size:10px;color:var(--ink5);margin-top:3px"></div></div>
+          <div><label class="lbl">Private key</label><input id="ssh-clave" placeholder="~/.ssh/id_rsa (optional)" class="inp"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:180px 1fr;gap:8px;margin-top:8px">
+          <div><label class="lbl">Role</label><select id="ssh-rol" onchange="onRolChange()" class="inp"></select><div id="ssh-rol-hint" style="font-size:10px;color:var(--ink5);margin-top:3px"></div></div>
+        </div>
+        <div style="display:flex;gap:7px;margin-top:14px"><button class="bp" onclick="guardarSSH()">Save connection</button><button class="bg" onclick="limpiarFormSSH()">Clear</button></div>
         <div id="ssh-msg" class="msg"></div>
       </div>
       <div class="card"><div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Saved connections</div><div style="overflow-x:auto"><table id="ssh-table" class="tbl"><thead><tr><th>Alias</th><th>Host</th><th>User</th><th>Source</th><th>Dest</th><th>Role</th><th></th></tr></thead><tbody></tbody></table></div></div>
@@ -299,70 +779,76 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 
     <!-- WEBDAV -->
     <section data-s="webdav">
-      <h1 style="font-size:24px;font-weight:800;letter-spacing:-.03em;margin-bottom:3px">WebDAV</h1>
-      <p style="font-size:13px;color:var(--ink3);margin-bottom:22px">Mount phone drives to access photos.</p>
-      <div class="notice" style="background:#fefce8;border:1px solid #fde68a;color:#854d0e;margin-bottom:14px"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span><code style="background:#fde68a">net use</code> only works on Windows. May take up to 20s.</span></div>
-      <div class="card" style="margin-bottom:14px"><div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 7h3a5 5 0 010 10h-3m-6 0H6A5 5 0 016 7h3"/><line x1="8" y1="12" x2="16" y2="12"/></svg>New connection</div><div style="display:grid;grid-template-columns:90px 2fr 80px 2fr;gap:10px"><div><label class="lbl">Drive</label><select id="wd-letra" class="inp"></select></div><div><label class="lbl">Phone IP</label><input id="wd-ip" placeholder="192.168.1.133" class="inp"></div><div><label class="lbl">Port</label><input id="wd-puerto" value="8080" class="inp"></div><div><label class="lbl">Alias</label><input id="wd-alias" placeholder="Nothing Phone 1" class="inp"></div></div><div style="margin-top:16px"><button class="bp" id="btn-wd-conectar" onclick="conectarWD()">Connect drive</button></div><div id="wd-msg" class="msg"></div></div>
+      <div class="ph"><div><div class="ph-title">WebDAV</div><div class="ph-sub">Mount phone drives over Wi-Fi</div></div></div>
+      <div class="notice" style="margin-bottom:12px"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span><code style="background:rgba(251,191,36,.15);padding:1px 4px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:10px">net use</code> only works on Windows. May take up to 20s.</span></div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 7h3a5 5 0 010 10h-3m-6 0H6A5 5 0 016 7h3"/><line x1="8" y1="12" x2="16" y2="12"/></svg>New connection</div>
+        <div style="display:grid;grid-template-columns:90px minmax(0,2fr) 80px minmax(0,2fr);gap:8px">
+          <div><label class="lbl">Drive</label><select id="wd-letra" class="inp"></select></div>
+          <div><label class="lbl">Phone IP</label><input id="wd-ip" placeholder="192.168.1.133" class="inp"></div>
+          <div><label class="lbl">Port</label><input id="wd-puerto" value="8080" class="inp"></div>
+          <div><label class="lbl">Phone name</label><input id="wd-alias" placeholder="Nothing Phone 1" class="inp"></div>
+        </div>
+        <div style="margin-top:12px"><button class="bp" id="btn-wd-conectar" onclick="conectarWD()">Connect drive</button></div>
+        <div id="wd-msg" class="msg"></div>
+      </div>
       <div class="card"><div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Mounted drives</div><div style="overflow-x:auto"><table id="wd-table" class="tbl"><thead><tr><th>Drive</th><th>Alias</th><th>IP</th><th>Port</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div></div>
     </section>
 
     <!-- FOLDERS -->
     <section data-s="folders">
-      <h1 style="font-size:24px;font-weight:800;letter-spacing:-.03em;margin-bottom:3px">Folders</h1>
-      <p style="font-size:13px;color:var(--ink3);margin-bottom:22px">Source and destination directories.</p>
-      <div class="card" style="margin-bottom:14px"><div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Source folders</div><p style="font-size:11px;color:var(--ink4);margin:-6px 0 12px">Directories scanned for captures.</p><div id="carpetas-origen-list" style="display:flex;flex-wrap:wrap;gap:6px"></div><div style="display:flex;gap:8px;margin-top:12px"><input id="nueva-carpeta" placeholder="/mnt/nothing/DCIM  or  Z:\DCIM" class="inp" style="flex:1" onkeydown="if(event.key==='Enter')addCarpeta()"><button class="bp" onclick="addCarpeta()">Add folder</button></div><div id="carpetas-msg" class="msg"></div></div>
-      <div class="card"><div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Destination</div><p style="font-size:11px;color:var(--ink4);margin:-6px 0 12px">Where organized files are stored.</p><div style="display:grid;grid-template-columns:140px 1fr;gap:10px;margin-bottom:12px"><div><label class="lbl">Type</label><select id="dest-tipo" onchange="destTipoChange()" class="inp"><option value="local">Local</option><option value="ssh">SSH Server</option></select></div><div id="dest-local-wrap"><label class="lbl">Local path</label><input id="dest-ruta" placeholder="/home/user/photos_organized" class="inp"></div><div id="dest-ssh-wrap" style="display:none"><label class="lbl">SSH Server</label><select id="dest-ssh-alias" class="inp"><option value="">— loading… —</option></select><div id="dest-ssh-hint" style="font-size:10px;color:var(--ink4);margin-top:3px"></div></div></div><div style="display:flex;gap:8px"><button class="bp" onclick="guardarDestino()">Save destination</button><button class="bd" onclick="quitarDestino()">Remove</button></div><div id="destino-msg" class="msg"></div></div>
+      <div class="ph"><div><div class="ph-title">Folders</div><div class="ph-sub">Source and destination directories</div></div></div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Source folders</div>
+        <p style="font-size:11px;color:var(--ink5);margin:-8px 0 10px">Directories scanned for captures.</p>
+        <div id="carpetas-origen-list" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+        <div style="display:flex;gap:7px;margin-top:10px"><input id="nueva-carpeta" placeholder="/mnt/DCIM  or  Z:\DCIM" class="inp" style="flex:1" onkeydown="if(event.key==='Enter')addCarpeta()"><button class="bp" onclick="addCarpeta()">Add</button></div>
+        <div id="carpetas-msg" class="msg"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Destination</div>
+        <p style="font-size:11px;color:var(--ink5);margin:-8px 0 10px">Where organized files are stored.</p>
+        <div class="fg2" style="gap:8px;margin-bottom:10px;align-items:start">
+          <div><label class="lbl">Type</label><select id="dest-tipo" onchange="destTipoChange()" class="inp"><option value="local">Local folder</option><option value="ssh">SSH server</option></select></div>
+          <div id="dest-local-wrap"><label class="lbl">Path</label><input id="dest-ruta" placeholder="/home/user/photos  or  C:\Photos" class="inp"></div>
+          <div id="dest-ssh-wrap" style="display:none"><label class="lbl">Server</label><select id="dest-ssh-alias" class="inp"><option value="">— loading… —</option></select><div id="dest-ssh-hint" style="font-size:10px;color:var(--ink5);margin-top:3px"></div></div>
+        </div>
+        <div style="display:flex;gap:7px"><button class="bp" onclick="guardarDestino()">Save destination</button><button class="bd" onclick="quitarDestino()">Remove</button></div>
+        <div id="destino-msg" class="msg"></div>
+      </div>
     </section>
+
   </main>
-</div>
+</div><!-- /.content -->
+</div><!-- /.shell -->
 
-<!-- ─── Bulk action toolbar ─── -->
-<div id="bulk-toolbar">
-  <span class="tb-count" id="bulk-count">0 selected</span>
-  <div class="tb-sep"></div>
-  <button class="tb-btn tb-btn-fav" onclick="bulkAction('favourite')">
-    <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-    Favourite
-  </button>
-  <button class="tb-btn tb-btn-unfav" onclick="bulkAction('unfavourite')">
-    <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-    Unfavourite
-  </button>
-  <button class="tb-btn tb-btn-del" onclick="bulkAction('delete')">
-    <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/></svg>
-    Delete
-  </button>
-  <div class="tb-sep"></div>
-  <button class="tb-btn tb-btn-cancel" onclick="selClear()">✕ Cancel</button>
-</div>
-
-<!-- ─── Day Gallery Panel ─── -->
+<!-- ── Day gallery panel ─────────────────────────────────── -->
 <div id="gallery-panel">
-  <div class="gp-header">
+  <div class="gph">
     <div>
-      <div class="gp-title" id="gp-title">—</div>
-      <div class="gp-sub" id="gp-sub"></div>
+      <div id="gp-title" style="font-size:13px;font-weight:700;color:var(--ink)">—</div>
+      <div id="gp-sub" style="font-size:11px;color:var(--ink4);margin-top:1px;font-family:'JetBrains Mono',monospace"></div>
     </div>
-    <button class="gp-close" onclick="closeGallery()"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <button class="gph-close" onclick="closeGallery()">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
   </div>
-  <div class="gp-filters">
-    <button class="gp-filter-btn on" onclick="setFilter('all',this)">All</button>
-    <button class="gp-filter-btn" onclick="setFilter('favourites',this)">❤️ Favourites</button>
-    <span id="gp-count" style="margin-left:auto;font-size:11px;color:var(--ink4);font-weight:600"></span>
+  <div class="gpf">
+    <button class="gpfb on" onclick="setFilter('all',this)">All</button>
+    <button class="gpfb" onclick="setFilter('favourites',this)">❤ Favourites</button>
+    <div id="gp-tag-btns-inner" style="display:contents"></div>
+    <span id="gp-count" style="margin-left:auto;font-size:10px;color:var(--ink5);font-weight:600;font-family:'JetBrains Mono',monospace;padding-left:8px"></span>
   </div>
-  <div class="gp-tags" id="gp-tags" style="display:none">
-    <span style="font-size:9px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Filter by tag:</span>
-    <div id="gp-tag-btns" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+  <div id="gp-tags" style="display:none;padding:6px 16px 8px;border-bottom:1px solid var(--brd);flex-shrink:0">
+    <div id="gp-tag-btns-inner2" style="display:flex;gap:4px;flex-wrap:wrap"></div>
   </div>
-  <div class="gp-grid" id="gp-grid">
-    <div class="gp-loading"><div style="width:24px;height:24px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div></div>
-  </div>
+  <div class="gp-grid" id="gp-grid"></div>
 </div>
 
-<!-- ─── Lightbox ─── -->
+<!-- ── Lightbox ─────────────────────────────────────────── -->
 <div id="lightbox" onclick="lbClickBg(event)">
   <button class="lb-close" onclick="closeLightbox()"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-  <div class="lb-img-wrap">
+  <div class="lb-wrap">
     <button class="lb-nav prev" onclick="lbNav(-1);event.stopPropagation()"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
     <img id="lb-img" src="" alt="">
     <button class="lb-nav next" onclick="lbNav(1);event.stopPropagation()"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
@@ -374,498 +860,29 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   </div>
 </div>
 
-<script>
-const $=id=>document.getElementById(id);
-async function api(p,o={}){const r=await fetch(p,{headers:{'Content-Type':'application/json'},...o,body:o.body!==undefined?JSON.stringify(o.body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||`HTTP ${r.status}`);return d}
-function showMsg(id,t,ok){const e=$(id);e.className='msg '+(ok?'msg-ok':'msg-err');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',5000)}
-function tab(id,b){document.querySelectorAll('[data-s]').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('on'));document.querySelector(`[data-s="${id}"]`).classList.add('on');b.classList.add('on');closeGallery();({gallery:loadDays,ssh:initSSH,webdav:initWebDAV,folders:initCarpetas})[id]?.()}
+<!-- ── Bulk toolbar ─────────────────────────────────────── -->
+<div id="bulk-toolbar">
+  <span class="tbc" id="bulk-count">0 selected</span>
+  <div class="tbsep"></div>
+  <button class="tbb tbb-fav" onclick="bulkAction('favourite')"><svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>Favourite</button>
+  <button class="tbb tbb-unfav" onclick="bulkAction('unfavourite')"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>Unfavourite</button>
+  <button class="tbb tbb-del" onclick="bulkAction('delete')"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>Delete</button>
+  <div class="tbsep"></div>
+  <button class="tbb tbb-cancel" onclick="selClear()">✕ Cancel</button>
+</div>
 
-/* WS */
-const logBox=$('log-box');let ws;
-function conectarWS(){const p=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${p}://${location.host}/ws/log`);
-ws.onmessage=e=>{if(!e.data)return;logBox.textContent+=e.data;logBox.scrollTop=logBox.scrollHeight};
-ws.onopen=()=>{logBox.textContent='';$('srv-status').textContent='Online';$('srv-status').className='sbadge sb-on'};
-ws.onclose=()=>{$('srv-status').textContent='Offline';$('srv-status').className='sbadge sb-off';setTimeout(conectarWS,3000)}}
-conectarWS();
-
-/* ─── Gallery ─── */
-const MN=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-let _allDays=[], _currentView='days', _tlPhotos=[];
-
-function filterDays(q){
-  const g=$('days-grid');g.innerHTML='';
-  const f=q.toLowerCase();
-  const days=f?_allDays.filter(d=>`${d.fecha} ${MN[parseInt(d.mes,10)]} ${d.anio}`.toLowerCase().includes(f)):_allDays;
-  if(!days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--ink4);font-weight:500">${f?'No matches for "'+f+'"':'No photos yet'}</div>`;return}
-  renderDayCards(days,g);
-}
-
-function renderDayCards(days,g){
-  days.forEach((d,i)=>{
-    const m=parseInt(d.mes,10);
-    const el=document.createElement('div');el.className=`dcard m${m}`;el.style.animation=`slideIn .25s ease ${i*25}ms both`;
-    el.innerHTML=`<div class="dcard-head"><span class="dcard-month">${MN[m]} ${d.anio}</span><div class="dcard-count">${d.cantidad_fotos}</div></div><div class="dcard-body"><div class="dcard-day">${parseInt(d.dia,10)}</div><div class="dcard-meta">${d.tamano_total_mb} MB${d.ruta_zip?` <span class="dcard-zip"><svg width="8" height="8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>zipped</span>`:''}</div></div>`;
-    el.onclick=()=>openDayGallery(d);
-    g.appendChild(el);
-  });
-}
-
-// Lazy-loading observer: loads an <img> only when it nears the viewport
-let _imgObserver=null;
-function _ensureObserver(){
-  if(_imgObserver) return _imgObserver;
-  _imgObserver=new IntersectionObserver((entries,obs)=>{
-    entries.forEach(entry=>{
-      if(!entry.isIntersecting) return;
-      const img=entry.target;
-      const real=img.dataset.src;
-      if(real){ img.src=real; img.removeAttribute('data-src'); }
-      obs.unobserve(img);
-    });
-  }, { rootMargin: '300px 0px', threshold: 0.01 });
-  return _imgObserver;
-}
-
-let _showViewToken=0;  // cancels in-flight loads when the view changes
-
-async function showView(view){
-  _currentView=view;
-  selClear();const token=++_showViewToken;
-
-  ['days','all','favs'].forEach(v=>{
-    const b=$('vbtn-'+v);if(!b)return;
-    b.classList.toggle('on',v===view);
-  });
-  $('days-grid').style.display   = view==='days'?'grid':'none';
-  $('timeline-view').style.display = view!=='days'?'block':'none';
-  $('day-filter').style.display  = view==='days'?'':'none';
-
-  if(view==='days'){
-    $('view-count').textContent = _allDays.length+' days';
-    return;
-  }
-
-  // Reset the observer for the new view
-  if(_imgObserver){ _imgObserver.disconnect(); _imgObserver=null; }
-
-  const tv=$('timeline-view');
-  const isFavs = view==='favs';
-  _tlPhotos=[];
-  tv.innerHTML=`<div id="tl-loading" style="text-align:center;padding:24px;color:var(--ink4);font-size:12px"><div style="width:18px;height:18px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite;margin:0 auto 8px"></div>Loading…</div>`;
-
-  let anySection=false;
-
-  // Fetch each day and render its section AS SOON as it arrives — no waiting
-  // for the whole library. Images inside are lazy-loaded via the observer.
-  for(const day of _allDays){
-    if(token!==_showViewToken) return;  // user switched view — abort
-    let photos;
-    try{
-      const d=await api(`/api/days/${day.fecha}/photos`);
-      photos=d.photos||[];
-    }catch(e){ continue; }
-    if(isFavs) photos=photos.filter(p=>p.favourite);
-    if(!photos.length) continue;
-
-    _tlPhotos.push(...photos.map(p=>({...p,_date:day.fecha,_day:day})));
-    _renderTlSection(day, photos, tv);
-    anySection=true;
-    $('view-count').textContent = _tlPhotos.length+' photos';
-  }
-
-  if(token!==_showViewToken) return;
-  const loading=$('tl-loading'); if(loading) loading.remove();
-
-  if(!anySection){
-    tv.innerHTML=`<div style="text-align:center;padding:64px;color:var(--ink4)"><div style="font-weight:600;font-size:14px">${isFavs?'No favourites yet':'No photos found'}</div></div>`;
-  }
-}
-
-function _renderTlSection(day, photos, tv){
-  const obs=_ensureObserver();
-  const m=parseInt(day.mes,10);
-  const sec=document.createElement('div');sec.className='tl-section';
-  const dateLabel=`${MN[m]} ${parseInt(day.dia,10)}, ${day.anio}`;
-  sec.innerHTML=`<div class="tl-date">${dateLabel} <span>${photos.length} photos · ${day.tamano_total_mb} MB</span></div><div class="tl-grid"></div>`;
-  // insert before the loading spinner if present, else append
-  const loading=$('tl-loading');
-  if(loading) tv.insertBefore(sec, loading); else tv.appendChild(sec);
-  const grid=sec.querySelector('.tl-grid');
-
-  photos.forEach(ph=>{
-    const div=document.createElement('div');div.className='tl-thumb';div.dataset.photoId=ph.id;
-    const img=document.createElement('img');img.className='loading';img.alt=ph.filename;
-    // data-src instead of src — the observer sets src when it scrolls into view
-    img.dataset.src=`/api/thumb?path=${encodeURIComponent(ph.id)}&size=250`;
-    img.onload=()=>img.classList.replace('loading','loaded');
-    obs.observe(img);
-    const favBtn=document.createElement('button');favBtn.className='tl-thumb-fav'+(ph.favourite?' fav':'');
-    favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
-    favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(ph);favBtn.classList.toggle('fav',ph.favourite);$('stat-favs').textContent=_tlPhotos.filter(x=>x.favourite).length;};
-    div.appendChild(img);div.appendChild(favBtn);
-    // Add selection checkbox overlay
-    const chk=document.createElement('div');chk.className='sel-check';div.appendChild(chk);
-    div.onclick=(e)=>{
-      if(e.target===favBtn||favBtn.contains(e.target)) return;
-      if(_selThumb(div,ph,e)) return;
-      const tlIdx=_tlPhotos.findIndex(x=>x.id===ph.id);
-      openLightbox(tlIdx, _tlPhotos, 'timeline');
-    };
-    div.oncontextmenu=(e)=>{e.preventDefault();_selMode=true;_selThumb(div,ph,{shiftKey:false});};
-    grid.appendChild(div);
-  });
-}
-async function loadDays(){
-  try{
-    const d=await api('/api/days');
-    const f=await api('/api/favourites');
-    const tg=await api('/api/tags').catch(()=>({tags:[]}));
-    _allDays=d.days;
-    $('stat-days').textContent=d.total_days;
-    $('stat-photos').textContent=d.total_photos.toLocaleString();
-    $('stat-favs').textContent=(f.favourites||[]).length;
-    $('stat-size').textContent=d.total_mb.toLocaleString();
-    $('day-filter').value='';
-    const g=$('days-grid');
-    g.innerHTML='';
-    if(!d.days.length){
-      g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:64px 20px;color:var(--ink4)">
-        <svg style="width:52px;height:52px;margin:0 auto 14px;color:var(--ink5)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
-          <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-        </svg>
-        <div style="font-weight:700;font-size:15px;margin-bottom:4px">No photos organized yet</div>
-        <div style="font-size:12px">Run the Pipeline to scan and organize.</div>
-      </div>`;
-      return;
-    }
-    renderDayCards(d.days,g);
-    $('view-count').textContent=d.total_days+' days';
-    const cloud=$('tag-cloud');
-    cloud.innerHTML='';
-    (tg.tags||[]).slice(0,20).forEach(({tag,count})=>{
-      const b=document.createElement('button');
-      b.className='tag-chip '+tag;
-      b.style.cssText='cursor:pointer;border:1.5px solid transparent;transition:.15s;font-size:10px;padding:3px 10px';
-      b.textContent=tag+' '+count;
-      cloud.appendChild(b);
-    });
-  }catch(e){
-    $('days-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:#dc2626">
-      <div style="font-weight:700;font-size:15px;margin-bottom:6px">Could not load gallery</div>
-      <div style="font-size:12px;color:var(--ink3);margin-bottom:12px">${e.message}</div>
-      <button onclick="loadDays()" class="bg" style="font-size:11px">Retry</button>
-    </div>`;
-  }
-}
-loadDays();
-
-/* ─── Day Gallery Panel ─── */
-let _gpPhotos=[],_gpFilter='all',_gpTagFilter='',_gpDate='';
-async function openDayGallery(day){
-  _gpDate=day.fecha;_gpFilter='all';_gpTagFilter='';
-  document.querySelectorAll('.gp-filter-btn').forEach(b=>b.classList.remove('on'));
-  document.querySelector('.gp-filter-btn').classList.add('on');
-  $('gp-title').textContent=`${MN[parseInt(day.mes,10)]} ${parseInt(day.dia,10)}, ${day.anio}`;
-  $('gp-sub').textContent='Loading photos…';
-  $('gp-grid').innerHTML='<div class="gp-loading"><div style="width:24px;height:24px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div></div>';
-  $('gallery-panel').classList.add('open');
-  try{
-    const d=await api(`/api/days/${day.fecha}/photos`);
-    _gpPhotos=d.photos;
-    $('gp-sub').textContent=d.count>0?`${d.count} photos · ${day.tamano_total_mb} MB`:(d.exists?`Folder found but no photos`:`Folder not found`);
-    if(!d.exists){$('gp-grid').innerHTML=`<div class="gp-empty" style="color:#b45309"><b>Folder not found:</b><br><code style="font-size:10px;word-break:break-all">${d.folder||''}</code><br><br>Run <b>Organize</b> in the Pipeline tab to populate this folder.</div>`;return;}
-    // Build tag filter buttons from distinct tags in this day
-    const allTags=[...new Set(d.photos.flatMap(p=>p.tags||[]))].sort();
-    const tagBtns=$('gp-tag-btns');tagBtns.innerHTML='';
-    if(allTags.length){
-      $('gp-tags').style.display='flex';
-      allTags.forEach(t=>{
-        const b=document.createElement('button');b.className='gp-tag-filter tag-chip '+t;b.textContent=t;
-        b.onclick=()=>{
-          if(b.classList.contains('on')){b.classList.remove('on');_gpTagFilter=''}
-          else{document.querySelectorAll('.gp-tag-filter').forEach(x=>x.classList.remove('on'));b.classList.add('on');_gpTagFilter=t}
-          renderGpGrid();
-        };
-        tagBtns.appendChild(b);
-      });
-    }else{$('gp-tags').style.display='none'}
-    renderGpGrid();
-  }catch(e){
-    $('gp-grid').innerHTML=`<div class="gp-empty">${e.message}</div>`;
-  }
-}
-function closeGallery(){$('gallery-panel').classList.remove('open');_gpPhotos=[];_gpDate='';selClear();}
-function setFilter(f,btn){_gpFilter=f;_gpTagFilter='';document.querySelectorAll('.gp-filter-btn').forEach(b=>b.classList.remove('on'));document.querySelectorAll('.gp-tag-filter').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderGpGrid()}
-function renderGpGrid(){
-  const g=$('gp-grid');g.innerHTML='';
-  let photos=_gpFilter==='favourites'?_gpPhotos.filter(p=>p.favourite):_gpPhotos;
-  if(_gpTagFilter)photos=photos.filter(p=>(p.tags||[]).includes(_gpTagFilter));
-  $('gp-count').textContent=photos.length+' photos';
-  if(!photos.length){g.innerHTML=`<div class="gp-empty">${_gpFilter==='favourites'?'No favourites yet — tap ♥ on any photo':'No photos found'}</div>`;return}
-  photos.forEach((p,i)=>{
-    const div=document.createElement('div');div.className='gp-photo';div.style.animation=`slideIn .2s ease ${i*15}ms both`;
-    const img=document.createElement('img');img.className='loading';img.alt=p.filename;
-    img.onload=()=>img.classList.replace('loading','loaded');
-    img.dataset.src=`/api/thumb?path=${encodeURIComponent(p.id)}&size=400`;
-    _ensureObserver().observe(img);
-    const favBtn=document.createElement('button');favBtn.className='gp-photo-fav'+(p.favourite?' fav':'');
-    favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
-    favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(p);favBtn.classList.toggle('fav',p.favourite)};
-    // Tag chips shown on hover at bottom
-    if(p.tags&&p.tags.length){
-      const tc=document.createElement('div');tc.style.cssText='position:absolute;bottom:0;left:0;right:0;padding:4px 6px;display:flex;gap:3px;flex-wrap:wrap;background:linear-gradient(transparent,#0008);opacity:0;transition:opacity .2s';
-      p.tags.slice(0,3).forEach(t=>{const s=document.createElement('span');s.className='tag-chip '+t;s.textContent=t;tc.appendChild(s)});
-      div.onmouseenter=()=>tc.style.opacity='1';div.onmouseleave=()=>tc.style.opacity='0';
-      div.appendChild(tc);
-    }
-    div.appendChild(img);div.appendChild(favBtn);
-    div.dataset.photoId=p.id;
-    const chk2=document.createElement('div');chk2.className='sel-check';div.appendChild(chk2);
-    div.onclick=(e)=>{
-      if(e.target===favBtn||favBtn.contains(e.target)) return;
-      if(_selThumb(div,p,e)) return;
-      const idx=_gpFilter==='favourites'?_gpPhotos.filter(x=>x.favourite).indexOf(p):_gpPhotos.indexOf(p);
-      openLightbox(idx);
-    };
-    div.oncontextmenu=(e)=>{e.preventDefault();_selMode=true;_selThumb(div,p,{shiftKey:false});};
-    g.appendChild(div);
-  });
-}
-async function toggleFav(photo){
-  photo.favourite=!photo.favourite;
-  await api('/api/favourites',{method:'POST',body:{path:photo.id,favourite:photo.favourite}});
-  // Update fav count in stats
-  const favCount=_gpPhotos.filter(p=>p.favourite).length;
-  $('stat-favs').textContent=favCount;
-}
-
-/* ─── Lightbox ─── */
-let _lbIdx=0, _lbPhotos=[], _lbSource='panel', _lbLoadId=0;
-
-// openLightbox(idx, photos?, source?)
-//   photos  — array to navigate (defaults to panel photos)
-//   source  — 'panel' | 'timeline' (controls which grid to sync)
-function openLightbox(idx, photos, source){
-  if(photos) _lbPhotos=photos;
-  else _lbPhotos=_gpFilter==='favourites'?_gpPhotos.filter(p=>p.favourite):_gpPhotos;
-  _lbSource = source || 'panel';
-  _lbIdx = Math.max(0, Math.min(idx, _lbPhotos.length-1));
-  $('lightbox').classList.add('open');
-  document.body.style.overflow='hidden';
-  renderLb();
-}
-
-function closeLightbox(){
-  $('lightbox').classList.remove('open');
-  document.body.style.overflow='';
-}
-
-function lbClickBg(e){
-  if(e.target===$('lightbox')) closeLightbox();
-}
-
-function lbNav(dir){
-  if(!_lbPhotos.length) return;
-  _lbIdx=(_lbIdx+dir+_lbPhotos.length)%_lbPhotos.length;
-  renderLb();
-}
-
-function renderLb(){
-  const photo=_lbPhotos[_lbIdx];
-  if(!photo) return;
-
-  // Use a load-ID so stale onload callbacks from previous nav are ignored
-  const loadId=++_lbLoadId;
-  const img=$('lb-img');
-
-  // Fade out current image immediately
-  img.style.transition='none';
-  img.style.opacity='0';
-
-  // Remove old handler to prevent accumulation
-  img.onload=null;
-  img.onerror=null;
-
-  img.onload=()=>{
-    if(loadId!==_lbLoadId) return; // stale — a newer nav happened
-    img.style.transition='opacity .18s ease';
-    img.style.opacity='1';
-  };
-  img.onerror=()=>{
-    if(loadId!==_lbLoadId) return;
-    img.style.opacity='1'; // show broken image rather than blank
-  };
-
-  img.src=`/api/photo?path=${encodeURIComponent(photo.id)}`;
-
-  // Update UI immediately (don't wait for image to load)
-  const fb=$('lb-fav-btn');
-  fb.classList.toggle('fav', !!photo.favourite);
-  const tagStr=(photo.tags||[]).slice(0,4).join('  ·  ');
-  $('lb-info').textContent=photo.filename
-    +(photo.capture_date?'  ·  '+photo.capture_date.slice(0,10):'')
-    +(tagStr?'  ·  '+tagStr:'');
-  $('lb-counter').textContent=`${_lbIdx+1} / ${_lbPhotos.length}`;
-}
-
-async function lbToggleFav(){
-  const photo=_lbPhotos[_lbIdx]; if(!photo) return;
-  await toggleFav(photo);
-  $('lb-fav-btn').classList.toggle('fav', !!photo.favourite);
-  // Sync the correct grid
-  if(_lbSource==='panel') renderGpGrid();
-  // For timeline: update the specific thumb
-  if(_lbSource==='timeline'){
-    const thumb=document.querySelector(`[data-photo-id="${CSS.escape(photo.id)}"]`);
-    if(thumb) thumb.classList.toggle('fav', photo.favourite);
-    $('stat-favs').textContent=_tlPhotos.filter(x=>x.favourite).length;
-  }
-}
-
-document.addEventListener('keydown',e=>{
-  if(!$('lightbox').classList.contains('open')) return;
-  if(e.key==='ArrowLeft')  { e.preventDefault(); lbNav(-1); }
-  if(e.key==='ArrowRight') { e.preventDefault(); lbNav(1);  }
-  if(e.key==='Escape')     closeLightbox();
-  if(e.key===' ')          { e.preventDefault(); lbToggleFav(); }
-});
-
-/* ─── Multi-select ─── */
-let _selPaths=new Set(), _selMode=false, _lastSelEl=null;
-
-function _selThumb(div, ph, e){
-  // enter selection mode on long-press or shift-click or if already active
-  if(!_selMode && !e.shiftKey) return false;
-  _selMode=true;
-  if(e.shiftKey && _lastSelEl){
-    // range selection: select all thumbs between _lastSelEl and div
-    const allThumbs=[...document.querySelectorAll('.tl-thumb,.gp-photo')];
-    const a=allThumbs.indexOf(_lastSelEl), b=allThumbs.indexOf(div);
-    const [lo,hi]=[Math.min(a,b),Math.max(a,b)];
-    allThumbs.slice(lo,hi+1).forEach(el=>{
-      const id=el.dataset.photoId;
-      if(id){_selPaths.add(id);el.classList.add('selected');}
-    });
-  }else{
-    if(_selPaths.has(ph.id)){_selPaths.delete(ph.id);div.classList.remove('selected');}
-    else{_selPaths.add(ph.id);div.classList.add('selected');}
-    _lastSelEl=div;
-  }
-  _selUpdateToolbar();
-  return true;
-}
-
-function _selUpdateToolbar(){
-  const n=_selPaths.size;
-  $('bulk-count').textContent=n+' selected';
-  $('bulk-toolbar').classList.toggle('show', n>0);
-  if(n===0){_selMode=false;_lastSelEl=null;}
-}
-
-function selClear(){
-  _selPaths.clear();_selMode=false;_lastSelEl=null;
-  document.querySelectorAll('.tl-thumb.selected,.gp-photo.selected')
-    .forEach(el=>el.classList.remove('selected'));
-  $('bulk-toolbar').classList.remove('show');
-}
-
-async function bulkAction(action){
-  if(!_selPaths.size) return;
-  const paths=[..._selPaths];
-  if(action==='delete'){
-    if(!confirm(`Move ${paths.length} photo(s) to trash?`)) return;
-  }
-  try{
-    const r=await api('/api/photos/bulk',{method:'POST',body:{paths,action}});
-    if(action==='delete'){
-      // Remove deleted thumbs from DOM
-      paths.forEach(id=>{
-        document.querySelectorAll(`[data-photo-id="${CSS.escape(id)}"]`)
-          .forEach(el=>el.closest('.tl-thumb,.gp-photo')?.remove());
-        _tlPhotos=_tlPhotos.filter(x=>x.id!==id);
-        _gpPhotos=_gpPhotos.filter(x=>x.id!==id);
-      });
-      // Update stat cards
-      await loadDays();
-    }else{
-      // Update fav state on visible thumbs
-      paths.forEach(id=>{
-        const isFav=action==='favourite';
-        document.querySelectorAll(`[data-photo-id="${CSS.escape(id)}"]`)
-          .forEach(el=>{
-            const btn=el.closest('.tl-thumb,.gp-photo')?.querySelector('.tl-thumb-fav,.gp-photo-fav');
-            if(btn) btn.classList.toggle('fav',isFav);
-          });
-        // Update in memory arrays
-        [_tlPhotos,_gpPhotos].forEach(arr=>{
-          const ph=arr.find(x=>x.id===id); if(ph) ph.favourite=isFav;
-        });
-      });
-      $('stat-favs').textContent=_tlPhotos.filter(x=>x.favourite).length||
-        _gpPhotos.filter(x=>x.favourite).length;
-    }
-    selClear();
-  }catch(err){
-    alert('Action failed: '+err.message);
-  }
-}
-
-/* ─── Pipeline ─── */
-async function initPipeline(){const p=await api('/api/pasos');const g=$('paso-checks');g.innerHTML='';p.forEach(x=>{const l=document.createElement('label');l.className='step-card';l.innerHTML=`<input type="checkbox" value="${x.id}" checked><span>${x.nombre}</span>`;g.appendChild(l)});pollEstado()}initPipeline();
-let pt;async function pollEstado(){const{corriendo}=await api('/api/pipeline/estado');setPipelineUI(corriendo);if(corriendo)pt=setTimeout(pollEstado,1500)}
-async function runPipeline(a){const c=[...document.querySelectorAll('#paso-checks input:checked')];const p=a?null:c.map(x=>+x.value);if(!a&&p.length===0)return;try{await api('/api/pipeline/ejecutar',{method:'POST',body:{pasos:p}});setPipelineUI(true);pt=setTimeout(pollEstado,1500)}catch(e){$('pipeline-status').textContent=e.message}}
-function setPipelineUI(r){$('spinner').style.display=r?'block':'none';$('pipeline-status').textContent=r?'Running pipeline…':'Ready.';$('btn-run-sel').disabled=r;$('btn-run-all').disabled=r;const d=$('dot-pipeline');if(d){d.className='conn-dot'+(r?' live':'');d.style.display=r?'block':'none'}}
-
-/* ─── SSH ─── */
-let _sr={};async function initSSH(){_sr=await api('/api/ssh/roles');const s=$('ssh-rol');s.innerHTML='';_sr.roles.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;s.appendChild(o)});onRolChange();await renderSSH()}
-async function renderSSH(){const l=await api('/api/ssh');const tb=document.querySelector('#ssh-table tbody');tb.innerHTML='';if(!l.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--ink4);font-size:13px">No SSH connections yet</td></tr>';return}l.forEach(c=>{const tc={origen:'tag-origen',destino:'tag-destino',ambos:'tag-ambos'}[c.rol]||'';const tr=document.createElement('tr');tr.innerHTML=`<td><a href="#" onclick="editSSH(${JSON.stringify(c).replace(/"/g,'&quot;')});return false" style="color:var(--b);font-weight:600;text-decoration:none">${c.alias}</a></td><td>${c.host}:${c.puerto}</td><td>${c.usuario}</td><td style="font-family:'Space Mono';font-size:11px;color:var(--ink3)">${c.ruta_remota}</td><td style="font-family:'Space Mono';font-size:11px;color:var(--ink3)">${c.ruta_remota_destino||'—'}</td><td><span class="tag ${tc}">${c.rol}</span></td><td><button onclick="borrarSSH('${c.alias}')" style="font-size:11px;color:#dc2626;background:none;border:none;cursor:pointer;font-weight:600">Delete</button></td>`;tb.appendChild(tr)})}
-function onRolChange(){const r=$('ssh-rol').value,d=$('ssh-ruta-dest'),s=_sr;d.disabled=!(s.requiere_ruta_destino||[]).includes(r);$('ssh-rol-hint').textContent=(s.descripcion||{})[r]||'';const o=(s.ruta_destino_obligatoria||[]).includes(r);d.placeholder=o?'REQUIRED: different from source':'optional: empty = use source';$('ssh-ruta-dest-hint').textContent=o?'Must differ from source to avoid re-scan loops.':''}
-function editSSH(c){$('ssh-alias').value=c.alias;$('ssh-host').value=c.host;$('ssh-puerto').value=c.puerto;$('ssh-usuario').value=c.usuario;$('ssh-ruta').value=c.ruta_remota;$('ssh-ruta-dest').value=c.ruta_remota_destino||'';$('ssh-clave').value='';$('ssh-clave').placeholder=c.tiene_clave?'(configured — empty to keep)':'~/.ssh/id_rsa';$('ssh-rol').value=c.rol;onRolChange();document.querySelector('[data-s="ssh"] .card').scrollIntoView({behavior:'smooth'})}
-async function guardarSSH(){try{await api('/api/ssh',{method:'POST',body:{alias:$('ssh-alias').value.trim(),host:$('ssh-host').value.trim(),puerto:+$('ssh-puerto').value||22,usuario:$('ssh-usuario').value.trim(),ruta_remota:$('ssh-ruta').value.trim(),ruta_remota_destino:$('ssh-ruta-dest').value.trim(),clave_privada:$('ssh-clave').value.trim(),rol:$('ssh-rol').value}});showMsg('ssh-msg','Connection saved.',true);limpiarFormSSH();renderSSH()}catch(e){showMsg('ssh-msg',e.message,false)}}
-async function borrarSSH(a){if(!confirm('Delete "'+a+'"?'))return;await api('/api/ssh/'+encodeURIComponent(a),{method:'DELETE'});renderSSH()}
-function limpiarFormSSH(){['ssh-alias','ssh-host','ssh-usuario','ssh-ruta','ssh-ruta-dest','ssh-clave'].forEach(i=>$(i).value='');$('ssh-puerto').value='22';if($('ssh-rol').options.length){$('ssh-rol').selectedIndex=0;onRolChange()}}
-
-/* ─── WebDAV ─── */
-async function initWebDAV(){const{libres}=await api('/api/webdav/letras');const s=$('wd-letra');s.innerHTML='';(libres.length?libres:['Z:']).forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;s.appendChild(o)});await renderWD()}
-async function renderWD(){const l=await api('/api/webdav');const tb=document.querySelector('#wd-table tbody');tb.innerHTML='';if(!l.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink4);font-size:13px">No WebDAV drives</td></tr>';return}l.forEach(c=>{const ok=c.montada;const tr=document.createElement('tr');tr.innerHTML=`<td style="font-weight:600">${c.letra}</td><td>${c.alias||''}</td><td style="font-family:'Space Mono';font-size:12px">${c.ip}</td><td>${c.puerto}</td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:${ok?'#22c55e':'#ef4444'}${ok?';box-shadow:0 0 6px #22c55e60':''}"></span>${ok?'Connected':'Disconnected'}</span></td><td>${ok?`<button onclick="disconnectWD('${c.letra}')" style="font-size:11px;color:#dc2626;background:none;border:none;cursor:pointer;font-weight:600">Disconnect</button>`:'—'}</td>`;tb.appendChild(tr)})}
-async function conectarWD(){const b=$('btn-wd-conectar');b.disabled=true;b.textContent='Connecting…';try{const r=await api('/api/webdav/connect',{method:'POST',body:{letra:$('wd-letra').value,ip:$('wd-ip').value.trim(),puerto:$('wd-puerto').value.trim()||'8080',alias:$('wd-alias').value.trim()}});showMsg('wd-msg',r.mensaje,r.ok);await initWebDAV()}catch(e){showMsg('wd-msg',e.message,false)}finally{b.disabled=false;b.textContent='Connect drive'}}
-async function disconnectWD(l){const r=await api('/api/webdav/disconnect/'+encodeURIComponent(l),{method:'POST'});showMsg('wd-msg',r.mensaje,r.ok);await initWebDAV()}
-
-/* ─── Folders ─── */
-async function initCarpetas(){const d=await api('/api/carpetas');renderOrigen(d.origen);renderDestinoSSH(d.servidores_ssh_destino);const c=d.destino||{};if(c.tipo==='ssh'){$('dest-tipo').value='ssh';destTipoChange();$('dest-ssh-alias').value=c.alias||''}else{$('dest-tipo').value='local';destTipoChange();$('dest-ruta').value=c.ruta||''}}
-function renderOrigen(l){const c=$('carpetas-origen-list');c.innerHTML='';if(!l||!l.length){c.innerHTML='<span style="font-size:12px;color:var(--ink4)">No source folders added.</span>';return}l.forEach(p=>{const d=document.createElement('div');d.className='pill';d.innerHTML=`<span>${p}</span><button onclick="quitarCarpeta('${p.replace(/'/g,"\\'")}',this.parentNode)">&times;</button>`;c.appendChild(d)})}
-function renderDestinoSSH(s){const sel=$('dest-ssh-alias'),pv=sel.value;sel.innerHTML='<option value="">— choose server —</option>';(s||[]).forEach(x=>{const o=document.createElement('option');o.value=x.alias;o.textContent=x.alias+' ('+x.host+')';if(x.alias===pv)o.selected=true;sel.appendChild(o)});$('dest-ssh-hint').textContent=s&&!s.length?'No SSH servers with dest/ambos role.':''}
-async function addCarpeta(){const v=$('nueva-carpeta').value.trim();if(!v)return;try{const d=await api('/api/carpetas/origen/anadir',{method:'POST',body:{carpeta:v}});$('nueva-carpeta').value='';renderOrigen(d.origen);showMsg('carpetas-msg','Folder added.',true)}catch(e){showMsg('carpetas-msg',e.message,false)}}
-async function quitarCarpeta(c,el){try{await api('/api/carpetas/origen/quitar',{method:'POST',body:{carpeta:c}});el.remove();const ct=$('carpetas-origen-list');if(!ct.children.length)ct.innerHTML='<span style="font-size:12px;color:var(--ink4)">No source folders added.</span>';showMsg('carpetas-msg','Folder removed.',true)}catch(e){showMsg('carpetas-msg',e.message,false)}}
-function destTipoChange(){$('dest-local-wrap').style.display=$('dest-tipo').value==='local'?'':'none';$('dest-ssh-wrap').style.display=$('dest-tipo').value==='ssh'?'':'none'}
-async function guardarDestino(){const t=$('dest-tipo').value,b=t==='local'?{tipo:'local',ruta:$('dest-ruta').value.trim()}:{tipo:'ssh',alias:$('dest-ssh-alias').value};try{await api('/api/carpetas/destino',{method:'POST',body:b});showMsg('destino-msg','Destination saved.',true)}catch(e){showMsg('destino-msg',e.message,false)}}
-async function quitarDestino(){if(!confirm('Remove destination?'))return;try{await api('/api/carpetas/destino/quitar',{method:'POST'});$('dest-ruta').value='';$('dest-ssh-alias').value='';showMsg('destino-msg','Destination removed.',true)}catch(e){showMsg('destino-msg',e.message,false)}}
-</script>
-
-<!-- ─── First-run Setup Wizard ─── -->
-<div id="wizard" style="display:none;position:fixed;inset:0;z-index:600;background:#0007;backdrop-filter:blur(4px);animation:fadeIn .25s ease">
-  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,95vw);background:var(--card);border-radius:20px;box-shadow:0 32px 80px #0003;overflow:hidden">
-
-    <!-- Progress bar -->
-    <div style="height:3px;background:var(--brd)"><div id="wiz-bar" style="height:100%;background:linear-gradient(90deg,var(--b),var(--b2));transition:width .4s ease;width:0%"></div></div>
-
-    <!-- Header -->
-    <div style="padding:28px 28px 0;display:flex;justify-content:space-between;align-items:flex-start">
-      <div>
-        <div style="font-size:11px;font-weight:700;color:var(--b);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Setup wizard</div>
-        <div id="wiz-title" style="font-size:20px;font-weight:800;letter-spacing:-.02em"></div>
-        <div id="wiz-sub" style="font-size:13px;color:var(--ink3);margin-top:4px"></div>
-      </div>
-      <div id="wiz-step-badge" style="background:var(--bg);border:1px solid var(--brd);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--ink4);white-space:nowrap"></div>
+<!-- ── Wizard ───────────────────────────────────────────── -->
+<div id="wizard">
+  <div class="wiz-card">
+    <div class="wiz-prog"><div class="wiz-bar" id="wiz-bar" style="width:0%"></div></div>
+    <div class="wiz-head">
+      <div><div class="wiz-lbl">Setup wizard</div><div class="wiz-title" id="wiz-title"></div><div class="wiz-sub" id="wiz-sub"></div></div>
+      <div class="wiz-badge" id="wiz-step-badge"></div>
     </div>
-
-    <!-- Body -->
-    <div id="wiz-body" style="padding:20px 28px 8px;min-height:200px"></div>
-
-    <!-- Footer -->
-    <div style="padding:16px 28px 24px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--brd);margin-top:8px">
-      <button id="wiz-skip" onclick="wizSkip()" style="font-size:12px;color:var(--ink4);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:3px">Skip setup</button>
-      <div style="display:flex;gap:8px">
+    <div class="wiz-body" id="wiz-body"></div>
+    <div class="wiz-foot">
+      <button class="wiz-skip" onclick="wizSkip()">Skip setup</button>
+      <div style="display:flex;gap:7px">
         <button id="wiz-back" onclick="wizNav(-1)" class="bg" style="display:none">← Back</button>
         <button id="wiz-next" onclick="wizNav(1)" class="bp">Next →</button>
       </div>
@@ -874,319 +891,242 @@ async function quitarDestino(){if(!confirm('Remove destination?'))return;try{awa
 </div>
 
 <script>
-// ─── Setup Wizard ────────────────────────────────────────────────────────────
-const WIZ_STEPS = [
-  {
-    title: "Welcome to Photos Sync",
-    sub: "Let's get you set up in 3 quick steps.",
-    id: "welcome",
-    render: () => `
-      <div style="text-align:center;padding:12px 0">
-        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--b),var(--b2));display:grid;place-items:center;margin:0 auto 16px;box-shadow:0 4px 20px #0b6bcb30">
-          <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="1.8"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+
+const $=id=>document.getElementById(id);
+async function api(p,o={}){const r=await fetch(p,{headers:{'Content-Type':'application/json'},...o,body:o.body!==undefined?JSON.stringify(o.body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||`HTTP ${r.status}`);return d}
+function showMsg(id,t,ok){const e=$(id);e.className='msg '+(ok?'msg-ok':'msg-err');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',5000)}
+const SNAMES={gallery:'Gallery',pipeline:'Pipeline',ssh:'SSH Servers',webdav:'WebDAV',folders:'Folders'};
+function tab(id,b){document.querySelectorAll('[data-s]').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));document.querySelector(`[data-s="${id}"]`).classList.add('on');b.classList.add('on');$('bc-section').textContent=SNAMES[id]||id;$('bc-sep2').style.display='none';$('bc-page').style.display='none';closeGallery();({gallery:loadDays,ssh:initSSH,webdav:initWebDAV,folders:initCarpetas})[id]?.();}
+
+const logBox=$('log-box');let ws;
+function conectarWS(){const p=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${p}://${location.host}/ws/log`);
+ws.onmessage=e=>{if(!e.data)return;logBox.textContent+=e.data;logBox.scrollTop=logBox.scrollHeight};
+ws.onopen=()=>{logBox.textContent='';$('srv-status').textContent='Online';$('srv-status').className='sb-status sb-on'};
+ws.onclose=()=>{$('srv-status').textContent='Offline';$('srv-status').className='sb-status sb-off';setTimeout(conectarWS,3000)}}
+conectarWS();
+
+/* ─── Gallery ─── */
+const MN=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const BADGE_COLORS=['','#3b5bdb','#3b5bdb','#12b76a','#12b76a','#12b76a','#f59e0b','#f59e0b','#f59e0b','#ea580c','#ea580c','#ea580c','#7c3aed'];
+const GRAD_STOPS=['','#bae6fd,#38bdf8','#bae6fd,#38bdf8','#bbf7d0,#22c55e','#bbf7d0,#22c55e','#bbf7d0,#22c55e','#fde68a,#f59e0b','#fde68a,#f59e0b','#fde68a,#f59e0b','#fed7aa,#ea580c','#fed7aa,#ea580c','#fed7aa,#ea580c','#c7d2fe,#4338ca'];
+let _allDays=[],_currentView='days',_tlPhotos=[];
+
+function filterDays(q){const g=$('days-grid');g.innerHTML='';const f=q.toLowerCase();const days=f?_allDays.filter(d=>`${d.fecha} ${MN[parseInt(d.mes,10)]} ${d.anio}`.toLowerCase().includes(f)):_allDays;if(!days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--ink4);font-size:13px">${f?'No matches':'No photos yet'}</div>`;return}renderDayCards(days,g);}
+
+function renderDayCards(days,g){
+  days.forEach((d,i)=>{
+    const m=parseInt(d.mes,10);
+    const card=document.createElement('div');card.className='dcard';card.style.animation=`slideIn .2s ease ${Math.min(i,30)*15}ms both`;
+    card.innerHTML=`
+      <div class="dcard-cover">
+        <div class="dcard-shimmer" id="shim-${d.fecha}"></div>
+        <img class="dcard-cover-img" id="cimg-${d.fecha}" alt="">
+        <div class="dcard-cover-overlay"></div>
+        <div class="dcard-badges">
+          <span class="dcard-month">${MN[m]} ${d.anio}</span>
+          <span class="dcard-count"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01"/></svg>${d.cantidad_fotos}</span>
         </div>
-        <div style="font-size:15px;font-weight:600;margin-bottom:8px">Sync · Organize · Classify</div>
-        <div style="font-size:13px;color:var(--ink3);line-height:1.6;max-width:380px;margin:0 auto">
-          Photos Sync connects to your phone over Wi-Fi, organizes photos by date,
-          classifies them automatically, and stores them locally or on a remote server.
+        <div class="dcard-bottom">
+          <div class="dcard-day">${parseInt(d.dia,10)}</div>
         </div>
-        <div style="display:flex;gap:6px;justify-content:center;margin-top:20px;flex-wrap:wrap">
-          ${['Source','Destination','Ready'].map((s,i)=>`
-            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink3)">
-              <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--b),var(--b2));color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center">${i+1}</div>
-              ${s}
-            </div>${i<2?'<div style="color:var(--ink5)">→</div>':''}`).join('')}
-        </div>
-      </div>`
-  },
-  {
-    title: "Connect a photo source",
-    sub: "How will photos reach this computer?",
-    id: "source",
-    render: () => `
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div onclick="wizSelectSource('webdav')" id="opt-webdav" style="border:2px solid var(--brd);border-radius:12px;padding:14px;cursor:pointer;transition:.18s;display:flex;gap:12px;align-items:flex-start">
-          <div style="width:38px;height:38px;border-radius:9px;background:#dbeafe;display:grid;place-items:center;flex-shrink:0">
-            <svg width="19" height="19" fill="none" viewBox="0 0 24 24" stroke="#1d4ed8" stroke-width="1.8"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20"/></svg>
-          </div>
-          <div>
-            <div style="font-size:13px;font-weight:700">WebDAV (Wi-Fi)
-              <span style="font-size:9px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:20px;font-weight:700;margin-left:5px">Recommended</span>
-            </div>
-            <div style="font-size:11px;color:var(--ink3);margin-top:3px;line-height:1.5">
-              Mount your Android as a network drive via <b>CX File Explorer</b> or <b>Total Commander</b>.
-              Same Wi-Fi network. <em>Windows only for mounting.</em>
-            </div>
-          </div>
-        </div>
-        <div onclick="wizSelectSource('ssh')" id="opt-ssh-src" style="border:2px solid var(--brd);border-radius:12px;padding:14px;cursor:pointer;transition:.18s;display:flex;gap:12px;align-items:flex-start">
-          <div style="width:38px;height:38px;border-radius:9px;background:#f0fdf4;display:grid;place-items:center;flex-shrink:0">
-            <svg width="19" height="19" fill="none" viewBox="0 0 24 24" stroke="#15803d" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15l3-3-3-3"/><line x1="14" y1="15" x2="17" y2="15"/></svg>
-          </div>
-          <div>
-            <div style="font-size:13px;font-weight:700">SSH Server</div>
-            <div style="font-size:11px;color:var(--ink3);margin-top:3px;line-height:1.5">
-              Sync from a Linux server or NAS.
-              Requires <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:10px">pip install paramiko</code>. Works on all platforms.
-            </div>
-          </div>
-        </div>
-        <div id="wiz-source-hint" style="font-size:11px;color:var(--ink4);text-align:center;padding:2px 0">
-          Select a source to continue
-        </div>
-      </div>`
-  },
-  {
-    title: "Set a destination",
-    sub: "Where should organized photos be stored?",
-    id: "dest",
-    render: () => `
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div onclick="wizSelectDest('local')" id="opt-local" style="border:2px solid var(--brd);border-radius:12px;padding:14px;cursor:pointer;transition:.18s;display:flex;gap:12px;align-items:flex-start">
-          <div style="width:38px;height:38px;border-radius:9px;background:#f0fdf4;display:grid;place-items:center;flex-shrink:0">
-            <svg width="19" height="19" fill="none" viewBox="0 0 24 24" stroke="#15803d" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-          </div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:700">Local folder
-              <span style="font-size:9px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:20px;font-weight:700;margin-left:5px">Simplest</span>
-            </div>
-            <div style="font-size:11px;color:var(--ink3);margin-top:3px">
-              Store organized photos in a folder on this computer.
-            </div>
-            <div id="wiz-local-wrap" style="display:none;margin-top:10px">
-              <input id="wiz-local-path" placeholder="e.g. C:\\Photos  or  /home/user/photos" class="inp" style="font-size:12px">
-              <div style="font-size:10px;color:var(--ink4);margin-top:4px">
-                Leave blank to use the default: <code style="background:var(--bg);padding:1px 4px;border-radius:3px">~/PhotosSync/screenshots_agrupados</code>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div onclick="wizSelectDest('ssh')" id="opt-ssh-dest" style="border:2px solid var(--brd);border-radius:12px;padding:14px;cursor:pointer;transition:.18s;display:flex;gap:12px;align-items:flex-start">
-          <div style="width:38px;height:38px;border-radius:9px;background:#dbeafe;display:grid;place-items:center;flex-shrink:0">
-            <svg width="19" height="19" fill="none" viewBox="0 0 24 24" stroke="#1d4ed8" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15l3-3-3-3"/><line x1="14" y1="15" x2="17" y2="15"/></svg>
-          </div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:700">SSH Server</div>
-            <div style="font-size:11px;color:var(--ink3);margin-top:3px">
-              Upload organized photos to a Linux server or NAS.
-            </div>
-            <div id="wiz-ssh-wrap" style="display:none;margin-top:10px">
-              <div id="wiz-ssh-servers" style="font-size:11px;color:var(--ink4)">Loading servers…</div>
-            </div>
-          </div>
-        </div>
-        <div id="wiz-dest-hint" style="font-size:11px;color:var(--ink4);text-align:center;padding:2px 0">
-          Select a destination to continue
-        </div>
-      </div>`
-  },
-  {
-    title: "You're all set! 🎉",
-    sub: "Here's your setup summary.",
-    id: "done",
-    render: () => `
-      <div style="padding:4px 0">
-        <div id="wiz-summary" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
-        <div style="background:var(--bg);border:1px solid var(--brd);border-radius:12px;padding:14px">
-          <div style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px">▶ Next: run the Pipeline</div>
-          <div style="font-size:12px;color:var(--ink3);line-height:1.6">
-            Go to the <b>Pipeline</b> tab and click <b>Run ALL</b> to sync, organize
-            and classify your photos for the first time.
-          </div>
-        </div>
-      </div>`
-  },
-];
-
-let _wizStep = 0, _wizSource = '', _wizDest = '', _wizSshAlias = '', _wizLocalPath = '';
-
-function wizOpen() {
-  _wizStep = 0; _wizSource = ''; _wizDest = ''; _wizSshAlias = ''; _wizLocalPath = '';
-  $('wizard').style.display = 'block';
-  wizRender();
-}
-
-function wizClose() {
-  $('wizard').style.display = 'none';
-  localStorage.setItem('photos_sync_setup_done', '1');
-}
-
-function wizSkip() {
-  if(confirm('Skip setup? You can configure later in the SSH, WebDAV and Folders tabs.')) wizClose();
-}
-
-function wizNav(dir) {
-  if(dir === 1 && _wizStep === WIZ_STEPS.length - 1) { wizClose(); return; }
-  if(dir === 1) { if(!wizValidate()) return; wizCommit(); }
-  _wizStep = Math.max(0, Math.min(WIZ_STEPS.length - 1, _wizStep + dir));
-  wizRender();
-}
-
-function wizRender() {
-  const step = WIZ_STEPS[_wizStep];
-  const pct = Math.round((_wizStep / (WIZ_STEPS.length - 1)) * 100);
-  $('wiz-bar').style.width = pct + '%';
-  $('wiz-title').textContent = step.title;
-  $('wiz-sub').textContent   = step.sub;
-  $('wiz-step-badge').textContent = `${_wizStep + 1} / ${WIZ_STEPS.length}`;
-  $('wiz-body').innerHTML = step.render();
-  $('wiz-back').style.display = _wizStep > 0 ? 'inline-flex' : 'none';
-  $('wiz-next').textContent   = _wizStep === WIZ_STEPS.length - 1 ? 'Go to dashboard →' : 'Next →';
-  if(step.id === 'source' && _wizSource) wizSelectSource(_wizSource, true);
-  if(step.id === 'dest')   _wizRenderDest();
-  if(step.id === 'done')   wizBuildSummary();
-}
-
-function _wizRenderDest() {
-  if(!_wizDest) return;
-  wizSelectDest(_wizDest, true);
-  if(_wizDest === 'local' && _wizLocalPath) {
-    const inp = $('wiz-local-path');
-    if(inp) inp.value = _wizLocalPath;
-  }
-}
-
-// ── Source step ──────────────────────────────────────────────────────────────
-function wizSelectSource(type, silent) {
-  _wizSource = type;
-  ['opt-webdav','opt-ssh-src'].forEach(id => {
-    const el = $(id); if(!el) return;
-    el.style.borderColor = 'var(--brd)'; el.style.background = '';
-  });
-  const el = type === 'webdav' ? $('opt-webdav') : $('opt-ssh-src');
-  if(el) { el.style.borderColor = 'var(--b)'; el.style.background = '#0b6bcb06'; }
-  const h = $('wiz-source-hint'); if(!h) return;
-  h.style.color   = 'var(--b)';
-  h.textContent   = type === 'webdav'
-    ? '✅ WebDAV selected — configure the connection in the WebDAV tab after setup.'
-    : '✅ SSH selected — configure the server in the SSH tab after setup.';
-}
-
-// ── Destination step ─────────────────────────────────────────────────────────
-function wizSelectDest(type, silent) {
-  _wizDest = type;
-  ['opt-local','opt-ssh-dest'].forEach(id => {
-    const el = $(id); if(!el) return;
-    el.style.borderColor = 'var(--brd)'; el.style.background = '';
-  });
-  const el = type === 'local' ? $('opt-local') : $('opt-ssh-dest');
-  if(el) { el.style.borderColor = 'var(--b)'; el.style.background = '#0b6bcb06'; }
-
-  const localWrap = $('wiz-local-wrap');
-  const sshWrap   = $('wiz-ssh-wrap');
-  if(localWrap) localWrap.style.display = type === 'local' ? 'block' : 'none';
-  if(sshWrap)   sshWrap.style.display   = type === 'ssh'   ? 'block' : 'none';
-
-  if(type === 'ssh' && !silent) _wizLoadSshServers();
-
-  const h = $('wiz-dest-hint'); if(!h) return;
-  h.style.color = 'var(--b)';
-  h.textContent = type === 'local'
-    ? '✅ Local folder selected — enter a path below or leave blank for the default.'
-    : '✅ SSH server selected.';
-}
-
-async function _wizLoadSshServers() {
-  const wrap = $('wiz-ssh-servers'); if(!wrap) return;
-  try {
-    const data = await api('/api/ssh');
-    const destServers = data.filter(s => s.rol === 'destino' || s.rol === 'ambos');
-    if(!destServers.length) {
-      wrap.innerHTML = `<div style="color:#b45309;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.5">
-        <b>No SSH servers configured yet.</b><br>
-        Click <b>Skip setup</b> now, then go to the <b>SSH tab</b> to add a server
-        with role <em>destino</em> or <em>ambos</em>, then reopen this wizard.
-      </div>`;
-      _wizSshAlias = '';
-      return;
-    }
-    _wizSshAlias = destServers[0].alias;
-    wrap.innerHTML = `
-      <label class="lbl">Select server</label>
-      <select id="wiz-ssh-alias" class="inp" style="font-size:12px" onchange="_wizSshAlias=this.value">
-        ${destServers.map(s => `<option value="${s.alias}" ${s.alias===_wizSshAlias?'selected':''}>${s.alias} (${s.host})</option>`).join('')}
-      </select>`;
-  } catch(e) {
-    wrap.innerHTML = `<div style="font-size:11px;color:#dc2626">Could not load servers: ${e.message}</div>`;
-  }
-}
-
-// ── Validation ───────────────────────────────────────────────────────────────
-function wizValidate() {
-  const id = WIZ_STEPS[_wizStep].id;
-  if(id === 'source' && !_wizSource) {
-    const h = $('wiz-source-hint');
-    if(h) { h.textContent = '⚠️ Please select a source type.'; h.style.color = '#dc2626'; }
-    return false;
-  }
-  if(id === 'dest') {
-    if(!_wizDest) {
-      const h = $('wiz-dest-hint');
-      if(h) { h.textContent = '⚠️ Please select a destination.'; h.style.color = '#dc2626'; }
-      return false;
-    }
-    if(_wizDest === 'local') {
-      _wizLocalPath = ($('wiz-local-path') && $('wiz-local-path').value.trim()) || '';
-    }
-    if(_wizDest === 'ssh') {
-      const sel = $('wiz-ssh-alias');
-      if(sel) _wizSshAlias = sel.value;
-      if(!_wizSshAlias) {
-        const h = $('wiz-dest-hint');
-        if(h) { h.textContent = '⚠️ Add an SSH server first (SSH tab → role: destino).'; h.style.color = '#dc2626'; }
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-// ── Save to backend ──────────────────────────────────────────────────────────
-async function wizCommit() {
-  const id = WIZ_STEPS[_wizStep].id;
-  if(id !== 'dest') return;
-  try {
-    if(_wizDest === 'local') {
-      await api('/api/carpetas/destino', {method:'POST',
-        body: {tipo:'local', ruta: _wizLocalPath || ''}});
-    } else if(_wizDest === 'ssh' && _wizSshAlias) {
-      await api('/api/carpetas/destino', {method:'POST',
-        body: {tipo:'ssh', alias: _wizSshAlias}});
-    }
-  } catch(e) {
-    console.warn('wizCommit error:', e);
-  }
-}
-
-// ── Summary ──────────────────────────────────────────────────────────────────
-function wizBuildSummary() {
-  const s = $('wiz-summary'); if(!s) return;
-  const destValue = _wizDest === 'local'
-    ? (_wizLocalPath || 'Default folder (~/.../screenshots_agrupados)')
-    : (_wizSshAlias ? `SSH: ${_wizSshAlias}` : 'SSH server');
-  const rows = [
-    { icon:'📡', label:'Source',      value: _wizSource === 'webdav' ? 'WebDAV (Wi-Fi)' : 'SSH Server', ok: !!_wizSource },
-    { icon:'📁', label:'Destination', value: destValue,                                                  ok: !!_wizDest  },
-  ];
-  s.innerHTML = rows.map(r => `
-    <div style="display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:12px 14px">
-      <span style="font-size:18px">${r.icon}</span>
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:700;color:var(--ink2)">${r.label}</div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:2px">${r.value}</div>
       </div>
-      <span style="font-size:16px">${r.ok ? '✅' : '⚠️'}</span>
-    </div>`).join('');
+      <div class="dcard-info">
+        <div class="dcard-meta">
+          <b>${MN[m]} ${parseInt(d.dia,10)}, ${d.anio}</b>
+          ${d.cantidad_fotos} photos · ${d.tamano_total_mb} MB${d.ruta_zip?` <span class="dcard-zip"><svg width="8" height="8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>zip</span>`:''}
+        </div>
+      </div>`;
+    card.onclick=()=>openDayGallery(d);
+    g.appendChild(card);
+    // Lazy-load first thumbnail as cover image
+    _loadDayThumb(d.fecha);
+  });
 }
 
-// ── Auto-show ─────────────────────────────────────────────────────────────────
-(async () => {
-  try {
-    const st = await api('/api/setup-status');
-    if(!st.done) { localStorage.removeItem('photos_sync_setup_done'); wizOpen(); }
-  } catch(e) {}
-})();
-</script>
+async function _loadDayThumb(fecha){
+  try{
+    const d=await api(`/api/days/${fecha}/photos`);
+    const first=d.photos&&d.photos[0];
+    if(!first)return;
+    const img=document.getElementById(`cimg-${fecha}`);
+    const shim=document.getElementById(`shim-${fecha}`);
+    if(!img)return;
+    img.onload=()=>{img.classList.add('loaded');if(shim)shim.style.display='none';};
+    img.src=`/api/thumb?path=${encodeURIComponent(first.id)}&size=400`;
+  }catch(e){}
+}
 
+async function loadDays(){
+  try{
+    const d=await api('/api/days');const f=await api('/api/favourites');const tg=await api('/api/tags').catch(()=>({tags:[]}));
+    _allDays=d.days;
+    $('stat-days').textContent=d.total_days;$('stat-days-sub').textContent=d.total_days+' days';
+    $('stat-photos').textContent=d.total_photos.toLocaleString();$('stat-photos-sub').textContent=d.total_photos.toLocaleString()+' files';
+    const favCount=(f.favourites||[]).length;$('stat-favs').textContent=favCount;$('stat-favs-sub').textContent=favCount+' saved';
+    $('stat-size').textContent=d.total_mb.toLocaleString();$('stat-size-sub').textContent=d.total_mb.toLocaleString()+' MB';
+    // Update sidebar storage bar
+    const pct=Math.min(99,Math.round(d.total_mb/10000*100));
+    $('storage-fill').style.width=Math.max(5,pct)+'%';$('storage-val').textContent=d.total_mb.toLocaleString()+' MB';
+    $('storage-meta').textContent=d.total_mb.toLocaleString()+' MB stored';
+    $('day-filter').value='';$('view-count').textContent=d.total_days+' days';
+    const g=$('days-grid');g.innerHTML='';
+    if(!d.days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:72px 20px;color:var(--ink4)"><svg style="width:48px;height:48px;margin:0 auto 14px;color:var(--ink5)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><div style="font-weight:700;font-size:14px;color:var(--ink3);margin-bottom:4px">No photos organized yet</div><div style="font-size:12px">Run the Pipeline to scan and organize.</div></div>`;return;}
+    renderDayCards(d.days,g);
+    const cloud=$('tag-cloud');cloud.innerHTML='';(tg.tags||[]).slice(0,20).forEach(({tag,count})=>{const b=document.createElement('div');b.className='tc';b.textContent=`${tag} ${count}`;cloud.appendChild(b);});
+  }catch(e){$('days-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--red)"><div style="font-weight:700;font-size:14px;margin-bottom:6px">Could not load gallery</div><div style="font-size:12px;color:var(--ink4);margin-bottom:12px">${e.message}</div><button onclick="loadDays()" class="bg" style="font-size:11px">Retry</button></div>`;}
+}
+loadDays();
+
+let _imgObserver=null,_showViewToken=0;
+function _ensureObserver(){if(_imgObserver)return _imgObserver;_imgObserver=new IntersectionObserver((entries,obs)=>{entries.forEach(entry=>{if(!entry.isIntersecting)return;const img=entry.target;const real=img.dataset.src;if(real){img.src=real;img.removeAttribute('data-src');}obs.unobserve(img);});},{rootMargin:'300px 0px',threshold:.01});return _imgObserver;}
+
+async function showView(view){
+  _currentView=view;const token=++_showViewToken;selClear();
+  ['days','all','favs'].forEach(v=>{const b=$('vbtn-'+v);if(b)b.classList.toggle('on',v===view);});
+  $('days-grid').style.display=view==='days'?'grid':'none';$('timeline-view').style.display=view!=='days'?'block':'none';
+  if(view==='days'){$('view-count').textContent=_allDays.length+' days';return;}
+  if(_imgObserver){_imgObserver.disconnect();_imgObserver=null;}
+  const tv=$('timeline-view');const isFavs=view==='favs';_tlPhotos=[];
+  tv.innerHTML=`<div id="tl-loading" style="text-align:center;padding:20px;color:var(--ink4);font-size:12px"><div style="width:16px;height:16px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite;margin:0 auto 8px"></div>Loading…</div>`;
+  let anySection=false;
+  for(const day of _allDays){
+    if(token!==_showViewToken)return;
+    let photos;try{const d=await api(`/api/days/${day.fecha}/photos`);photos=d.photos||[];}catch(e){continue;}
+    if(isFavs)photos=photos.filter(p=>p.favourite);if(!photos.length)continue;
+    _tlPhotos.push(...photos.map(p=>({...p,_date:day.fecha,_day:day})));
+    _renderTlSection(day,photos,tv);anySection=true;$('view-count').textContent=_tlPhotos.length+' photos';
+  }
+  if(token!==_showViewToken)return;
+  const loading=$('tl-loading');if(loading)loading.remove();
+  if(!anySection)tv.innerHTML=`<div style="text-align:center;padding:64px;color:var(--ink4)"><div style="font-weight:600;font-size:14px">${isFavs?'No favourites yet':'No photos found'}</div></div>`;
+}
+
+function _renderTlSection(day,photos,tv){
+  const obs=_ensureObserver();const m=parseInt(day.mes,10);
+  const sec=document.createElement('div');sec.className='tl-section';
+  sec.innerHTML=`<div class="tl-date-row"><span class="tl-date-label">${MN[m]} ${parseInt(day.dia,10)}, ${day.anio}</span><span class="tl-date-meta">${photos.length} photos · ${day.tamano_total_mb} MB</span></div><div class="tl-grid"></div>`;
+  const loading=$('tl-loading');if(loading)tv.insertBefore(sec,loading);else tv.appendChild(sec);
+  const grid=sec.querySelector('.tl-grid');
+  photos.forEach(ph=>{
+    const div=document.createElement('div');div.className='tl-thumb';div.dataset.photoId=ph.id;
+    const img=document.createElement('img');img.className='loading';img.alt=ph.filename;img.dataset.src=`/api/thumb?path=${encodeURIComponent(ph.id)}&size=250`;img.onload=()=>img.classList.replace('loading','loaded');obs.observe(img);
+    const favBtn=document.createElement('button');favBtn.className='tl-thumb-fav'+(ph.favourite?' fav':'');favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
+    favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(ph);favBtn.classList.toggle('fav',ph.favourite);$('stat-favs').textContent=_tlPhotos.filter(x=>x.favourite).length;$('stat-favs-sub').textContent=_tlPhotos.filter(x=>x.favourite).length+' saved';};
+    const chk=document.createElement('div');chk.className='sel-check';
+    div.appendChild(img);div.appendChild(favBtn);div.appendChild(chk);
+    div.onclick=(e)=>{if(e.target===favBtn||favBtn.contains(e.target))return;if(_selThumb(div,ph,e))return;const tlIdx=_tlPhotos.findIndex(x=>x.id===ph.id);openLightbox(tlIdx,_tlPhotos,'timeline');};
+    div.oncontextmenu=(e)=>{e.preventDefault();_selMode=true;_selThumb(div,ph,{shiftKey:false});};
+    grid.appendChild(div);
+  });
+}
+
+let _gpPhotos=[],_gpFilter='all',_gpTagFilter='',_gpDate='';
+async function openDayGallery(day){
+  _gpDate=day.fecha;_gpFilter='all';_gpTagFilter='';
+  document.querySelectorAll('.gpfb').forEach(b=>b.classList.remove('on'));document.querySelector('.gpfb').classList.add('on');
+  $('gp-title').textContent=`${MN[parseInt(day.mes,10)]} ${parseInt(day.dia,10)}, ${day.anio}`;$('gp-sub').textContent='Loading…';
+  $('gp-grid').innerHTML='<div style="grid-column:1/-1;display:flex;justify-content:center;padding:40px"><div style="width:18px;height:18px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div></div>';
+  $('gallery-panel').classList.add('open');
+  $('bc-sep2').style.display='';$('bc-page').style.display='';$('bc-page').textContent=`${MN[parseInt(day.mes,10)]} ${parseInt(day.dia,10)}`;
+  try{
+    const d=await api(`/api/days/${day.fecha}/photos`);_gpPhotos=d.photos;
+    $('gp-sub').textContent=d.count>0?`${d.count} photos · ${day.tamano_total_mb} MB`:(d.exists?'No images':'Folder not found');
+    if(!d.exists){$('gp-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--amber);font-size:12px"><b>Folder not found.</b><br>Run Organize in Pipeline.</div>`;return;}
+    const allTags=[...new Set(d.photos.flatMap(p=>p.tags||[]))].sort();
+    const tb=$('gp-tag-btns-inner2');tb.innerHTML='';const gt=$('gp-tags');
+    if(allTags.length){gt.style.display='flex';allTags.forEach(t=>{const b=document.createElement('button');b.className='gpfb';b.textContent=t;b.style.fontSize='10px';b.onclick=()=>{if(b.classList.contains('on')){b.classList.remove('on');_gpTagFilter='';}else{document.querySelectorAll('#gp-tag-btns-inner2 .gpfb').forEach(x=>x.classList.remove('on'));b.classList.add('on');_gpTagFilter=t;}renderGpGrid();};tb.appendChild(b);});}else{gt.style.display='none';}
+    renderGpGrid();
+  }catch(e){$('gp-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red);font-size:12px">${e.message}</div>`;}
+}
+function closeGallery(){$('gallery-panel').classList.remove('open');_gpPhotos=[];_gpDate='';$('bc-sep2').style.display='none';$('bc-page').style.display='none';selClear();}
+function setFilter(f,btn){_gpFilter=f;_gpTagFilter='';document.querySelectorAll('.gpfb').forEach(b=>b.classList.remove('on'));document.querySelectorAll('#gp-tag-btns-inner2 .gpfb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderGpGrid();}
+function renderGpGrid(){
+  const g=$('gp-grid');g.innerHTML='';const obs=_ensureObserver();
+  let photos=_gpFilter==='favourites'?_gpPhotos.filter(p=>p.favourite):_gpPhotos;
+  if(_gpTagFilter)photos=photos.filter(p=>(p.tags||[]).includes(_gpTagFilter));
+  $('gp-count').textContent=photos.length+' photos';
+  if(!photos.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--ink4);font-size:12px">${_gpFilter==='favourites'?'No favourites yet':'No photos'}</div>`;return;}
+  photos.forEach(p=>{
+    const div=document.createElement('div');div.className='gp-photo';div.dataset.photoId=p.id;
+    const img=document.createElement('img');img.className='loading';img.alt=p.filename;img.onload=()=>img.classList.replace('loading','loaded');img.dataset.src=`/api/thumb?path=${encodeURIComponent(p.id)}&size=400`;obs.observe(img);
+    const favBtn=document.createElement('button');favBtn.className='gp-photo-fav'+(p.favourite?' fav':'');favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
+    favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(p);favBtn.classList.toggle('fav',p.favourite)};
+    const chk=document.createElement('div');chk.className='sel-check';
+    div.appendChild(img);div.appendChild(favBtn);div.appendChild(chk);
+    div.onclick=(e)=>{if(e.target===favBtn||favBtn.contains(e.target))return;if(_selThumb(div,p,e))return;const idx=_gpFilter==='favourites'?_gpPhotos.filter(x=>x.favourite).indexOf(p):_gpPhotos.indexOf(p);openLightbox(idx);};
+    div.oncontextmenu=(e)=>{e.preventDefault();_selMode=true;_selThumb(div,p,{shiftKey:false});};
+    g.appendChild(div);
+  });
+}
+async function toggleFav(photo){photo.favourite=!photo.favourite;await api('/api/favourites',{method:'POST',body:{path:photo.id,favourite:photo.favourite}});const n=_gpPhotos.filter(p=>p.favourite).length||_tlPhotos.filter(p=>p.favourite).length;$('stat-favs').textContent=n;$('stat-favs-sub').textContent=n+' saved';}
+
+let _lbIdx=0,_lbPhotos=[],_lbSource='panel',_lbLoadId=0;
+function openLightbox(idx,photos,source){if(photos)_lbPhotos=photos;else _lbPhotos=_gpFilter==='favourites'?_gpPhotos.filter(p=>p.favourite):_gpPhotos;_lbSource=source||'panel';_lbIdx=Math.max(0,Math.min(idx,_lbPhotos.length-1));$('lightbox').classList.add('open');document.body.style.overflow='hidden';renderLb();}
+function closeLightbox(){$('lightbox').classList.remove('open');document.body.style.overflow='';}
+function lbClickBg(e){if(e.target===$('lightbox'))closeLightbox();}
+function lbNav(dir){if(!_lbPhotos.length)return;_lbIdx=(_lbIdx+dir+_lbPhotos.length)%_lbPhotos.length;renderLb();}
+function renderLb(){const photo=_lbPhotos[_lbIdx];if(!photo)return;const loadId=++_lbLoadId;const img=$('lb-img');img.style.transition='none';img.style.opacity='0';img.onload=null;img.onerror=null;img.onload=()=>{if(loadId!==_lbLoadId)return;img.style.transition='opacity .16s ease';img.style.opacity='1';};img.onerror=()=>{if(loadId!==_lbLoadId)return;img.style.opacity='1';};img.src=`/api/photo?path=${encodeURIComponent(photo.id)}`;$('lb-fav-btn').classList.toggle('fav',!!photo.favourite);const tagStr=(photo.tags||[]).slice(0,4).join(' · ');$('lb-info').textContent=photo.filename+(photo.capture_date?'  ·  '+photo.capture_date.slice(0,10):'')+(tagStr?'  ·  '+tagStr:'');$('lb-counter').textContent=`${_lbIdx+1} / ${_lbPhotos.length}`;}
+async function lbToggleFav(){const photo=_lbPhotos[_lbIdx];if(!photo)return;await toggleFav(photo);$('lb-fav-btn').classList.toggle('fav',!!photo.favourite);if(_lbSource==='panel')renderGpGrid();if(_lbSource==='timeline'){const thumb=document.querySelector(`[data-photo-id="${CSS.escape(photo.id)}"]`);if(thumb){const btn=thumb.querySelector('.tl-thumb-fav');if(btn)btn.classList.toggle('fav',photo.favourite);}}}
+document.addEventListener('keydown',e=>{if(!$('lightbox').classList.contains('open'))return;if(e.key==='ArrowLeft'){e.preventDefault();lbNav(-1);}if(e.key==='ArrowRight'){e.preventDefault();lbNav(1);}if(e.key==='Escape')closeLightbox();if(e.key===' '){e.preventDefault();lbToggleFav();}});
+
+let _selPaths=new Set(),_selMode=false,_lastSelEl=null;
+function _selThumb(div,ph,e){if(!_selMode&&!e.shiftKey)return false;_selMode=true;if(e.shiftKey&&_lastSelEl){const all=[...document.querySelectorAll('.tl-thumb,.gp-photo')];const a=all.indexOf(_lastSelEl),b=all.indexOf(div);const[lo,hi]=[Math.min(a,b),Math.max(a,b)];all.slice(lo,hi+1).forEach(el=>{const id=el.dataset.photoId;if(id){_selPaths.add(id);el.classList.add('selected');}});}else{if(_selPaths.has(ph.id)){_selPaths.delete(ph.id);div.classList.remove('selected');}else{_selPaths.add(ph.id);div.classList.add('selected');}_lastSelEl=div;}_selUpdateToolbar();return true;}
+function _selUpdateToolbar(){const n=_selPaths.size;$('bulk-count').textContent=n+' selected';$('bulk-toolbar').classList.toggle('show',n>0);if(n===0){_selMode=false;_lastSelEl=null;}}
+function selClear(){_selPaths.clear();_selMode=false;_lastSelEl=null;document.querySelectorAll('.tl-thumb.selected,.gp-photo.selected').forEach(el=>el.classList.remove('selected'));$('bulk-toolbar').classList.remove('show');}
+async function bulkAction(action){if(!_selPaths.size)return;const paths=[..._selPaths];if(action==='delete'&&!confirm(`Move ${paths.length} photo(s) to trash?`))return;try{await api('/api/photos/bulk',{method:'POST',body:{paths,action}});if(action==='delete'){paths.forEach(id=>{document.querySelectorAll(`[data-photo-id="${CSS.escape(id)}"]`).forEach(el=>el.closest('.tl-thumb,.gp-photo')?.remove());_tlPhotos=_tlPhotos.filter(x=>x.id!==id);_gpPhotos=_gpPhotos.filter(x=>x.id!==id);});await loadDays();}else{paths.forEach(id=>{const isFav=action==='favourite';document.querySelectorAll(`[data-photo-id="${CSS.escape(id)}"]`).forEach(el=>{const btn=el.closest('.tl-thumb,.gp-photo')?.querySelector('.tl-thumb-fav,.gp-photo-fav');if(btn)btn.classList.toggle('fav',isFav);});[_tlPhotos,_gpPhotos].forEach(arr=>{const ph=arr.find(x=>x.id===id);if(ph)ph.favourite=isFav;});});}selClear();}catch(err){alert('Action failed: '+err.message);}}
+
+async function initPipeline(){const p=await api('/api/pasos');const g=$('paso-checks');g.innerHTML='';p.forEach(x=>{const l=document.createElement('label');l.className='step-card';l.innerHTML=`<input type="checkbox" value="${x.id}" checked><span>${x.nombre}</span>`;g.appendChild(l)});pollEstado()}initPipeline();
+let pt;async function pollEstado(){const{corriendo}=await api('/api/pipeline/estado');setPipelineUI(corriendo);if(corriendo)pt=setTimeout(pollEstado,1500)}
+async function runPipeline(a){const c=[...document.querySelectorAll('#paso-checks input:checked')];const p=a?null:c.map(x=>+x.value);if(!a&&p.length===0)return;try{await api('/api/pipeline/ejecutar',{method:'POST',body:{pasos:p}});setPipelineUI(true);pt=setTimeout(pollEstado,1500)}catch(e){$('pipeline-status').textContent=e.message}}
+function setPipelineUI(r){$('spinner').style.display=r?'block':'none';$('pipeline-status').textContent=r?'Running pipeline…':'Ready.';$('btn-run-sel').disabled=r;$('btn-run-all').disabled=r;const d=$('dot-pipeline');if(d){d.className='nb-dot'+(r?' live':'');d.style.display=r?'block':'none'}}
+
+let _sr={};async function initSSH(){_sr=await api('/api/ssh/roles');const s=$('ssh-rol');s.innerHTML='';_sr.roles.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;s.appendChild(o)});onRolChange();await renderSSH()}
+async function renderSSH(){const l=await api('/api/ssh');const tb=document.querySelector('#ssh-table tbody');tb.innerHTML='';if(!l.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--ink4);font-size:12px">No SSH connections yet</td></tr>';return}l.forEach(c=>{const tc={origen:'tag-origen',destino:'tag-destino',ambos:'tag-ambos'}[c.rol]||'';const tr=document.createElement('tr');tr.innerHTML=`<td><a href="#" onclick="editSSH(${JSON.stringify(c).replace(/"/g,'&quot;')});return false" style="color:var(--b);font-weight:600;text-decoration:none">${c.alias}</a></td><td>${c.host}:${c.puerto}</td><td>${c.usuario}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink4)">${c.ruta_remota}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink4)">${c.ruta_remota_destino||'—'}</td><td><span class="tag ${tc}">${c.rol}</span></td><td><button onclick="borrarSSH('${c.alias}')" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;font-weight:600">Delete</button></td>`;tb.appendChild(tr)})}
+function onRolChange(){const r=$('ssh-rol').value,d=$('ssh-ruta-dest'),s=_sr;d.disabled=!(s.requiere_ruta_destino||[]).includes(r);$('ssh-rol-hint').textContent=(s.descripcion||{})[r]||'';const o=(s.ruta_destino_obligatoria||[]).includes(r);d.placeholder=o?'REQUIRED: different from source':'optional';$('ssh-ruta-dest-hint').textContent=o?'Must differ from source.':''}
+function editSSH(c){$('ssh-alias').value=c.alias;$('ssh-host').value=c.host;$('ssh-puerto').value=c.puerto;$('ssh-usuario').value=c.usuario;$('ssh-ruta').value=c.ruta_remota;$('ssh-ruta-dest').value=c.ruta_remota_destino||'';$('ssh-clave').value='';$('ssh-clave').placeholder=c.tiene_clave?'(configured)':'~/.ssh/id_rsa';$('ssh-rol').value=c.rol;onRolChange();document.querySelector('[data-s="ssh"] .card').scrollIntoView({behavior:'smooth'})}
+async function guardarSSH(){try{await api('/api/ssh',{method:'POST',body:{alias:$('ssh-alias').value.trim(),host:$('ssh-host').value.trim(),puerto:+$('ssh-puerto').value||22,usuario:$('ssh-usuario').value.trim(),ruta_remota:$('ssh-ruta').value.trim(),ruta_remota_destino:$('ssh-ruta-dest').value.trim(),clave_privada:$('ssh-clave').value.trim(),rol:$('ssh-rol').value}});showMsg('ssh-msg','Connection saved.',true);limpiarFormSSH();renderSSH()}catch(e){showMsg('ssh-msg',e.message,false)}}
+async function borrarSSH(a){if(!confirm('Delete "'+a+'"?'))return;await api('/api/ssh/'+encodeURIComponent(a),{method:'DELETE'});renderSSH()}
+function limpiarFormSSH(){['ssh-alias','ssh-host','ssh-usuario','ssh-ruta','ssh-ruta-dest','ssh-clave'].forEach(i=>$(i).value='');$('ssh-puerto').value='22';if($('ssh-rol').options.length){$('ssh-rol').selectedIndex=0;onRolChange()}}
+
+async function initWebDAV(){const{libres}=await api('/api/webdav/letras');const s=$('wd-letra');s.innerHTML='';(libres.length?libres:['Z:']).forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;s.appendChild(o)});await renderWD()}
+async function renderWD(){const l=await api('/api/webdav');const tb=document.querySelector('#wd-table tbody');tb.innerHTML='';if(!l.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink4);font-size:12px">No WebDAV drives</td></tr>';return}l.forEach(c=>{const ok=c.montada;const tr=document.createElement('tr');tr.innerHTML=`<td style="font-weight:600">${c.letra}</td><td>${c.alias||''}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px">${c.ip}</td><td>${c.puerto}</td><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:${ok?'#12b76a':'#f04438'}${ok?';box-shadow:0 0 5px #12b76a60':''}"></span>${ok?'Connected':'Disconnected'}</span></td><td>${ok?`<button onclick="disconnectWD('${c.letra}')" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;font-weight:600">Disconnect</button>`:'—'}</td>`;tb.appendChild(tr)})}
+async function conectarWD(){const b=$('btn-wd-conectar');b.disabled=true;b.textContent='Connecting…';try{const r=await api('/api/webdav/connect',{method:'POST',body:{letra:$('wd-letra').value,ip:$('wd-ip').value.trim(),puerto:$('wd-puerto').value.trim()||'8080',alias:$('wd-alias').value.trim()}});showMsg('wd-msg',r.mensaje,r.ok);await initWebDAV()}catch(e){showMsg('wd-msg',e.message,false)}finally{b.disabled=false;b.textContent='Connect drive'}}
+async function disconnectWD(l){const r=await api('/api/webdav/disconnect/'+encodeURIComponent(l),{method:'POST'});showMsg('wd-msg',r.mensaje,r.ok);await initWebDAV()}
+
+async function initCarpetas(){const d=await api('/api/carpetas');renderOrigen(d.origen);renderDestinoSSH(d.servidores_ssh_destino);const c=d.destino||{};if(c.tipo==='ssh'){$('dest-tipo').value='ssh';destTipoChange();$('dest-ssh-alias').value=c.alias||''}else{$('dest-tipo').value='local';destTipoChange();$('dest-ruta').value=c.ruta||''}}
+function renderOrigen(l){const c=$('carpetas-origen-list');c.innerHTML='';if(!l||!l.length){c.innerHTML='<span style="font-size:12px;color:var(--ink4)">No source folders.</span>';return}l.forEach(p=>{const d=document.createElement('div');d.className='pill';d.innerHTML=`<span>${p}</span><button onclick="quitarCarpeta('${p.replace(/'/g,"\\\\'")}',this.parentNode)">&times;</button>`;c.appendChild(d)})}
+function renderDestinoSSH(s){const sel=$('dest-ssh-alias'),pv=sel.value;sel.innerHTML='<option value="">— choose server —</option>';(s||[]).forEach(x=>{const o=document.createElement('option');o.value=x.alias;o.textContent=x.alias+' ('+x.host+')';if(x.alias===pv)o.selected=true;sel.appendChild(o)});$('dest-ssh-hint').textContent=s&&!s.length?'No SSH servers with dest/ambos role.':''}
+async function addCarpeta(){const v=$('nueva-carpeta').value.trim();if(!v)return;try{const d=await api('/api/carpetas/origen/anadir',{method:'POST',body:{carpeta:v}});$('nueva-carpeta').value='';renderOrigen(d.origen);showMsg('carpetas-msg','Folder added.',true)}catch(e){showMsg('carpetas-msg',e.message,false)}}
+async function quitarCarpeta(c,el){try{await api('/api/carpetas/origen/quitar',{method:'POST',body:{carpeta:c}});el.remove();const ct=$('carpetas-origen-list');if(!ct.children.length)ct.innerHTML='<span style="font-size:12px;color:var(--ink4)">No source folders.</span>';showMsg('carpetas-msg','Folder removed.',true)}catch(e){showMsg('carpetas-msg',e.message,false)}}
+function destTipoChange(){$('dest-local-wrap').style.display=$('dest-tipo').value==='local'?'':'none';$('dest-ssh-wrap').style.display=$('dest-tipo').value==='ssh'?'':'none'}
+async function guardarDestino(){const t=$('dest-tipo').value,b=t==='local'?{tipo:'local',ruta:$('dest-ruta').value.trim()}:{tipo:'ssh',alias:$('dest-ssh-alias').value};try{await api('/api/carpetas/destino',{method:'POST',body:b});showMsg('destino-msg','Destination saved.',true)}catch(e){showMsg('destino-msg',e.message,false)}}
+async function quitarDestino(){if(!confirm('Remove destination?'))return;try{await api('/api/carpetas/destino/quitar',{method:'POST'});$('dest-ruta').value='';$('dest-ssh-alias').value='';showMsg('destino-msg','Destination removed.',true)}catch(e){showMsg('destino-msg',e.message,false)}}
+
+</script>
+<script>
+
+/* ─── Wizard ─── */
+const WIZ_STEPS=[
+  {title:"Welcome to Photos Sync",sub:"Let's get you set up in 3 quick steps.",id:"welcome",render:()=>`<div style="text-align:center;padding:10px 0"><div style="width:50px;height:50px;border-radius:14px;background:linear-gradient(135deg,var(--b),var(--b2));display:grid;place-items:center;margin:0 auto 14px;box-shadow:0 4px 16px #3b5bdb25"><svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="1.8"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div><div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:8px">Sync · Organize · Classify</div><div style="font-size:12px;color:var(--ink3);line-height:1.65;max-width:340px;margin:0 auto">Photos Sync connects to your phone over Wi-Fi, organizes photos by date, classifies them automatically, and stores them locally or on a remote server.</div><div style="display:flex;gap:6px;justify-content:center;margin-top:16px;flex-wrap:wrap">${['Source','Destination','Ready'].map((s,i)=>`<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink3)"><div style="width:20px;height:20px;border-radius:50%;background:var(--b);color:#fff;font-size:9px;font-weight:700;display:grid;place-items:center">${i+1}</div>${s}</div>${i<2?'<div style="color:var(--brd)">→</div>':''}`).join('')}</div></div>`},
+  {title:"Connect a photo source",sub:"How will photos reach this computer?",id:"source",render:()=>`<div style="display:flex;flex-direction:column;gap:8px"><div onclick="wizSelectSource('webdav')" id="opt-webdav" class="wiz-opt"><div class="wiz-opt-icon" style="background:var(--b4)"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="var(--b)" stroke-width="1.8"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20"/></svg></div><div><div style="font-size:13px;font-weight:700;color:var(--ink)">WebDAV (Wi-Fi) <span style="font-size:9px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:20px;font-weight:700;margin-left:4px">Recommended</span></div><div style="font-size:11px;color:var(--ink3);margin-top:3px;line-height:1.5">Mount your Android via <b>CX File Explorer</b>. Same Wi-Fi. <em>Windows only.</em></div></div></div><div onclick="wizSelectSource('ssh')" id="opt-ssh-src" class="wiz-opt"><div class="wiz-opt-icon" style="background:#f0fdf4"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="#12b76a" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15l3-3-3-3"/><line x1="14" y1="15" x2="17" y2="15"/></svg></div><div><div style="font-size:13px;font-weight:700;color:var(--ink)">SSH Server</div><div style="font-size:11px;color:var(--ink3);margin-top:3px;line-height:1.5">Sync from a Linux server or NAS. Requires <code style="background:var(--surface);padding:1px 4px;border-radius:3px;font-size:10px;font-family:'JetBrains Mono',monospace">pip install paramiko</code>.</div></div></div><div id="wiz-source-hint" style="font-size:11px;color:var(--ink4);text-align:center;padding:2px 0">Select a source to continue</div></div>`},
+  {title:"Set a destination",sub:"Where should organized photos be stored?",id:"dest",render:()=>`<div style="display:flex;flex-direction:column;gap:8px"><div onclick="wizSelectDest('local')" id="opt-local" class="wiz-opt"><div class="wiz-opt-icon" style="background:#f0fdf4"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="#12b76a" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ink)">Local folder <span style="font-size:9px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:20px;font-weight:700;margin-left:4px">Simplest</span></div><div style="font-size:11px;color:var(--ink3);margin-top:3px">Store organized photos on this computer.</div><div id="wiz-local-wrap" style="display:none;margin-top:9px"><input id="wiz-local-path" placeholder="e.g. C:\\\\Photos  or  /home/user/photos" class="inp" style="font-size:11px"><div style="font-size:9px;color:var(--ink4);margin-top:3px">Leave blank for default ~/PhotosSync/screenshots_agrupados</div></div></div></div><div onclick="wizSelectDest('ssh')" id="opt-ssh-dest" class="wiz-opt"><div class="wiz-opt-icon" style="background:var(--b4)"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="var(--b)" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15l3-3-3-3"/><line x1="14" y1="15" x2="17" y2="15"/></svg></div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ink)">SSH Server</div><div style="font-size:11px;color:var(--ink3);margin-top:3px">Upload to a Linux server or NAS.</div><div id="wiz-ssh-wrap" style="display:none;margin-top:9px"><div id="wiz-ssh-servers" style="font-size:11px;color:var(--ink4)">Loading servers…</div></div></div></div><div id="wiz-dest-hint" style="font-size:11px;color:var(--ink4);text-align:center;padding:2px 0">Select a destination to continue</div></div>`},
+  {title:"You're all set! 🎉",sub:"Here's your setup summary.",id:"done",render:()=>`<div style="padding:4px 0"><div id="wiz-summary" style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px"></div><div style="background:var(--surface);border:1px solid var(--brd);border-radius:var(--r3);padding:14px"><div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:5px">▶ Next: run the Pipeline</div><div style="font-size:11px;color:var(--ink3);line-height:1.65">Go to <b>Pipeline</b> and click <b>Run ALL</b> to sync, organize and classify your photos.</div></div></div>`},
+];
+let _wizStep=0,_wizSource='',_wizDest='',_wizSshAlias='',_wizLocalPath='';
+function wizOpen(){_wizStep=0;_wizSource='';_wizDest='';_wizSshAlias='';_wizLocalPath='';$('wizard').style.display='block';wizRender();}
+function wizClose(){$('wizard').style.display='none';localStorage.setItem('photos_sync_setup_done','1');}
+function wizSkip(){if(confirm('Skip setup?'))wizClose();}
+function wizNav(dir){if(dir===1&&_wizStep===WIZ_STEPS.length-1){wizClose();return;}if(dir===1){if(!wizValidate())return;wizCommit();}_wizStep=Math.max(0,Math.min(WIZ_STEPS.length-1,_wizStep+dir));wizRender();}
+function wizRender(){const step=WIZ_STEPS[_wizStep];const pct=Math.round((_wizStep/(WIZ_STEPS.length-1))*100);$('wiz-bar').style.width=pct+'%';$('wiz-title').textContent=step.title;$('wiz-sub').textContent=step.sub;$('wiz-step-badge').textContent=`${_wizStep+1} / ${WIZ_STEPS.length}`;$('wiz-body').innerHTML=step.render();$('wiz-back').style.display=_wizStep>0?'inline-flex':'none';$('wiz-next').textContent=_wizStep===WIZ_STEPS.length-1?'Go to dashboard →':'Next →';if(step.id==='source'&&_wizSource)wizSelectSource(_wizSource,true);if(step.id==='dest')_wizRenderDest();if(step.id==='done')wizBuildSummary();}
+function _wizRenderDest(){if(!_wizDest)return;wizSelectDest(_wizDest,true);if(_wizDest==='local'&&_wizLocalPath){const inp=$('wiz-local-path');if(inp)inp.value=_wizLocalPath;}}
+function wizSelectSource(type,silent){_wizSource=type;['opt-webdav','opt-ssh-src'].forEach(id=>{const el=$(id);if(el)el.classList.remove('on');});const el=type==='webdav'?$('opt-webdav'):$('opt-ssh-src');if(el)el.classList.add('on');const h=$('wiz-source-hint');if(h){h.style.color='var(--b)';h.textContent=type==='webdav'?'✅ WebDAV selected.':'✅ SSH selected.';}}
+function wizSelectDest(type,silent){_wizDest=type;['opt-local','opt-ssh-dest'].forEach(id=>{const el=$(id);if(el)el.classList.remove('on');});const el=type==='local'?$('opt-local'):$('opt-ssh-dest');if(el)el.classList.add('on');const lw=$('wiz-local-wrap'),sw=$('wiz-ssh-wrap');if(lw)lw.style.display=type==='local'?'block':'none';if(sw)sw.style.display=type==='ssh'?'block':'none';if(type==='ssh'&&!silent)_wizLoadSshServers();const h=$('wiz-dest-hint');if(h){h.style.color='var(--b)';h.textContent=type==='local'?'✅ Local folder selected.':'✅ SSH selected.';}}
+async function _wizLoadSshServers(){const wrap=$('wiz-ssh-servers');if(!wrap)return;try{const data=await api('/api/ssh');const dest=data.filter(s=>s.rol==='destino'||s.rol==='ambos');if(!dest.length){wrap.innerHTML=`<div style="color:var(--amber);background:#fefce8;border:1px solid #fde68a;border-radius:6px;padding:9px 11px;font-size:11px;line-height:1.5"><b>No SSH servers configured.</b> Skip, go to SSH Servers, add one with role destino or ambos.</div>`;_wizSshAlias='';return;}_wizSshAlias=dest[0].alias;wrap.innerHTML=`<label class="lbl">Select server</label><select id="wiz-ssh-alias" class="inp" style="font-size:11px" onchange="_wizSshAlias=this.value">${dest.map(s=>`<option value="${s.alias}" ${s.alias===_wizSshAlias?'selected':''}>${s.alias} (${s.host})</option>`).join('')}</select>`;}catch(e){wrap.innerHTML=`<div style="font-size:11px;color:var(--red)">Could not load: ${e.message}</div>`;}}
+function wizValidate(){const id=WIZ_STEPS[_wizStep].id;if(id==='source'&&!_wizSource){const h=$('wiz-source-hint');if(h){h.textContent='⚠️ Please select a source.';h.style.color='var(--red)';}return false;}if(id==='dest'){if(!_wizDest){const h=$('wiz-dest-hint');if(h){h.textContent='⚠️ Please select a destination.';h.style.color='var(--red)';}return false;}if(_wizDest==='local')_wizLocalPath=($('wiz-local-path')&&$('wiz-local-path').value.trim())||'';if(_wizDest==='ssh'){const sel=$('wiz-ssh-alias');if(sel)_wizSshAlias=sel.value;if(!_wizSshAlias){const h=$('wiz-dest-hint');if(h){h.textContent='⚠️ Add an SSH server first.';h.style.color='var(--red)';}return false;}}}return true;}
+async function wizCommit(){const id=WIZ_STEPS[_wizStep].id;if(id!=='dest')return;try{if(_wizDest==='local')await api('/api/carpetas/destino',{method:'POST',body:{tipo:'local',ruta:_wizLocalPath||''}});else if(_wizDest==='ssh'&&_wizSshAlias)await api('/api/carpetas/destino',{method:'POST',body:{tipo:'ssh',alias:_wizSshAlias}});}catch(e){console.warn('wizCommit:',e);}}
+function wizBuildSummary(){const s=$('wiz-summary');if(!s)return;const dv=_wizDest==='local'?(_wizLocalPath||'Default ~/PhotosSync/screenshots_agrupados'):(_wizSshAlias?`SSH: ${_wizSshAlias}`:'SSH server');const rows=[{icon:'📡',label:'Source',value:_wizSource==='webdav'?'WebDAV (Wi-Fi)':'SSH Server',ok:!!_wizSource},{icon:'📁',label:'Destination',value:dv,ok:!!_wizDest}];s.innerHTML=rows.map(r=>`<div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--brd);border-radius:var(--r3);padding:10px 12px"><span style="font-size:17px">${r.icon}</span><div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--ink)">${r.label}</div><div style="font-size:11px;color:var(--ink3);margin-top:1px">${r.value}</div></div><span style="font-size:15px">${r.ok?'✅':'⚠️'}</span></div>`).join('');}
+(async()=>{try{const st=await api('/api/setup-status');if(!st.done){localStorage.removeItem('photos_sync_setup_done');wizOpen();}}catch(e){}})();
+
+</script>
 </body>
 </html>

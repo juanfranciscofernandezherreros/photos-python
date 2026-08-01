@@ -37,7 +37,7 @@ dev = [
 [project.scripts]
 photos-sync         = "photos_sync.cli:main"
 photos-sync-gui     = "photos_sync.main_window:main"
-photos-sync-web     = "photos_sync.web_server:app"
+photos-sync-web     = "photos_sync.__main__:main"
 photos-sync-folders = "photos_sync.folder_selector:main"
 photos-sync-summary = "photos_sync.pipeline.summary:generate_daily_summary"
 

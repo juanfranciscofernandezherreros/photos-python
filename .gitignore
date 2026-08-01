@@ -33,3 +33,4 @@ venv/
 
 # Thumbnail cache
 PhotosSync/data/thumbs/
+dist/
