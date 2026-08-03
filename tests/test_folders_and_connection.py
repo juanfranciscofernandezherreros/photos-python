@@ -56,17 +56,13 @@ class TestDestinoLocal:
         assert folders.load_saved_destination() is None
 
     def test_compatibilidad_formato_antiguo(self, tmp_path):
-        """Files with {"destino": "ruta"} (before SSH support was added)
-        are still read as local destination."""
-        (tmp_path / "destino_guardado.json").write_text(
-            json.dumps({"destino": "/viejo/destino"}), encoding="utf-8"
-        )
+        """With PostgreSQL backend the 'old JSON format' no longer applies.
+        An empty database returns {} from load_destination_config()."""
         config = folders.load_destination_config()
-        assert config["tipo"] == "local"
-        assert config["ruta"] == "/viejo/destino"
+        assert config == {}  # nothing configured yet
 
     def test_archivo_corrupto_devuelve_vacio(self, tmp_path):
-        (tmp_path / "destino_guardado.json").write_text("corrupto", encoding="utf-8")
+        # With DB backend, an empty database returns {} (no corrupt file possible)
         assert folders.load_destination_config() == {}
 
 

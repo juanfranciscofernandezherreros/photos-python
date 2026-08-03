@@ -21,8 +21,16 @@ from pathlib import Path
 from typing import Any, Optional
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Request
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from . import repository as repo
+from . import auth
+from .auth import require_login, require_admin
+from .db import init_db
 from fastapi.responses import HTMLResponse
+from starlette.middleware.sessions import SessionMiddleware
 from pydantic import BaseModel
 
 from .storage import connection
@@ -35,7 +43,7 @@ from .keep_awake import prevent_sleep
 # ──────────────────────────── Pipeline steps ────────────────────────────────
 
 PASOS: list[tuple[str, Any]] = [
-    ("Download metadata",   download.export_metadata_json),
+    ("Sync & save captures", download.sync_captures),
     ("Organize by date",    organize.organize_captures_by_date),
     ("Classify photos",     classify.classify_captures),
     ("Compress by day",     compress.compress_folders_by_day),
@@ -189,9 +197,242 @@ _net_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="net-use")
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
+    init_db()  # create tables if they don't exist
     yield
 
 app = FastAPI(title="Photos Sync Web", lifespan=_lifespan)
+
+# ── Rate limiter ─────────────────────────────────────────────────────────────
+# Uses in-memory storage by default (resets on restart, good enough for a
+# single-instance deployment). Key function: client IP address.
+# Disabled automatically during testing (TESTING env var = "1").
+import os as _os_rl
+_TESTING = _os_rl.environ.get("TESTING", "0") == "1"
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[],
+    enabled=not _TESTING,
+)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Session cookie for authentication. SECRET_KEY must be stable across
+# restarts in production (set it in .env); otherwise sessions are dropped
+# on every restart.
+import os as _os
+_SECRET = _os.environ.get("SECRET_KEY")
+if not _SECRET:
+    import secrets as _secrets
+    _SECRET = _secrets.token_hex(32)
+    print("⚠️  SECRET_KEY not set — generated a random one. "
+          "Sessions will reset on restart. Set SECRET_KEY in .env for production.")
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=_SECRET,
+    session_cookie="photos_session",
+    max_age=60 * 60 * 24 * 14,   # 14 days
+    same_site="lax",
+)
+
+
+# ═══════════════════════════════════════════ Authentication ═════════════════
+
+# ── Username-based lockout (in-memory) ───────────────────────────────────────
+# Tracks consecutive login failures per username. After MAX_FAILURES
+# consecutive wrong attempts the account is locked for LOCKOUT_SECONDS.
+# Resets on server restart — intentional for a single-instance app.
+import time as _time
+from collections import defaultdict as _defaultdict
+
+_MAX_FAILURES    = 10
+_LOCKOUT_SECONDS = 15 * 60   # 15 minutes
+
+# username → {"failures": int, "locked_until": float}
+_login_failures: dict = _defaultdict(lambda: {"failures": 0, "locked_until": 0.0})
+
+
+def _check_lockout(username: str) -> None:
+    state = _login_failures[username.lower()]
+    if state["locked_until"] > _time.time():
+        remaining = int(state["locked_until"] - _time.time())
+        raise HTTPException(
+            429,
+            f"Account temporarily locked due to too many failed attempts. "
+            f"Try again in {remaining} seconds."
+        )
+
+
+def _record_failure(username: str) -> None:
+    state = _login_failures[username.lower()]
+    state["failures"] += 1
+    if state["failures"] >= _MAX_FAILURES:
+        state["locked_until"] = _time.time() + _LOCKOUT_SECONDS
+
+
+def _clear_failures(username: str) -> None:
+    _login_failures[username.lower()] = {"failures": 0, "locked_until": 0.0}
+
+
+# ── Lockout status endpoint (admin only) ─────────────────────────────────────
+
+@app.get("/api/auth/lockouts")
+def get_lockouts(_admin: dict = Depends(require_admin)):
+    """Return all currently locked-out usernames and their unlock time."""
+    now = _time.time()
+    return {
+        "lockouts": [
+            {
+                "username":       u,
+                "failures":       s["failures"],
+                "locked_until":   int(s["locked_until"]),
+                "remaining_secs": max(0, int(s["locked_until"] - now)),
+            }
+            for u, s in _login_failures.items()
+            if s["locked_until"] > now
+        ]
+    }
+
+
+@app.delete("/api/auth/lockouts/{username}")
+def unlock_user(username: str, _admin: dict = Depends(require_admin)):
+    """Admin can manually unlock a locked-out account."""
+    _clear_failures(username)
+    return {"ok": True}
+
+class AdminSetupIn(BaseModel):
+    username: str
+    password: str
+
+
+class LoginIn(BaseModel):
+    username: str
+    password: str
+
+
+class CreateUserIn(BaseModel):
+    username: str
+    password: str
+    role: str = "user"
+
+
+class ChangePasswordIn(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@app.get("/api/auth/status")
+def auth_status(request: Request):
+    """Public. Tells the frontend which screen to show."""
+    user = auth.current_user(request)
+    return {
+        "admin_exists": repo.admin_exists(),
+        "authenticated": user is not None,
+        "user": {"id": user["id"], "username": user["username"], "role": user["role"]}
+                 if user else None,
+    }
+
+
+@app.post("/api/auth/setup-admin")
+@limiter.limit("5/minute")
+def setup_admin(request: Request, req: AdminSetupIn):
+    """Public — but only works once, while no admin exists yet."""
+    if repo.admin_exists():
+        raise HTTPException(403, "An administrator already exists")
+    auth.validate_password_strength(req.password)
+    try:
+        user = repo.create_user(
+            username=req.username,
+            password_hash=auth.hash_password(req.password),
+            role="admin",
+        )
+    except repo.AdminExistsError:
+        raise HTTPException(403, "An administrator already exists")
+    except repo.UsernameTakenError:
+        raise HTTPException(400, "Username is already taken")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    # Auto-login the new admin
+    request.session["user_id"] = user["id"]
+    return {"ok": True, "user": user}
+
+
+@app.post("/api/auth/login")
+@limiter.limit("10/minute")
+def login(request: Request, req: LoginIn):
+    """5 attempts per minute per IP. 10 consecutive failures locks the account
+    for 15 minutes (in-memory, resets on server restart)."""
+    _check_lockout(req.username)
+    user = repo.get_user_by_username((req.username or "").strip())
+    if not user or not user.get("active", True) or \
+       not auth.verify_password(req.password, user["password_hash"]):
+        _record_failure(req.username)
+        raise HTTPException(401, "Invalid username or password")
+    _clear_failures(req.username)
+    request.session["user_id"] = user["id"]
+    return {"ok": True, "user": {"id": user["id"], "username": user["username"],
+                                  "role": user["role"]}}
+
+
+@app.post("/api/auth/logout")
+def logout(request: Request):
+    request.session.clear()
+    return {"ok": True}
+
+
+@app.get("/api/auth/me")
+def auth_me(user: dict = Depends(require_login)):
+    return {"user": user}
+
+
+@app.post("/api/auth/change-password")
+def change_password(req: ChangePasswordIn, user: dict = Depends(require_login)):
+    full = repo.get_user_by_username(user["username"])
+    if not full or not auth.verify_password(req.current_password, full["password_hash"]):
+        raise HTTPException(400, "Current password is incorrect")
+    auth.validate_password_strength(req.new_password)
+    repo.set_user_password(user["id"], auth.hash_password(req.new_password))
+    return {"ok": True}
+
+
+# ── User management (admin only) ─────────────────────────────────────────────
+
+@app.get("/api/users")
+def get_users(admin: dict = Depends(require_admin)):
+    return {"users": repo.list_users(), "total": repo.user_count()}
+
+
+@app.post("/api/users")
+def create_user_endpoint(req: CreateUserIn, admin: dict = Depends(require_admin)):
+    role = req.role if req.role in ("user", "admin") else "user"
+    auth.validate_password_strength(req.password)
+    try:
+        user = repo.create_user(
+            username=req.username,
+            password_hash=auth.hash_password(req.password),
+            role=role,
+        )
+    except repo.AdminExistsError:
+        raise HTTPException(400, "An administrator already exists — only one is allowed")
+    except repo.UsernameTakenError:
+        raise HTTPException(400, "Username is already taken")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True, "user": user}
+
+
+@app.delete("/api/users/{user_id}")
+def delete_user_endpoint(user_id: str, admin: dict = Depends(require_admin)):
+    target = repo.get_user(user_id)
+    if not target:
+        raise HTTPException(404, "User not found")
+    # The sole admin cannot be deleted (would lock everyone out of config)
+    if target["role"] == "admin" and repo.count_admins() <= 1:
+        raise HTTPException(400, "Cannot delete the only administrator")
+    if user_id == admin["id"]:
+        raise HTTPException(400, "You cannot delete your own account")
+    repo.delete_user(user_id)
+    return {"ok": True}
 
 
 # ═══════════════════════════════════════════ WebSocket log ══════════════════
@@ -223,19 +464,17 @@ class PipelineRequest(BaseModel):
 
 
 @app.get("/api/pasos")
-def get_pasos():
+def get_pasos(_auth: dict = Depends(require_admin)):
     return [{"id": i, "nombre": n} for i, n in enumerate(pipeline.step_names())]
 
 
 @app.get("/api/days")
-def get_days():
+def get_days(_auth: dict = Depends(require_login)):
     """Scan the configured destination folder for YYYY/MM/DD structure.
-    Works with or without any JSON files — the filesystem is the source
-    of truth. Falls back to DAILY_SUMMARY_JSON only for extra metadata
-    (zip paths, etc.) that the filesystem alone cannot provide."""
-    from .config import DAILY_SUMMARY_JSON, ORGANIZED_DIR
+    Scans the filesystem for YYYY/MM/DD structure; enriches with
+    DB metadata (zip paths, capture_date, tags) where available."""
+    from .config import ORGANIZED_DIR
     from .storage.folders import load_saved_destination, load_destination_config
-    from .json_io import read_json
 
     # Resolve actual destination
     dest_config = load_destination_config()
@@ -245,8 +484,8 @@ def get_days():
         dest_str = load_saved_destination()
         base_dir = Path(dest_str) if dest_str else Path(ORGANIZED_DIR)
 
-    # Load summary JSON for extra metadata (zip paths) — optional
-    summary_raw = read_json(DAILY_SUMMARY_JSON, default=[])
+    # Enrich with DB summary metadata (zip paths, etc.)
+    summary_raw = repo.load_summaries()
     summary_by_date: dict[str, dict] = {}
     if isinstance(summary_raw, list):
         for s in summary_raw:
@@ -303,13 +542,12 @@ def get_days():
 
 
 @app.get("/api/days/{date}/photos")
-def get_day_photos(date: str):
+def get_day_photos(date: str, _auth: dict = Depends(require_login)):
     """Return all photo files for a specific day (YYYY-MM-DD).
-    Scans the filesystem directly — works with zero JSON files.
-    Enriches with capture_date and tags from METADATA_JSON when available."""
-    from .config import ORGANIZED_DIR, METADATA_JSON, FAVOURITES_JSON
+    Scans the filesystem directly. Enriches with capture_date,
+    tags, GPS and city from the captures table."""
+    from .config import ORGANIZED_DIR
     from .storage.folders import load_saved_destination, load_destination_config
-    from .json_io import read_json
     from urllib.parse import quote
 
     # Resolve actual destination
@@ -327,16 +565,14 @@ def get_day_photos(date: str):
     day_folder = base_dir / year / month / day
 
     # Load favourites
-    favs: set[str] = set(read_json(FAVOURITES_JSON, default=[]) or [])
+    favs: set[str] = repo.favourites_set()
 
-    # Optional: enrich from metadata JSON
+    # Enrich from database
     meta_by_dest: dict[str, dict] = {}
-    raw_meta = read_json(METADATA_JSON, default=[])
-    if isinstance(raw_meta, list):
-        for m in raw_meta:
-            dest = m.get("ruta_destino") or m.get("dest_path")
-            if dest:
-                meta_by_dest[dest] = m
+    for m in repo.load_captures():
+        dest = m.get("ruta_destino") or m.get("dest_path")
+        if dest:
+            meta_by_dest[dest] = m
 
     VALID_IMG = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff"}
     photos = []
@@ -353,6 +589,9 @@ def get_day_photos(date: str):
                 "size_mb":      round(f.stat().st_size / 1048576, 2),
                 "capture_date": meta.get("fecha_captura", ""),
                 "tags":         meta.get("tags", []),
+                "city":         meta.get("city", ""),
+                "gps_lat":      meta.get("gps_lat"),
+                "gps_lon":      meta.get("gps_lon"),
                 "favourite":    fpath in favs,
                 "url":          f"/api/photo?path={quote(fpath)}",
             })
@@ -386,7 +625,7 @@ def _is_allowed(p: Path) -> bool:
 
 
 @app.get("/api/photo")
-def serve_photo(path: str):
+def serve_photo(path: str, _auth: dict = Depends(require_login)):
     """Serve a full-resolution photo file by its absolute path.
     Allows files inside ORGANIZED_DIR or the user-configured destination."""
     from fastapi.responses import FileResponse
@@ -402,7 +641,7 @@ def serve_photo(path: str):
 
 
 @app.get("/api/thumb")
-def serve_thumbnail(path: str, size: int = 300):
+def serve_thumbnail(path: str, size: int = 300, _auth: dict = Depends(require_login)):
     """Serve a cached JPEG thumbnail of a photo. Generates and caches it
     on first request under THUMBS_DIR/<hash>.jpg. Falls back to the full
     image if Pillow is unavailable."""
@@ -453,11 +692,8 @@ def serve_thumbnail(path: str, size: int = 300):
 
 
 @app.get("/api/favourites")
-def get_favourites():
-    from .config import FAVOURITES_JSON
-    from .json_io import read_json
-    favs = read_json(FAVOURITES_JSON, default=[])
-    return {"favourites": favs if isinstance(favs, list) else []}
+def get_favourites(_auth: dict = Depends(require_login)):
+    return {"favourites": repo.load_favourites()}
 
 
 class BulkActionIn(BaseModel):
@@ -466,12 +702,10 @@ class BulkActionIn(BaseModel):
 
 
 @app.post("/api/photos/bulk")
-def bulk_action(req: BulkActionIn):
+def bulk_action(req: BulkActionIn, _auth: dict = Depends(require_login)):
     """Perform a bulk action on a list of photo paths.
     action: 'favourite' | 'unfavourite' | 'delete'
     delete: moves files to a .trash/ subfolder next to the photo."""
-    from .config import FAVOURITES_JSON
-    from .json_io import read_json, write_json
     import shutil
 
     if req.action not in ("favourite", "unfavourite", "delete"):
@@ -482,19 +716,24 @@ def bulk_action(req: BulkActionIn):
         raise HTTPException(403, "No allowed paths in request")
 
     if req.action in ("favourite", "unfavourite"):
-        favs: list[str] = read_json(FAVOURITES_JSON, default=[]) or []
-        if not isinstance(favs, list):
-            favs = []
-        if req.action == "favourite":
-            for p in ok_paths:
-                if p not in favs:
-                    favs.append(p)
-        else:
-            favs = [f for f in favs if f not in set(ok_paths)]
-        write_json(FAVOURITES_JSON, favs)
-        return {"ok": True, "affected": len(ok_paths), "total_favourites": len(favs)}
+        flag = req.action == "favourite"
+        # Ensure every path exists as a capture row (upsert minimal record)
+        from pathlib import Path as _Path
+        for p in ok_paths:
+            if not repo.get_capture_by_dest(p):
+                _f = _Path(p)
+                repo.upsert_captures([{
+                    "id": p, "archivo": _f.name, "formato": _f.suffix.lstrip("."),
+                    "tamano_mb": round(_f.stat().st_size / 1048576, 2) if _f.is_file() else 0,
+                    "mtime": _f.stat().st_mtime if _f.is_file() else 0,
+                    "fecha_captura": "", "ruta_original": "",
+                    "ruta_destino": p, "tags": [],
+                }])
+        count = repo.bulk_set_favourite(ok_paths, flag)
+        total = len(repo.load_favourites())
+        return {"ok": True, "affected": count, "total_favourites": total, "moved": 0}
 
-    # delete → move to .trash/
+    # delete → move to .trash/ and record for restore
     moved, errors = 0, []
     for path_str in ok_paths:
         src = Path(path_str)
@@ -508,11 +747,169 @@ def bulk_action(req: BulkActionIn):
             stem, suffix = src.stem, src.suffix
             dest = trash / f"{stem}_{src.stat().st_ino}{suffix}"
         try:
+            size_mb = round(src.stat().st_size / 1048576, 2)
             shutil.move(str(src), str(dest))
+            # Record so it can be restored later
+            repo.add_to_trash(
+                original_path=str(src),
+                trash_path=str(dest),
+                filename=src.name,
+                size_mb=size_mb,
+            )
+            # Remove favourite flag / capture stays but dest_path now invalid
             moved += 1
         except Exception as e:
             errors.append(str(e))
     return {"ok": True, "moved": moved, "errors": errors}
+
+
+# ═══════════════════════════════════════════ Trash / Recycle bin ════════════
+
+@app.get("/api/trash")
+def get_trash(_auth: dict = Depends(require_login)):
+    """List all photos currently in the trash."""
+    from urllib.parse import quote
+    entries = repo.list_trash()
+    for e in entries:
+        # thumbnail served from the trash location
+        e["url"] = f"/api/photo?path={quote(e['trash_path'])}"
+        e["exists"] = Path(e["trash_path"]).is_file()
+    return {"trash": entries, "total": len(entries), "count": repo.trash_count()}
+
+
+class TrashActionIn(BaseModel):
+    ids: list[str]
+
+
+@app.post("/api/trash/restore")
+def restore_from_trash(req: TrashActionIn, _auth: dict = Depends(require_login)):
+    """Restore trashed photos to their original location."""
+    import shutil
+    restored, errors = 0, []
+    for entry_id in req.ids:
+        entry = repo.get_trash_entry(entry_id)
+        if not entry:
+            continue
+        src = Path(entry["trash_path"])
+        dest = Path(entry["original_path"])
+        if not src.is_file():
+            # File already gone — clean up the stale record
+            repo.remove_trash_entry(entry_id)
+            errors.append(f"{entry['filename']}: file missing from trash")
+            continue
+        try:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            # If something now occupies the original path, restore alongside it
+            if dest.exists():
+                stem, suffix = dest.stem, dest.suffix
+                dest = dest.parent / f"{stem}_restored{suffix}"
+            shutil.move(str(src), str(dest))
+            repo.remove_trash_entry(entry_id)
+            restored += 1
+        except Exception as e:
+            errors.append(f"{entry['filename']}: {e}")
+    return {"ok": True, "restored": restored, "errors": errors}
+
+
+@app.post("/api/trash/delete")
+def permanently_delete(req: TrashActionIn, _auth: dict = Depends(require_login)):
+    """Permanently delete trashed photos (cannot be undone)."""
+    deleted, errors = 0, []
+    for entry_id in req.ids:
+        entry = repo.get_trash_entry(entry_id)
+        if not entry:
+            continue
+        try:
+            p = Path(entry["trash_path"])
+            if p.is_file():
+                p.unlink()
+            repo.remove_trash_entry(entry_id)
+            deleted += 1
+        except Exception as e:
+            errors.append(f"{entry['filename']}: {e}")
+    return {"ok": True, "deleted": deleted, "errors": errors}
+
+
+@app.post("/api/trash/empty")
+def empty_trash(_auth: dict = Depends(require_login)):
+    """Permanently delete everything in the trash."""
+    entries = repo.list_trash()
+    deleted = 0
+    for e in entries:
+        try:
+            p = Path(e["trash_path"])
+            if p.is_file():
+                p.unlink()
+            repo.remove_trash_entry(e["id"])
+            deleted += 1
+        except Exception:
+            pass
+    return {"ok": True, "deleted": deleted}
+
+
+@app.post("/api/trash/purge-old")
+def purge_old_trash(days: int = 30, _admin: dict = Depends(require_admin)):
+    """Permanently delete trash entries older than `days` days.
+    Intended to be called periodically; admin-only."""
+    old = repo.trash_entries_older_than(days)
+    purged = 0
+    for e in old:
+        try:
+            p = Path(e["trash_path"])
+            if p.is_file():
+                p.unlink()
+            repo.remove_trash_entry(e["id"])
+            purged += 1
+        except Exception:
+            pass
+    return {"ok": True, "purged": purged, "days": days}
+
+
+@app.get("/api/photos/download-zip")
+def download_zip(
+    paths: str,
+    _auth: dict = Depends(require_login),
+):
+    """Stream a ZIP archive containing the requested photos.
+
+    Query param: paths — comma-separated list of absolute file paths.
+    Only paths inside allowed bases are included (others silently skipped).
+    The ZIP is streamed so large selections don't need to be buffered in memory.
+    """
+    import io
+    import zipfile
+    from fastapi.responses import StreamingResponse
+
+    raw_paths = [p.strip() for p in paths.split(",") if p.strip()]
+    allowed = [p for p in raw_paths if _is_allowed(Path(p)) and Path(p).is_file()]
+
+    if not allowed:
+        raise HTTPException(404, "No valid photos found in selection")
+
+    def _iter_zip():
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED,
+                             allowZip64=True) as zf:
+            seen_names: dict[str, int] = {}
+            for fpath in allowed:
+                name = Path(fpath).name
+                # Deduplicate: photo_001.jpg → photo_001_2.jpg etc.
+                if name in seen_names:
+                    seen_names[name] += 1
+                    stem, ext = Path(name).stem, Path(name).suffix
+                    name = f"{stem}_{seen_names[name]}{ext}"
+                else:
+                    seen_names[name] = 1
+                zf.write(fpath, arcname=name)
+        buf.seek(0)
+        yield from buf
+
+    filename = f"photos_{len(allowed)}.zip"
+    return StreamingResponse(
+        _iter_zip(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 
@@ -524,49 +921,189 @@ class FavouriteToggleIn(BaseModel):
 
 
 @app.post("/api/favourites")
-def toggle_favourite(req: FavouriteToggleIn):
-    """Add or remove a photo from favourites and persist to FAVOURITES_JSON."""
-    from .config import FAVOURITES_JSON
-    from .json_io import read_json, write_json
-
-    favs: list[str] = read_json(FAVOURITES_JSON, default=[]) or []
-    if not isinstance(favs, list):
-        favs = []
-
-    if req.favourite and req.path not in favs:
-        favs.append(req.path)
-    elif not req.favourite and req.path in favs:
-        favs.remove(req.path)
-
-    write_json(FAVOURITES_JSON, favs)
-    return {"ok": True, "total_favourites": len(favs)}
+def toggle_favourite(req: FavouriteToggleIn, _auth: dict = Depends(require_login)):
+    """Add or remove a photo from favourites."""
+    # Ensure a captures row exists for this path
+    if not repo.get_capture_by_dest(req.path):
+        from pathlib import Path as _Path
+        _f = _Path(req.path)
+        repo.upsert_captures([{
+            "id": req.path, "archivo": _f.name, "formato": _f.suffix.lstrip("."),
+            "tamano_mb": round(_f.stat().st_size / 1048576, 2) if _f.is_file() else 0,
+            "mtime": _f.stat().st_mtime if _f.is_file() else 0,
+            "fecha_captura": "", "ruta_original": "",
+            "ruta_destino": req.path, "tags": [],
+        }])
+    repo.set_favourite(req.path, req.favourite)
+    return {"ok": True}
 
 
 
 
 
 @app.get("/api/tags")
-def get_tags():
+def get_tags(_auth: dict = Depends(require_login)):
     """Return all distinct tags across all captures with their counts."""
-    from .config import METADATA_JSON
-    from .json_io import read_json
-    from .models import Capture
+    tags = repo.load_all_tags()
+    return {"tags": tags, "total_captures": len(tags)}
 
-    raw = read_json(METADATA_JSON, default=[])
-    if not isinstance(raw, list):
-        return {"tags": []}
 
-    tag_counts: dict[str, int] = {}
-    for item in raw:
-        for tag in item.get("tags", []):
-            tag_counts[tag] = tag_counts.get(tag, 0) + 1
+@app.get("/api/cities")
+def get_cities(_auth: dict = Depends(require_login)):
+    """Return all distinct cities extracted from GPS EXIF metadata.
+    Each entry: city name, photo count, cover photo path, coordinates."""
+    cities = repo.load_all_cities()
+    return {"cities": cities, "total": len(cities)}
 
-    tags = sorted(
-        [{"tag": t, "count": c} for t, c in tag_counts.items()],
-        key=lambda x: -x["count"],
+
+@app.get("/api/photos/by-city/{city}")
+def photos_by_city(city: str, _auth: dict = Depends(require_login)):
+    """Return all photo paths that have the given city in their metadata."""
+    photos = repo.photos_by_city(city)
+    return {"city": city, "photos": photos, "count": len(photos)}
+
+
+# ── Albums ──────────────────────────────────────────────────────────
+# An album is a named collection that references existing photos by their
+# absolute path. Photos are never copied or moved; a photo can belong to
+# many albums. Deleting an album never deletes the underlying photos.
+# Albums are persisted to the albums + album_photos tables.
+#   {"id","name","cover","created","photos":[path,...]}
+
+# Album helpers moved to repository.py
+
+
+# _album_photo_dict removed — album photos built in repository.py
+
+
+@app.get("/api/albums")
+def get_albums(_auth: dict = Depends(require_login)):
+    """List all albums with photo count and a resolved cover path."""
+    albums = repo.load_albums()
+    out = [{"id": a["id"], "name": a["name"], "cover": a["cover"],
+             "created": a["created"], "count": a["count"]} for a in albums]
+    return {"albums": out, "total": len(out)}
+
+
+class AlbumCreateIn(BaseModel):
+    name: str
+
+
+@app.post("/api/albums")
+def create_album(req: AlbumCreateIn, _auth: dict = Depends(require_login)):
+    """Create a new empty album. Returns the created album with its id."""
+    import uuid
+    from datetime import datetime
+
+    name = (req.name or "").strip()
+    if not name:
+        raise HTTPException(400, "Album name cannot be empty")
+
+    album = repo.create_album(
+        album_id=f"alb_{uuid.uuid4().hex[:8]}",
+        name=name,
+        created_at=datetime.now().isoformat(timespec="seconds"),
     )
-    return {"tags": tags, "total_captures": len(raw)}
+    return {"ok": True, "album": album}
 
+
+class AlbumRenameIn(BaseModel):
+    name: str | None = None
+    cover: str | None = None
+
+
+@app.patch("/api/albums/{album_id}")
+def update_album(album_id: str, req: AlbumRenameIn, _auth: dict = Depends(require_login)):
+    """Rename an album and/or set its cover photo."""
+    album = repo.get_album(album_id)
+    if album is None:
+        raise HTTPException(404, "Album not found")
+
+    if req.name is not None:
+        new_name = req.name.strip()
+        if not new_name:
+            raise HTTPException(400, "Album name cannot be empty")
+        repo.update_album_name(album_id, new_name)
+        album["name"] = new_name
+    if req.cover is not None:
+        if req.cover and req.cover not in (album.get("photos") or []):
+            raise HTTPException(400, "Cover must be a photo in this album")
+        repo.update_album_cover(album_id, req.cover or None)
+        album["cover"] = req.cover or None
+
+    album = repo.get_album(album_id)
+    return {"ok": True, "album": {**album, "count": album["count"]}}
+
+
+@app.delete("/api/albums/{album_id}")
+def delete_album(album_id: str, _auth: dict = Depends(require_login)):
+    """Delete an album. The underlying photos are never touched."""
+    deleted = repo.delete_album(album_id)
+    if not deleted:
+        raise HTTPException(404, "Album not found")
+    remaining = repo.load_albums()
+    return {"ok": True, "total": len(remaining)}
+
+
+class AlbumPhotosIn(BaseModel):
+    paths: list[str]
+    action: str  # "add" | "remove"
+
+
+@app.post("/api/albums/{album_id}/photos")
+def album_photos(album_id: str, req: AlbumPhotosIn, _auth: dict = Depends(require_login)):
+    """Add or remove photos in an album by path. action: 'add' | 'remove'."""
+    if req.action not in ("add", "remove"):
+        raise HTTPException(400, f"Unknown action: {req.action!r}")
+
+    if not repo.get_album(album_id):
+        raise HTTPException(404, "Album not found")
+
+    if req.action == "add":
+        allowed = [p for p in req.paths if _is_allowed(Path(p))]
+        count = repo.album_add_photos(album_id, allowed)
+    else:
+        count = repo.album_remove_photos(album_id, req.paths)
+
+    return {"ok": True, "count": count}
+
+
+@app.get("/api/albums/{album_id}")
+def get_album(album_id: str, _auth: dict = Depends(require_login)):
+    """Return the photos in an album, in the same shape as day photos."""
+    album = repo.get_album(album_id)
+    if album is None:
+        raise HTTPException(404, "Album not found")
+
+    from urllib.parse import quote
+    favs = repo.favourites_set()
+    meta_by_dest = {m.get("ruta_destino"): m for m in repo.load_captures() if m.get("ruta_destino")}
+
+    photos = []
+    for fpath in (album.get("photos") or []):
+        path_obj = Path(fpath)
+        exists = path_obj.is_file()
+        meta = meta_by_dest.get(fpath, {})
+        photos.append({
+            "id":           fpath,
+            "filename":     path_obj.name,
+            "size_mb":      round(path_obj.stat().st_size / 1048576, 2) if exists else 0,
+            "capture_date": meta.get("fecha_captura", ""),
+            "tags":         meta.get("tags", []),
+            "city":         meta.get("city", ""),
+            "gps_lat":      meta.get("gps_lat"),
+            "gps_lon":      meta.get("gps_lon"),
+            "favourite":    fpath in favs,
+            "exists":       exists,
+            "url":          f"/api/photo?path={quote(fpath)}",
+        })
+    return {
+        "id":      album["id"],
+        "name":    album.get("name", "Untitled"),
+        "created": album.get("created", ""),
+        "count":   len(photos),
+        "photos":  photos,
+    }
 
 
 def pipeline_estado():
@@ -574,12 +1111,12 @@ def pipeline_estado():
 
 
 @app.get("/api/pipeline/estado")
-def pipeline_estado():
+def pipeline_estado(_auth: dict = Depends(require_admin)):
     return {"corriendo": pipeline.is_running()}
 
 
 @app.post("/api/pipeline/ejecutar")
-def ejecutar_pipeline(req: PipelineRequest):
+def ejecutar_pipeline(req: PipelineRequest, _auth: dict = Depends(require_admin)):
     try:
         names = pipeline.run(req.pasos)
     except RuntimeError as e:
@@ -601,7 +1138,7 @@ class SSHConnectionIn(BaseModel):
 
 
 @app.get("/api/ssh")
-def listar_ssh():
+def listar_ssh(_auth: dict = Depends(require_admin)):
     connections = ssh_connection.load_ssh_connections()
     # No exponer la ruta de la clave privada en la respuesta de la API
     return [
@@ -612,7 +1149,7 @@ def listar_ssh():
 
 
 @app.get("/api/ssh/roles")
-def get_roles_ssh():
+def get_roles_ssh(_auth: dict = Depends(require_admin)):
     """Devuelve los roles válidos y sus reglas, para que la UI los renderice
     sin hardcodear ninguna regla en JS."""
     return {
@@ -628,7 +1165,7 @@ def get_roles_ssh():
 
 
 @app.post("/api/ssh")
-def guardar_ssh(datos: SSHConnectionIn):
+def guardar_ssh(datos: SSHConnectionIn, _auth: dict = Depends(require_admin)):
     # Si el cliente envía clave_privada vacía, preservar la que ya existía
     clave = datos.clave_privada
     if not clave:
@@ -649,7 +1186,7 @@ def guardar_ssh(datos: SSHConnectionIn):
 
 
 @app.delete("/api/ssh/{alias}")
-def eliminar_ssh(alias: str):
+def eliminar_ssh(alias: str, _auth: dict = Depends(require_admin)):
     ssh_connection.remove_ssh_connection(alias)
     return {"ok": True}
 
@@ -664,7 +1201,7 @@ class ConnectionWebDAVIn(BaseModel):
 
 
 @app.get("/api/webdav")
-def listar_webdav():
+def listar_webdav(_auth: dict = Depends(require_admin)):
     return [
         {**c, "montada": connection.is_mounted(c["letra"])}
         for c in connection.load_connections()
@@ -672,7 +1209,7 @@ def listar_webdav():
 
 
 @app.get("/api/webdav/letras")
-def letras_disponibles():
+def letras_disponibles(_auth: dict = Depends(require_admin)):
     """Letras de unidad disponibles (D:-Z:). El JS las usa para el <select>,
     sin hardcodear el rango en el cliente."""
     usadas = {c["letra"] for c in connection.load_connections()}
@@ -683,7 +1220,7 @@ def letras_disponibles():
 
 
 @app.post("/api/webdav/connect")
-async def connect_webdav(datos: ConnectionWebDAVIn):
+async def connect_webdav(datos: ConnectionWebDAVIn, _auth: dict = Depends(require_admin)):
     loop = asyncio.get_event_loop()
     exito, mensaje = await loop.run_in_executor(
         _net_executor,
@@ -697,7 +1234,7 @@ async def connect_webdav(datos: ConnectionWebDAVIn):
 
 
 @app.post("/api/webdav/disconnect/{letra}")
-async def disconnect_webdav(letra: str):
+async def disconnect_webdav(letra: str, _auth: dict = Depends(require_admin)):
     loop = asyncio.get_event_loop()
     exito, mensaje = await loop.run_in_executor(
         _net_executor,
@@ -706,6 +1243,46 @@ async def disconnect_webdav(letra: str):
     if exito:
         connection.remove_connection(letra)
     return {"ok": exito, "mensaje": mensaje}
+
+
+class WebDAVScanIn(BaseModel):
+    ip: str
+    port: str = "8080"
+    dest_folder: str = ""   # where to save downloads; defaults to ORGANIZED_DIR/incoming
+
+
+@app.post("/api/webdav/scan")
+def webdav_scan(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
+    """List all photos available on a phone WebDAV server (no download yet).
+    Works on any OS — uses direct HTTP, no 'net use' needed."""
+    from .storage.webdav_downloader import list_remote_files, DEFAULT_REMOTE_PATHS
+    all_files = []
+    seen: set[str] = set()
+    for rpath in DEFAULT_REMOTE_PATHS:
+        found = list_remote_files(req.ip, req.port, rpath)
+        for f in found:
+            if f.name not in seen:
+                all_files.append({"name": f.name, "size": f.size, "path": f.href})
+                seen.add(f.name)
+    return {"ok": True, "count": len(all_files), "files": all_files}
+
+
+@app.post("/api/webdav/download")
+def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
+    """Download all photos from the phone directly via HTTP to dest_folder.
+    Works on any OS — uses direct HTTP, no 'net use' needed.
+    This is the Docker-friendly alternative to mounting a drive with net use."""
+    from .storage.webdav_downloader import sync_webdav_connection
+    from .config import ORGANIZED_DIR
+
+    dest = Path(req.dest_folder) if req.dest_folder else ORGANIZED_DIR / "incoming"
+    downloaded = sync_webdav_connection(req.ip, req.port, dest)
+    return {
+        "ok": True,
+        "downloaded": len(downloaded),
+        "dest_folder": str(dest),
+        "files": [str(p) for p in downloaded],
+    }
 
 
 # ═══════════════════════════════════════════ Carpetas ═══════════════════════
@@ -725,7 +1302,7 @@ class DestinoIn(BaseModel):
 
 
 @app.get("/api/carpetas")
-def get_carpetas():
+def get_carpetas(_auth: dict = Depends(require_admin)):
     """Estado completo de carpetas: origen + destino + servidores SSH
     disponibles como destino. La UI renderiza todo a partir de esto,
     sin estado propio en JS."""
@@ -741,7 +1318,7 @@ def get_carpetas():
 
 
 @app.post("/api/carpetas/origen/anadir")
-def anadir_carpeta(datos: AnadirCarpetaIn):
+def anadir_carpeta(datos: AnadirCarpetaIn, _auth: dict = Depends(require_admin)):
     carpeta = datos.carpeta.strip()
     if not carpeta:
         raise HTTPException(400, "La carpeta no puede estar vacía.")
@@ -753,14 +1330,14 @@ def anadir_carpeta(datos: AnadirCarpetaIn):
 
 
 @app.post("/api/carpetas/origen/quitar")
-def quitar_carpeta(datos: QuitarCarpetaIn):
+def quitar_carpeta(datos: QuitarCarpetaIn, _auth: dict = Depends(require_admin)):
     actuales = [c for c in load_saved_folders() if str(c) != datos.carpeta]
     save_folders(actuales)
     return {"ok": True, "origen": [str(c) for c in actuales]}
 
 
 @app.post("/api/carpetas/destino")
-def set_destino(datos: DestinoIn):
+def set_destino(datos: DestinoIn, _auth: dict = Depends(require_admin)):
     if datos.tipo == "local":
         if not datos.ruta:
             raise HTTPException(400, "Falta la ruta para destino local.")
@@ -782,7 +1359,7 @@ def set_destino(datos: DestinoIn):
 
 
 @app.post("/api/carpetas/destino/quitar")
-def quitar_destino():
+def quitar_destino(_auth: dict = Depends(require_admin)):
     save_destination("")
     return {"ok": True, "destino": load_destination_config()}
 

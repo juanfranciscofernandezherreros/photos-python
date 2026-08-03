@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+.env
+
+# Tests
+tests/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Dev / docs
+.git/
+*.md
+*.spec
+GALLERY_ROADMAP.md
+migrations/
+
+# Data (mounted as a volume instead)
+photos/
+~/PhotosSync/

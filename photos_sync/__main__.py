@@ -15,6 +15,19 @@ def main() -> None:
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload (dev mode)")
     args = parser.parse_args()
 
+    # Initialise the database engine and create tables if they don't exist yet.
+    # This runs before uvicorn so it works even when lifespan hooks aren't fired
+    # (e.g. during smoke-tests with --help or first boot on a fresh DB).
+    try:
+        from .db import get_engine, init_db
+        from .config import DATABASE_URL
+        import os
+        # Honour DATABASE_URL env var — the engine singleton reads it on first use
+        engine = get_engine()
+        init_db(engine)
+    except Exception as e:
+        print(f"⚠️  Database init warning: {e}")
+
     try:
         import uvicorn
     except ImportError:

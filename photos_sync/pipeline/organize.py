@@ -9,24 +9,24 @@ from pathlib import Path
 from rich.progress import track
 
 from ..storage.folders import load_saved_destination
-from ..config import METADATA_JSON, ORGANIZED_DIR
-from ..json_io import read_json, write_json
+from ..config import ORGANIZED_DIR
+from .. import repository as repo
 from ..models import Capture
 from .. import ssh_connection
 
 
 def organize_captures_by_date() -> None:
-    """Copy each capture listed in METADATA_JSON to dest/YYYY/MM/DD based on
+    """Copy each capture from the database to dest/YYYY/MM/DD based on
     its capture_date, fix the file's filesystem timestamp, and write back the
     dest_path into the metadata so compress.py and summary.py can use it."""
-    print(f"Reading '{METADATA_JSON}'...\n")
+    print(f"Reading captures from database...\n")
 
-    raw = read_json(METADATA_JSON)
+    raw = repo.load_captures()
     if raw is None:
-        print(f"❌ '{METADATA_JSON}' not found. Run step 1 (download) first.")
+        print(f"❌ No captures in database. Run step 1 (download) first.")
         return
     if not isinstance(raw, list):
-        print(f"❌ '{METADATA_JSON}' is corrupt. Run step 1 (download) again.")
+        print(f"❌ Database error. Run step 1 (download) again.")
         return
     if not raw:
         print("❌ No captures in the metadata file to organize.")
@@ -85,7 +85,7 @@ def organize_captures_by_date() -> None:
         for client in ssh_clients.values():
             client.close()
 
-    write_json(METADATA_JSON, [c.to_dict() for c in captures])
+    repo.upsert_captures([c.to_dict() for c in captures])
 
     print("-" * 50)
     print("ORGANIZE SUMMARY:")

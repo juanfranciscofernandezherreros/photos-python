@@ -7,14 +7,11 @@ from pathlib import Path
 from rich.progress import track
 
 from ..storage.folders import load_saved_destination
-from ..config import (
-    METADATA_JSON,
-    ORGANIZED_DIR,
-    ZIPS_DIR,
-    DELETE_ORIGINALS_AFTER_COMPRESS,
-)
-from ..json_io import read_json, write_json
+from ..config import ORGANIZED_DIR, ZIPS_DIR
+from .. import repository as repo
 from ..models import Capture
+
+DELETE_ORIGINALS_AFTER_COMPRESS: bool = False  # set True to remove day folders after zipping
 
 
 def zip_is_valid(zip_path: Path) -> bool:
@@ -41,7 +38,7 @@ def compress_folders_by_day() -> None:
     zips_folder.mkdir(parents=True, exist_ok=True)
 
     # Load existing metadata to update zip_path fields
-    raw = read_json(METADATA_JSON, default=[])
+    raw = repo.load_captures()
     captures: list[Capture] = []
     if isinstance(raw, list):
         captures = [Capture.from_dict(d) for d in raw]
@@ -106,7 +103,7 @@ def compress_folders_by_day() -> None:
             errors += 1
 
     if captures:
-        write_json(METADATA_JSON, [c.to_dict() for c in captures])
+        repo.upsert_captures([c.to_dict() for c in captures])
 
     print("-" * 50)
     print("COMPRESSION SUMMARY:")

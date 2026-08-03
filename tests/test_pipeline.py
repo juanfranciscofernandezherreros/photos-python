@@ -19,7 +19,6 @@ from photos_sync.pipeline.summary import group_by_day, generate_daily_summary
 from photos_sync.pipeline.compress import zip_is_valid, compress_folders_by_day
 from photos_sync.pipeline.organize import organize_captures_by_date
 from photos_sync.config import (
-    METADATA_JSON, DAILY_SUMMARY_JSON,
     VALID_EXTENSIONS,
 )
 
@@ -75,8 +74,7 @@ class TestCargarMetadatosExistentes:
             assert capture.filename != ""
 
     def test_corrupt_file_returns_empty(self, tmp_path):
-        from photos_sync.config import METADATA_JSON as MJ
-        Path(MJ).write_text("no es json", encoding="utf-8")
+        # With a database backend, an empty DB returns {}
         assert load_existing_metadata() == {}
 
 
@@ -119,7 +117,8 @@ class TestOrganizarCapturas:
         _folders.save_destination(str(tmp_path / "organizado"))
         organize_captures_by_date()
 
-        datos = json.loads(metadatos_json.read_text())
+        from photos_sync import repository as _repo
+        datos = _repo.load_captures()
         assert all("ruta_destino" in c for c in datos)
 
 
@@ -208,14 +207,12 @@ class TestResumen:
 
     def test_generate_summary_creates_file(self, tmp_path, metadatos_json):
         generate_daily_summary()
-        from photos_sync.config import DAILY_SUMMARY_JSON as DSJ
-        resumen_path = Path(DSJ)
-        assert resumen_path.exists()
-        datos = json.loads(resumen_path.read_text())
-        assert len(datos) == 2
+        from photos_sync import repository as _repo
+        summaries = _repo.load_summaries()
+        assert len(summaries) == 2
 
     def test_generate_summary_without_metadata_does_not_fail(self):
-        generate_daily_summary()  # solo imprime aviso
+        generate_daily_summary()  # empty DB — prints notice, does not raise
 
     def test_summary_includes_zip_path(self, tmp_path, carpeta_organizada, metadatos_json):
         from photos_sync.storage import folders as _folders
@@ -223,8 +220,6 @@ class TestResumen:
         compress_folders_by_day()
         generate_daily_summary()
 
-        from photos_sync.config import DAILY_SUMMARY_JSON as DSJ
-        resumen_path = Path(DSJ)
-        datos = json.loads(resumen_path.read_text())
-        # At least one day must have ruta_zip filled in
-        assert any(r.get("ruta_zip") for r in datos)
+        from photos_sync import repository as _repo
+        summaries = _repo.load_summaries()
+        assert any(r.get("ruta_zip") for r in summaries)

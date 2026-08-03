@@ -28,8 +28,7 @@ import re
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Optional
 
-from ..config import METADATA_JSON
-from ..json_io import read_json, write_json
+from .. import repository as repo
 from ..models import Capture
 
 # EXIF support (optional — gracefully degraded if Pillow is missing)
@@ -97,6 +96,70 @@ def _exif_tags(path: Path) -> dict:
         return {}
 
 
+def _gps_decimal(coord, ref: str) -> float | None:
+    """Convert EXIF GPS DMS tuple to signed decimal degrees."""
+    try:
+        d, m, s = coord
+        # IFDRational or plain numbers
+        d = float(d); m = float(m); s = float(s)
+        decimal = d + m / 60 + s / 3600
+        if ref in ("S", "W"):
+            decimal = -decimal
+        return round(decimal, 7)
+    except Exception:
+        return None
+
+
+def _extract_gps(exif: dict) -> tuple[float, float] | None:
+    """Return (lat, lon) from EXIF GPSInfo, or None."""
+    gps = exif.get("GPSInfo")
+    if not gps:
+        return None
+    try:
+        from PIL.ExifTags import GPSTAGS
+        gps_named = {GPSTAGS.get(k, k): v for k, v in gps.items()}
+    except Exception:
+        return None
+    lat = _gps_decimal(gps_named.get("GPSLatitude"), gps_named.get("GPSLatitudeRef", "N"))
+    lon = _gps_decimal(gps_named.get("GPSLongitude"), gps_named.get("GPSLongitudeRef", "E"))
+    if lat is None or lon is None:
+        return None
+    return (lat, lon)
+
+
+# Cache reverse geocode results in memory (lat/lon rounded to 2 decimals → city)
+_geocode_cache: dict[tuple[float, float], str] = {}
+
+
+def _reverse_geocode(lat: float, lon: float) -> str:
+    """Return city name for coordinates using Nominatim (no API key needed).
+    Returns empty string if geopy is not installed or lookup fails."""
+    key = (round(lat, 2), round(lon, 2))
+    if key in _geocode_cache:
+        return _geocode_cache[key]
+    try:
+        from geopy.geocoders import Nominatim  # type: ignore[import]
+        from geopy.exc import GeocoderTimedOut  # type: ignore[import]
+        gc = Nominatim(user_agent="photos_sync/0.2")
+        location = gc.reverse((lat, lon), exactly_one=True, language="en", timeout=5)
+        if location and location.raw:
+            addr = location.raw.get("address", {})
+            city = (
+                addr.get("city")
+                or addr.get("town")
+                or addr.get("village")
+                or addr.get("municipality")
+                or addr.get("county")
+                or ""
+            )
+            _geocode_cache[key] = city
+            return city
+    except Exception:
+        pass
+    _geocode_cache[key] = ""
+    return ""
+
+
 def _dimensions(path: Path) -> Optional[tuple[int, int]]:
     if not _PIL_OK:
         return None
@@ -113,7 +176,7 @@ def classify_one(cap: Capture) -> list[str]:
     """Apply all rules to one Capture. Returns a sorted, deduplicated tag list.
 
     This is the public, testable function. classify_captures() calls it for
-    every Capture in METADATA_JSON.
+    every Capture in the database.
     """
     tags: set[str] = set(cap.tags)
 
@@ -152,6 +215,12 @@ def classify_one(cap: Capture) -> list[str]:
             tags.add("no_exif")
         if "GPSInfo" in exif:
             tags.add("has_gps")
+            gps = _extract_gps(exif)
+            if gps:
+                cap.gps_lat, cap.gps_lon = gps
+                city = _reverse_geocode(gps[0], gps[1])
+                if city:
+                    cap.city = city
         if exif.get("Make") or exif.get("Model"):
             tags.add("camera")
 
@@ -179,15 +248,15 @@ def classify_one(cap: Capture) -> list[str]:
 # ── Pipeline step ─────────────────────────────────────────────────────────────
 
 def classify_captures() -> None:
-    """Read METADATA_JSON, apply rule-based tags to every Capture, write back."""
-    print(f"Reading '{METADATA_JSON}'...\n")
+    """Load captures from DB, apply rule-based tags, save back to DB."""
+    print(f"Reading captures from database...\n")
 
-    raw = read_json(METADATA_JSON)
+    raw = repo.load_captures()
     if raw is None:
-        print(f"❌ '{METADATA_JSON}' not found. Run step 1 (download) first.")
+        print(f"❌ No captures in database. Run step 1 (download) first.")
         return
     if not isinstance(raw, list):
-        print(f"❌ '{METADATA_JSON}' is corrupt. Run step 1 (download) again.")
+        print(f"❌ Database error. Run step 1 (download) again.")
         return
     if not raw:
         print("❌ No captures to classify.")
@@ -207,7 +276,7 @@ def classify_captures() -> None:
         for t in cap.tags:
             tag_counts[t] = tag_counts.get(t, 0) + 1
 
-    write_json(METADATA_JSON, [c.to_dict() for c in captures])
+    repo.upsert_captures([c.to_dict() for c in captures])
 
     print("-" * 55)
     print("CLASSIFICATION SUMMARY:")

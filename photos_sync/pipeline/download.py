@@ -7,8 +7,8 @@ from datetime import datetime
 from pathlib import Path, PurePosixPath
 
 from ..storage.folders import load_saved_folders
-from ..config import METADATA_JSON, VALID_EXTENSIONS
-from ..json_io import read_json, write_json
+from ..config import VALID_EXTENSIONS
+from .. import repository as repo
 from ..models import Capture
 from ..utils.progress import progress_bar
 from ..utils.dates import format_date, DATE_FORMAT
@@ -36,15 +36,13 @@ def _progreso_OLD(iterable, description: str = "", total: int | None = None):
 
 
 def load_existing_metadata() -> dict[str, Capture]:
-    """Load the saved metadata JSON and return a dict keyed by source_path."""
-    lista_previa = read_json(METADATA_JSON)
-    if not isinstance(lista_previa, list):
-        return {}
+    """Load metadata from the database, keyed by source_path."""
     try:
-        captures = [Capture.from_dict(item) for item in lista_previa]
+        raw = repo.load_captures()
+        captures = [Capture.from_dict(item) for item in raw]
         return {c.source_path: c for c in captures}
-    except (KeyError, TypeError):
-        print(f"⚠️ Existing '{METADATA_JSON}' is corrupt, it will be regenerated from scratch.\n")
+    except Exception as e:
+        print(f"⚠️ Could not load existing metadata: {e}\n")
         return {}
 
 
@@ -92,7 +90,7 @@ def scan_ssh_server(conn: ssh_connection.SSHConnection) -> list[Capture]:
             extension=PurePosixPath(nombre).suffix.lower().replace('.', ''),
             size_mb=round(f["tamano"] / (1024 * 1024), 2),
             mtime=f["mtime"],
-            capture_date="",        # filled in export_metadata_json
+            capture_date="",        # filled by EXIF during classify
             source_path=f"ssh://{alias}{f['ruta']}",
             ssh_alias=alias,
             ssh_remote_path=f["ruta"],
@@ -100,7 +98,7 @@ def scan_ssh_server(conn: ssh_connection.SSHConnection) -> list[Capture]:
     return captures
 
 
-def export_metadata_json() -> None:
+def sync_captures() -> None:
     print("Searching for screenshots on connected drives and extracting metadata...\n")
 
     folders = load_saved_folders()
@@ -231,7 +229,7 @@ def export_metadata_json() -> None:
     captures_list = list(current.values())
 
     if captures_list:
-        write_json(METADATA_JSON, [c.to_dict() for c in captures_list])
+        repo.upsert_captures([c.to_dict() for c in captures_list])
         print("-" * 50)
         print(f"✅ Success! Metadata extracted and dates corrected.")
     else:
@@ -239,4 +237,4 @@ def export_metadata_json() -> None:
 
 
 if __name__ == "__main__":
-    export_metadata_json()
+    sync_captures()

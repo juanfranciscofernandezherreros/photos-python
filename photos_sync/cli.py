@@ -8,13 +8,13 @@ from typing import Callable
 from .config import ORCHESTRATOR_LOG
 from .keep_awake import prevent_sleep
 from . import ssh_connection
-from .pipeline import (export_metadata_json, organize_captures_by_date,
+from .pipeline import (sync_captures, organize_captures_by_date,
     classify_captures, compress_folders_by_day, generate_daily_summary, upload_organized_to_ssh)
 
 PasoPipeline = tuple[str, Callable[[], None]]
 
 PASOS: list[PasoPipeline] = [
-    ("Download metadata", export_metadata_json),
+    ("Sync & save captures", sync_captures),
     ("Organize by date", organize_captures_by_date),
     ("Classify photos", classify_captures),
     ("Compress by day", compress_folders_by_day),
@@ -78,7 +78,7 @@ def parsear_argumentos() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="photos-sync",
         description="Photos pipeline: downloads, organizes, and compresses screenshots from your "
-                     "connected phones (see 'Conexión WebDAV'). Without arguments, opens the graphical window."
+                     "connected phones. Without arguments, starts the web server at http://localhost:8765."
     )
     grupo = parser.add_mutually_exclusive_group()
     grupo.add_argument(
@@ -186,18 +186,6 @@ def modo_gestion_ssh(args: argparse.Namespace) -> bool:
     return False
 
 
-def abrir_interfaz_grafica() -> None:
-    """Lanza la ventana principal (PyQt6) con botones para cada paso y un
-    panel de log integrado. Sustituye al antiguo menú de texto."""
-    try:
-        from .main_window import main as gui_main
-    except ImportError:
-        print("\n❌ Could not load PyQt6. Install it with: pip install PyQt6")
-        return
-
-    gui_main()
-
-
 def modo_cli(args: argparse.Namespace) -> None:
     pasos_a_ejecutar: list[PasoPipeline]
 
@@ -232,12 +220,15 @@ def main() -> None:
         return
 
     if argumentos.todo or argumentos.pasos:
-        # Modo desatendido (Programador de tareas de Windows, sin pantalla):
-        # se queda en consola/log a propósito, no abre ninguna ventana.
+        # Unattended mode (Windows Task Scheduler, headless): stays in the
+        # console/log on purpose, runs the pipeline directly.
         modo_cli(argumentos)
     else:
-        # Uso normal e interactivo: siempre la interfaz gráfica.
-        abrir_interfaz_grafica()
+        # No arguments: start the web server (the only UI now).
+        print("Starting the Photos Sync web server…")
+        print("Open http://localhost:8765 in your browser.\n")
+        from .__main__ import main as web_main
+        web_main()
 
 
 if __name__ == "__main__":

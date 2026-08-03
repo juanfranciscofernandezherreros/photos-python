@@ -9,7 +9,7 @@ Benefits:
 - Typo-proof: captura.capture_date instead of captura["fecha_captura"]
 - IDE autocomplete and mypy checking on all field access
 - Single definition: change a field name here and every module updates
-- to_dict() / from_dict() keep JSON serialization in one place
+- to_dict() / from_dict() keep serialization in one place
 """
 from __future__ import annotations
 
@@ -50,11 +50,14 @@ class Capture:
     dest_path: Optional[str] = None
     zip_path: Optional[str] = None
     tags: list[str] = field(default_factory=list)
+    gps_lat: Optional[float] = None
+    gps_lon: Optional[float] = None
+    city: Optional[str] = None
 
     # ── serialization ─────────────────────────────────────────────────────
 
     def to_dict(self) -> dict:
-        """Serialize to the JSON-compatible dict stored in METADATA_JSON.
+        """Serialize to a dict (used by repository.upsert_captures).
         Keys match the original Spanish names for backwards compatibility
         with any existing metadata files."""
         d: dict = {
@@ -76,11 +79,17 @@ class Capture:
             d["ruta_zip"] = self.zip_path
         if self.tags:
             d["tags"] = self.tags
+        if self.gps_lat is not None:
+            d["gps_lat"] = self.gps_lat
+        if self.gps_lon is not None:
+            d["gps_lon"] = self.gps_lon
+        if self.city:
+            d["city"] = self.city
         return d
 
     @classmethod
     def from_dict(cls, d: dict) -> "Capture":
-        """Deserialize from the JSON dict stored in METADATA_JSON."""
+        """Deserialize from a dict (as returned by repository.load_captures)."""
         return cls(
             id=d.get("id", ""),
             filename=d.get("archivo", ""),
@@ -94,6 +103,9 @@ class Capture:
             dest_path=d.get("ruta_destino"),
             zip_path=d.get("ruta_zip"),
             tags=d.get("tags", []),
+            gps_lat=d.get("gps_lat"),
+            gps_lon=d.get("gps_lon"),
+            city=d.get("city"),
         )
 
 
@@ -117,7 +129,7 @@ class DaySummary:
     # ── serialization ─────────────────────────────────────────────────────
 
     def to_dict(self) -> dict:
-        """Serialize to the JSON-compatible dict stored in DAILY_SUMMARY_JSON.
+        """Serialize to a dict (used by repository.upsert_summaries).
         Keys match the original Spanish names for backwards compatibility."""
         return {
             "fecha":            self.date,
@@ -134,7 +146,7 @@ class DaySummary:
 
     @classmethod
     def from_dict(cls, d: dict) -> "DaySummary":
-        """Deserialize from the JSON dict stored in DAILY_SUMMARY_JSON."""
+        """Deserialize from a dict (as returned by repository.load_summaries)."""
         return cls(
             date=d.get("fecha", ""),
             year=d.get("anio", ""),

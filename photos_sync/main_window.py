@@ -21,7 +21,7 @@ from .gui.ssh_tab import SSHTab
 from .pipeline import download, organize, classify, compress, summary, upload_ssh
 
 PASOS: list[PasoPipeline] = [
-    ("Download metadata", download.export_metadata_json),
+    ("Sync & save captures", download.sync_captures),
     ("Organize by date", organize.organize_captures_by_date),
     ("Classify photos", classify.classify_captures),
     ("Compress by day", compress.compress_folders_by_day),

@@ -1,6 +1,6 @@
 """
-Step 4 of the pipeline: reads METADATA_JSON, groups captures by day
-(year/month/day of capture_date) and generates DAILY_SUMMARY_JSON with a
+Step 4 of the pipeline: reads captures from the database, groups by day
+(year/month/day of capture_date) and stores a
 DaySummary per day, sorted from most to fewest photos.
 """
 from __future__ import annotations
@@ -10,13 +10,12 @@ from datetime import datetime
 from ..utils.dates import parse_date, DATE_FORMAT
 from pathlib import Path
 
-from ..config import METADATA_JSON, DAILY_SUMMARY_JSON
-from ..json_io import read_json, write_json
+from .. import repository as repo
 from ..models import Capture, DaySummary
 
 
 def load_captures() -> list[Capture]:
-    raw = read_json(METADATA_JSON, default=[])
+    raw = repo.load_captures()
     if not isinstance(raw, list):
         return []
     return [Capture.from_dict(d) for d in raw]
@@ -63,16 +62,16 @@ def group_by_day(captures: list[Capture]) -> list[DaySummary]:
 
 
 def generate_daily_summary() -> None:
-    print(f"Reading '{METADATA_JSON}'...\n")
+    print(f"Reading captures from database...\n")
 
     captures = load_captures()
     if not captures:
-        print(f"❌ No metadata found in '{METADATA_JSON}'. Run the previous steps first.")
+        print("❌ No captures found. Run the download step first.")
         return
 
     summaries = group_by_day(captures)
 
-    write_json(DAILY_SUMMARY_JSON, [s.to_dict() for s in summaries])
+    repo.upsert_summaries([s.to_dict() for s in summaries])
 
     print("-" * 50)
     print("SUMMARY BY DAY (most -> least photos):")
@@ -81,7 +80,7 @@ def generate_daily_summary() -> None:
 
     total = sum(s.photo_count for s in summaries)
     print("-" * 50)
-    print(f"✅ '{DAILY_SUMMARY_JSON}' generated with {len(summaries)} days "
+    print(f"✅ Day summaries saved with {len(summaries)} days "
           f"and {total} photos in total.")
 
 

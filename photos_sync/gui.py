@@ -2,7 +2,7 @@ from __future__ import annotations
 
 # gui.py (The new orchestrator)
 from PyQt6.QtCore import QThread, pyqtSignal
-from photos_sync.pipeline.download import export_metadata_json
+from photos_sync.pipeline.download import sync_captures
 from photos_sync.pipeline.organize import organize_captures_by_date
 from photos_sync.pipeline.compress import compress_folders_by_day
 
@@ -14,7 +14,7 @@ class WorkerThread(QThread):
     finished = pyqtSignal()
     
     def run(self):
-        export_metadata_json()
+        sync_captures()
         organize_captures_by_date()
         compress_folders_by_day()
         self.finished.emit()

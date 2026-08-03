@@ -178,6 +178,8 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 }
 .hdr-btn:hover{background:var(--bg3);color:var(--ink3);border-color:rgba(255,255,255,.1)}
 .hdr-btn svg{width:14px;height:14px}
+.um-item{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;background:none;border:none;border-radius:var(--r3);color:var(--ink2);font-size:12px;font-weight:500;cursor:pointer;text-align:left;transition:.12s}
+.um-item:hover{background:var(--bg3)}
 .hdr-avatar{
   width:30px;height:30px;border-radius:50%;
   background:linear-gradient(135deg,var(--b),var(--b3));
@@ -340,6 +342,10 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 .tl-thumb:hover .tl-thumb-fav,.tl-thumb-fav.fav{opacity:1}
 .tl-thumb-fav svg{width:10px;height:10px;fill:transparent;stroke:#fff;stroke-width:2.5}
 .tl-thumb-fav.fav svg{fill:var(--rose);stroke:var(--rose)}
+.tl-thumb-del{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:#0009;backdrop-filter:blur(6px);border:none;cursor:pointer;display:grid;place-items:center;opacity:0;transition:.15s}
+.tl-thumb:hover .tl-thumb-del{opacity:1}
+.tl-thumb-del:hover{background:rgba(239,68,68,.8)!important}
+.tl-thumb-del svg{width:10px;height:10px;stroke:#fff;fill:none;stroke-width:2.5}
 
 /* ── Day panel ──────────────────────────────────────────── */
 #gallery-panel{
@@ -397,7 +403,55 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 .gp-photo:hover .gp-photo-fav,.gp-photo-fav.fav{opacity:1}
 .gp-photo-fav svg{width:11px;height:11px;fill:transparent;stroke:#fff;stroke-width:2;transition:.16s}
 .gp-photo-fav.fav svg{fill:var(--rose);stroke:var(--rose);animation:heartPop .3s ease}
+/* Per-photo add-to-album button (bottom-left) */
+.gp-photo-alb{
+  position:absolute;bottom:4px;left:4px;width:22px;height:22px;
+  border-radius:50%;background:#0009;border:none;cursor:pointer;
+  display:grid;place-items:center;opacity:0;transition:.15s;z-index:4;
+}
+.gp-photo:hover .gp-photo-alb{opacity:1}
+.gp-photo-alb:hover{background:rgba(99,102,241,.8)!important}
+.gp-photo-alb svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2}
 
+/* City chips strip */
+#city-strip{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
+.city-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;
+  font-size:11px;font-weight:600;background:var(--bg3);border:1px solid var(--brd);
+  color:var(--ink3);cursor:pointer;transition:.14s;white-space:nowrap}
+.city-chip:hover{border-color:rgba(99,102,241,.4);color:var(--b2)}
+.city-chip.on{background:var(--b);color:#fff;border-color:var(--b)}
+.city-chip svg{width:10px;height:10px;flex-shrink:0}
+.city-count{font-size:9px;opacity:.7;font-family:'JetBrains Mono',monospace}
+
+/* City cards grid */
+#cities-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.ccard{
+  background:var(--surface);border:1px solid var(--brd);
+  border-radius:var(--r);overflow:hidden;cursor:pointer;
+  transition:all .2s;
+}
+.ccard:hover{border-color:rgba(99,102,241,.3);transform:translateY(-2px);box-shadow:var(--sh-md)}
+.ccard-cover{aspect-ratio:4/3;overflow:hidden;position:relative;background:var(--bg3);display:grid;place-items:center}
+.ccard-shimmer{position:absolute;inset:0;background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.8s infinite}
+.ccard-cover-img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .3s;position:relative;z-index:1}
+.ccard-cover-img.loaded{opacity:1}
+.ccard-cover-scrim{position:absolute;inset:0;z-index:2;background:linear-gradient(to top,rgba(0,0,0,.65),transparent 55%);pointer-events:none}
+.ccard-empty-cover{position:relative;z-index:1;color:var(--ink5);display:flex;flex-direction:column;align-items:center;gap:6px}
+.ccard-empty-cover svg{width:32px;height:32px;opacity:.4}
+.ccard-pin{position:absolute;top:8px;right:8px;z-index:3;font-size:9px;font-weight:700;color:#fff;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace}
+.ccard-name-overlay{position:absolute;bottom:0;left:0;right:0;z-index:3;padding:8px 12px}
+.ccard-name-overlay span{font-size:15px;font-weight:800;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.6);letter-spacing:-.01em}
+.ccard-info{padding:10px 13px;display:flex;align-items:center;justify-content:space-between}
+.ccard-meta{font-size:11px;color:var(--ink4);font-family:'JetBrains Mono',monospace}
+.ccard-coords{font-size:9px;color:var(--ink5);font-family:'JetBrains Mono',monospace}
+.gp-photo-del{
+  position:absolute;top:4px;right:4px;width:22px;height:22px;
+  border-radius:50%;background:#0009;border:none;cursor:pointer;
+  display:grid;place-items:center;opacity:0;transition:.15s;z-index:4;
+}
+.gp-photo:hover .gp-photo-del{opacity:1}
+.gp-photo-del:hover{background:rgba(239,68,68,.85)!important}
+.gp-photo-del svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2.5}
 /* ── Lightbox ───────────────────────────────────────────── */
 #lightbox{
   position:fixed;inset:0;z-index:500;
@@ -465,6 +519,66 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 .tbb-unfav{background:var(--bg3);color:var(--ink4);border:1px solid var(--brd)}
 .tbb-del{background:rgba(248,113,113,.15);color:var(--red);border:1px solid rgba(248,113,113,.15)}
 .tbb-cancel{background:var(--bg3);color:var(--ink4);border:1px solid var(--brd)}
+.tbb-album{background:rgba(167,139,250,.15);color:var(--b3);border:1px solid rgba(167,139,250,.2)}
+.tbb-remove-alb{background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.2)}
+.tbb-zip{background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.2)}
+/* Panel header flex: title | add-btn | close-btn */
+.gph{padding:12px 16px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.gph-add{width:26px;height:26px;border-radius:var(--r3);border:1px solid rgba(167,139,250,.35);background:rgba(167,139,250,.1);color:var(--b3);cursor:pointer;display:none;place-items:center;transition:.14s;flex-shrink:0}
+.gph-add:hover{background:rgba(167,139,250,.2);border-color:var(--b3)}
+.gph-add.visible{display:grid}
+
+/* ── Albums grid ────────────────────────────────────────── */
+#albums-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.acard{
+  background:var(--surface);border:1px solid var(--brd);
+  border-radius:var(--r);overflow:hidden;cursor:pointer;
+  transition:all .2s;position:relative;
+}
+.acard:hover{border-color:rgba(167,139,250,.3);transform:translateY(-2px);box-shadow:var(--sh-md),0 0 0 1px rgba(167,139,250,.15)}
+.acard-cover{aspect-ratio:4/3;overflow:hidden;position:relative;background:var(--bg3);display:grid;place-items:center}
+.acard-shimmer{position:absolute;inset:0;background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.8s infinite}
+.acard-cover-img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .3s;position:relative;z-index:1}
+.acard-cover-img.loaded{opacity:1}
+.acard-empty{position:relative;z-index:1;color:var(--ink5);display:flex;flex-direction:column;align-items:center;gap:6px}
+.acard-empty svg{width:32px;height:32px;opacity:.4}
+.acard-cover-scrim{position:absolute;inset:0;z-index:2;background:linear-gradient(to top,rgba(0,0,0,.55),transparent 55%);pointer-events:none}
+.acard-count{position:absolute;top:8px;right:8px;z-index:3;font-size:10px;font-weight:600;color:#fff;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);padding:3px 8px;border-radius:20px;font-family:'JetBrains Mono',monospace}
+.acard-del{position:absolute;top:8px;left:8px;z-index:3;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);border:none;cursor:pointer;display:grid;place-items:center;opacity:0;transition:.15s}
+.acard:hover .acard-del{opacity:1}
+.acard-del svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2.5}
+.acard-del:hover{background:var(--red)}
+.acard-info{padding:11px 13px}
+.acard-name{font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acard-meta{font-size:11px;color:var(--ink4);margin-top:2px;font-family:'JetBrains Mono',monospace}
+.acard-new{
+  border:1.5px dashed var(--brd);background:none;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  min-height:180px;color:var(--ink4);cursor:pointer;transition:.16s;border-radius:var(--r);
+}
+.acard-new:hover{border-color:rgba(167,139,250,.4);color:var(--b3);background:rgba(167,139,250,.04)}
+.acard-new svg{width:26px;height:26px}
+.acard-new span{font-size:12px;font-weight:600}
+
+/* ── Modal (generic) ────────────────────────────────────── */
+#modal{display:none;position:fixed;inset:0;z-index:750;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);animation:fadeIn .16s ease}
+#modal.open{display:grid;place-items:center}
+.modal-card{width:min(400px,92vw);background:var(--bg2);border:1px solid var(--brd);border-radius:14px;box-shadow:0 32px 80px rgba(0,0,0,.6);overflow:hidden;animation:fadeUp .2s ease both}
+.modal-head{padding:16px 18px 0}
+.modal-title{font-size:15px;font-weight:700;color:var(--ink)}
+.modal-sub{font-size:11px;color:var(--ink4);margin-top:2px}
+.modal-body{padding:14px 18px}
+.modal-foot{padding:12px 18px 16px;display:flex;justify-content:flex-end;gap:7px}
+.modal-list{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;scrollbar-width:thin;scrollbar-color:var(--bg4) transparent}
+.modal-list::-webkit-scrollbar{width:3px}.modal-list::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.modal-alb{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r3);border:1px solid var(--brd);background:var(--bg3);cursor:pointer;transition:.14s;text-align:left;width:100%}
+.modal-alb:hover{border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.06)}
+.modal-alb-thumb{width:34px;height:34px;border-radius:6px;object-fit:cover;background:var(--bg4);flex-shrink:0}
+.modal-alb-ph{width:34px;height:34px;border-radius:6px;background:var(--bg4);flex-shrink:0;display:grid;place-items:center;color:var(--ink5)}
+.modal-alb-ph svg{width:15px;height:15px}
+.modal-alb-info{flex:1;min-width:0}
+.modal-alb-name{font-size:12.5px;font-weight:600;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.modal-alb-count{font-size:10px;color:var(--ink4);font-family:'JetBrains Mono',monospace}
 
 /* ── Forms + cards ──────────────────────────────────────── */
 .card{background:var(--surface);border:1px solid var(--brd);border-radius:var(--r);padding:18px}
@@ -569,7 +683,27 @@ select.inp{cursor:pointer}
 </style>
 </head>
 <body>
-<div class="shell">
+
+<!-- ══ AUTH OVERLAY (setup admin / login) ══ -->
+<div id="auth-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);display:none;place-items:center;padding:20px">
+  <div style="width:100%;max-width:380px">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--b),var(--b3));display:grid;place-items:center;margin:0 auto 14px">
+        <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/><circle cx="9" cy="9" r="1.5" fill="#fff"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
+      </div>
+      <h1 style="font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-.02em">Photos Sync</h1>
+      <p id="auth-subtitle" style="font-size:13px;color:var(--ink4);margin-top:4px"></p>
+    </div>
+    <div class="card" style="padding:22px">
+      <div id="auth-fields"></div>
+      <button class="bp" id="auth-submit" style="width:100%;justify-content:center;margin-top:6px" onclick="authSubmit()"></button>
+      <div id="auth-msg" class="msg"></div>
+    </div>
+    <p id="auth-hint" style="text-align:center;font-size:11px;color:var(--ink5);margin-top:16px"></p>
+  </div>
+</div>
+
+<div class="shell" id="main-shell" style="display:none">
 
 <!-- ── Sidebar ──────────────────────────────────────────── -->
 <aside class="sb">
@@ -591,6 +725,16 @@ select.inp{cursor:pointer}
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       Gallery
     </button>
+    <button class="nb" onclick="tab('albums',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M4 5a2 2 0 012-2h9l3 3v0M4 5v14a2 2 0 002 2h12a2 2 0 002-2V8M4 5h11"/><circle cx="9" cy="12" r="1.6"/><path d="M20 17l-4-4-6 5"/></svg>
+      Albums
+      <span class="nb-badge" id="albums-badge" style="display:none">0</span>
+    </button>
+    <button class="nb" onclick="tab('cities',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+      Cities
+      <span class="nb-badge" id="cities-badge" style="display:none">0</span>
+    </button>
     <button class="nb" onclick="tab('pipeline',this)">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>
       Pipeline
@@ -611,6 +755,15 @@ select.inp{cursor:pointer}
     <button class="nb" onclick="tab('folders',this)">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
       Folders
+    </button>
+    <button class="nb" onclick="tab('users',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Users
+    </button>
+    <button class="nb" onclick="tab('trash',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+      Trash
+      <span class="nb-badge" id="trash-badge" style="display:none">0</span>
     </button>
   </nav>
 
@@ -649,7 +802,25 @@ select.inp{cursor:pointer}
       <button class="hdr-btn">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
       </button>
-      <div class="hdr-avatar">PS</div>
+      <div style="position:relative">
+        <button class="hdr-avatar" id="user-menu-btn" onclick="toggleUserMenu(event)" style="cursor:pointer;border:none" title="Account">
+          <span id="user-menu-initials">PS</span>
+        </button>
+        <div id="user-menu" style="display:none;position:absolute;right:0;top:calc(100% + 8px);z-index:100;background:var(--surface);border:1px solid var(--brd);border-radius:var(--r);box-shadow:var(--sh-md);min-width:180px;padding:6px;overflow:hidden">
+          <div style="padding:8px 10px;border-bottom:1px solid var(--brd);margin-bottom:4px">
+            <div id="user-menu-label" style="font-size:12px;font-weight:700;color:var(--ink)">—</div>
+            <div id="user-menu-role" style="font-size:10px;color:var(--ink4);text-transform:uppercase;letter-spacing:.04em"></div>
+          </div>
+          <button class="um-item" onclick="openChangePassword()">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            Change password
+          </button>
+          <button class="um-item" onclick="logout()" style="color:var(--red)">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign out
+          </button>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -716,6 +887,7 @@ select.inp{cursor:pointer}
       </div>
 
       <div id="tag-cloud"></div>
+      <div id="city-strip"></div>
 
       <div class="filter-bar">
         <div class="ftabs">
@@ -730,6 +902,47 @@ select.inp{cursor:pointer}
         <div style="grid-column:1/-1;text-align:center;padding:56px;color:var(--ink5);font-size:13px">Loading…</div>
       </div>
       <div id="timeline-view"></div>
+    </section>
+
+    <!-- ALBUMS -->
+    <section data-s="albums">
+      <div class="ph">
+        <div>
+          <div class="ph-title">Albums</div>
+          <div class="ph-sub">Group photos into collections — a photo can live in several</div>
+        </div>
+        <button class="bp" onclick="openNewAlbum()">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New album
+        </button>
+      </div>
+      <div id="albums-grid">
+        <div style="grid-column:1/-1;text-align:center;padding:56px;color:var(--ink5);font-size:13px">Loading…</div>
+      </div>
+    </section>
+
+    <!-- CITIES -->
+    <section data-s="cities">
+      <div class="ph">
+        <div>
+          <div class="ph-title">Cities</div>
+          <div class="ph-sub">Photos grouped by location — populated automatically when photos have GPS data</div>
+        </div>
+      </div>
+      <!-- Empty state shown before pipeline is run -->
+      <div id="cities-empty" style="display:none;text-align:center;padding:56px 20px;color:var(--ink4)">
+        <svg width="52" height="52" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1" style="margin:0 auto 16px;display:block;color:var(--ink5)"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        <div style="font-size:15px;font-weight:700;color:var(--ink3);margin-bottom:8px">No cities found yet</div>
+        <div style="font-size:12px;line-height:1.7;max-width:360px;margin:0 auto">
+          Cities are extracted automatically from the <b>GPS coordinates</b> embedded in photo EXIF metadata.<br><br>
+          Run the <b>Pipeline → Classify</b> step on photos taken with location enabled. Photos without GPS data will not appear here.
+        </div>
+        <button class="bp" style="margin-top:20px" onclick="tab('pipeline',document.querySelector('.nb:nth-child(2)'))">
+          <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Go to Pipeline
+        </button>
+      </div>
+      <div id="cities-grid"></div>
     </section>
 
     <!-- PIPELINE -->
@@ -779,20 +992,76 @@ select.inp{cursor:pointer}
 
     <!-- WEBDAV -->
     <section data-s="webdav">
-      <div class="ph"><div><div class="ph-title">WebDAV</div><div class="ph-sub">Mount phone drives over Wi-Fi</div></div></div>
-      <div class="notice" style="margin-bottom:12px"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span><code style="background:rgba(251,191,36,.15);padding:1px 4px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:10px">net use</code> only works on Windows. May take up to 20s.</span></div>
-      <div class="card" style="margin-bottom:12px">
-        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 7h3a5 5 0 010 10h-3m-6 0H6A5 5 0 016 7h3"/><line x1="8" y1="12" x2="16" y2="12"/></svg>New connection</div>
-        <div style="display:grid;grid-template-columns:90px minmax(0,2fr) 80px minmax(0,2fr);gap:8px">
-          <div><label class="lbl">Drive</label><select id="wd-letra" class="inp"></select></div>
-          <div><label class="lbl">Phone IP</label><input id="wd-ip" placeholder="192.168.1.133" class="inp"></div>
-          <div><label class="lbl">Port</label><input id="wd-puerto" value="8080" class="inp"></div>
-          <div><label class="lbl">Phone name</label><input id="wd-alias" placeholder="Nothing Phone 1" class="inp"></div>
+      <div class="ph"><div><div class="ph-title">WebDAV</div><div class="ph-sub">Connect to your phone over Wi-Fi</div></div></div>
+
+      <!-- Mode toggle -->
+      <div class="filter-bar" style="margin-bottom:16px">
+        <div class="ftabs">
+          <button class="ftab on" id="wd-tab-direct" onclick="wdMode('direct',this)">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="margin-right:4px"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/></svg>
+            Direct download
+          </button>
+          <button class="ftab" id="wd-tab-netuse" onclick="wdMode('netuse',this)">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="margin-right:4px"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+            Mount drive (Windows)
+          </button>
         </div>
-        <div style="margin-top:12px"><button class="bp" id="btn-wd-conectar" onclick="conectarWD()">Connect drive</button></div>
-        <div id="wd-msg" class="msg"></div>
+        <span id="wd-mode-hint" style="font-size:11px;color:var(--ink4)">Works on Docker, Linux and Windows</span>
       </div>
-      <div class="card"><div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Mounted drives</div><div style="overflow-x:auto"><table id="wd-table" class="tbl"><thead><tr><th>Drive</th><th>Alias</th><th>IP</th><th>Port</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div></div>
+
+      <!-- ── Direct download (Docker / Linux / any OS) ── -->
+      <div id="wd-panel-direct">
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-title">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download photos directly from phone
+          </div>
+          <p style="font-size:12px;color:var(--ink3);margin:-8px 0 14px;line-height:1.6">
+            Connects directly to your phone's WebDAV server via HTTP and downloads photos to the server.<br>
+            <b>No drive letter needed.</b> Works on Docker, Linux and Windows.
+          </p>
+          <div style="display:grid;grid-template-columns:minmax(0,2fr) 80px;gap:8px;margin-bottom:8px">
+            <div><label class="lbl">Phone IP</label><input id="wd-dl-ip" placeholder="192.168.1.133" class="inp"></div>
+            <div><label class="lbl">Port</label><input id="wd-dl-port" value="8080" class="inp"></div>
+          </div>
+          <div style="margin-bottom:8px">
+            <label class="lbl">Save to folder <span style="text-transform:none;font-weight:400;color:var(--ink5)">(leave blank for default: /data/incoming)</span></label>
+            <input id="wd-dl-dest" placeholder="/data/incoming" class="inp">
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="bg" onclick="wdScan()">
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              Scan
+            </button>
+            <button class="bp" id="btn-wd-download" onclick="wdDownload()">
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download all photos
+            </button>
+          </div>
+          <div id="wd-dl-scan-result" style="margin-top:10px;font-size:12px;color:var(--ink3)"></div>
+          <div id="wd-dl-msg" class="msg"></div>
+        </div>
+      </div>
+
+      <!-- ── Mount drive — net use (Windows only) ── -->
+      <div id="wd-panel-netuse" style="display:none">
+        <div class="notice" style="margin-bottom:12px">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <span><code style="background:rgba(251,191,36,.15);padding:1px 4px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:10px">net use</code> only works on Windows. Does not work inside Docker. May take up to 20s.</span>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 7h3a5 5 0 010 10h-3m-6 0H6A5 5 0 016 7h3"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Mount as network drive</div>
+          <div style="display:grid;grid-template-columns:90px minmax(0,2fr) 80px minmax(0,2fr);gap:8px">
+            <div><label class="lbl">Drive</label><select id="wd-letra" class="inp"></select></div>
+            <div><label class="lbl">Phone IP</label><input id="wd-ip" placeholder="192.168.1.133" class="inp"></div>
+            <div><label class="lbl">Port</label><input id="wd-puerto" value="8080" class="inp"></div>
+            <div><label class="lbl">Phone name</label><input id="wd-alias" placeholder="Nothing Phone 1" class="inp"></div>
+          </div>
+          <div style="margin-top:12px"><button class="bp" id="btn-wd-conectar" onclick="conectarWD()">Connect drive</button></div>
+          <div id="wd-msg" class="msg"></div>
+        </div>
+        <div class="card"><div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Mounted drives</div><div style="overflow-x:auto"><table id="wd-table" class="tbl"><thead><tr><th>Drive</th><th>Alias</th><th>IP</th><th>Port</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div></div>
+      </div>
     </section>
 
     <!-- FOLDERS -->
@@ -818,6 +1087,62 @@ select.inp{cursor:pointer}
       </div>
     </section>
 
+    <!-- USERS -->
+    <section data-s="users">
+      <div class="ph">
+        <div>
+          <div class="ph-title">Users</div>
+          <div class="ph-sub">Manage who can access Photos Sync</div>
+        </div>
+        <button class="bp" onclick="openNewUser()">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Register user
+        </button>
+      </div>
+      <div class="card">
+        <div style="overflow-x:auto">
+          <table class="tbl" id="users-table">
+            <thead><tr><th>Username</th><th>Role</th><th>Created</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRASH -->
+    <section data-s="trash">
+      <div class="ph">
+        <div>
+          <div class="ph-title">Trash</div>
+          <div class="ph-sub">Deleted photos — restore them or remove permanently</div>
+        </div>
+        <button class="bd" id="btn-empty-trash" onclick="emptyTrash()" style="display:none">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+          Empty trash
+        </button>
+      </div>
+      <!-- Bulk bar for trash selection -->
+      <div id="trash-bulkbar" style="display:none;align-items:center;gap:8px;margin-bottom:14px;padding:8px 12px;background:var(--surface);border:1px solid var(--brd);border-radius:var(--r)">
+        <span id="trash-sel-count" style="font-size:12px;font-weight:700;color:var(--ink3);font-family:'JetBrains Mono',monospace">0 selected</span>
+        <div style="flex:1"></div>
+        <button class="bg" onclick="restoreSelected()">
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-15-6.7L3 13"/></svg>
+          Restore
+        </button>
+        <button class="bd" onclick="deleteSelectedForever()">
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+          Delete forever
+        </button>
+        <button class="bg" onclick="clearTrashSelection()">✕</button>
+      </div>
+      <div id="trash-empty" style="display:none;text-align:center;padding:56px 20px;color:var(--ink4)">
+        <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1" style="margin:0 auto 14px;display:block;color:var(--ink5)"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/></svg>
+        <div style="font-size:15px;font-weight:700;color:var(--ink3);margin-bottom:6px">Trash is empty</div>
+        <div style="font-size:12px">Deleted photos appear here. You can restore them or remove them permanently.</div>
+      </div>
+      <div id="trash-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px"></div>
+    </section>
+
   </main>
 </div><!-- /.content -->
 </div><!-- /.shell -->
@@ -829,6 +1154,10 @@ select.inp{cursor:pointer}
       <div id="gp-title" style="font-size:13px;font-weight:700;color:var(--ink)">—</div>
       <div id="gp-sub" style="font-size:11px;color:var(--ink4);margin-top:1px;font-family:'JetBrains Mono',monospace"></div>
     </div>
+    <!-- Add photos button — only shown when viewing an album -->
+    <button id="gp-add-btn" class="gph-add" onclick="openAddPhotosToAlbum()" title="Add photos to this album">
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
     <button class="gph-close" onclick="closeGallery()">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </button>
@@ -857,6 +1186,12 @@ select.inp{cursor:pointer}
     <button class="lb-fav" id="lb-fav-btn" onclick="lbToggleFav();event.stopPropagation()"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></button>
     <div class="lb-info" id="lb-info"></div>
     <div class="lb-counter" id="lb-counter"></div>
+    <button class="lb-fav" onclick="lbDownload();event.stopPropagation()" title="Download photo" style="margin-left:auto">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </button>
+    <button class="lb-fav" id="lb-del-btn" onclick="lbDelete();event.stopPropagation()" title="Delete photo">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/></svg>
+    </button>
   </div>
 </div>
 
@@ -864,11 +1199,38 @@ select.inp{cursor:pointer}
 <div id="bulk-toolbar">
   <span class="tbc" id="bulk-count">0 selected</span>
   <div class="tbsep"></div>
+  <!-- "Remove from album" only shown when inside an album view -->
+  <button class="tbb tbb-remove-alb" id="tbb-remove-alb" onclick="removeFromAlbum()" style="display:none">
+    <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>Remove from album
+  </button>
+  <!-- "Add to album" only shown when NOT inside album view -->
+  <button class="tbb tbb-album" id="tbb-add-alb" onclick="openAddToAlbum(event)">
+    <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M4 5a2 2 0 012-2h9l3 3M4 5v14a2 2 0 002 2h12a2 2 0 002-2V8M4 5h11"/></svg>Add to album
+  </button>
+  <button class="tbb tbb-zip" onclick="bulkDownloadZip()">
+    <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download ZIP
+  </button>
   <button class="tbb tbb-fav" onclick="bulkAction('favourite')"><svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>Favourite</button>
   <button class="tbb tbb-unfav" onclick="bulkAction('unfavourite')"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>Unfavourite</button>
-  <button class="tbb tbb-del" onclick="bulkAction('delete')"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>Delete</button>
+  <!-- Delete button shows "Remove from album" label when in album view -->
+  <button class="tbb tbb-del" id="tbb-del" onclick="bulkAction('delete')">
+    <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+    <span id="tbb-del-label">Delete</span>
+  </button>
   <div class="tbsep"></div>
   <button class="tbb tbb-cancel" onclick="selClear()">✕ Cancel</button>
+</div>
+
+<!-- ── Modal (new album / add to album) ─────────────────── -->
+<div id="modal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-title">—</div>
+      <div class="modal-sub" id="modal-sub"></div>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
 </div>
 
 <!-- ── Wizard ───────────────────────────────────────────── -->
@@ -895,8 +1257,8 @@ select.inp{cursor:pointer}
 const $=id=>document.getElementById(id);
 async function api(p,o={}){const r=await fetch(p,{headers:{'Content-Type':'application/json'},...o,body:o.body!==undefined?JSON.stringify(o.body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||`HTTP ${r.status}`);return d}
 function showMsg(id,t,ok){const e=$(id);e.className='msg '+(ok?'msg-ok':'msg-err');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',5000)}
-const SNAMES={gallery:'Gallery',pipeline:'Pipeline',ssh:'SSH Servers',webdav:'WebDAV',folders:'Folders'};
-function tab(id,b){document.querySelectorAll('[data-s]').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));document.querySelector(`[data-s="${id}"]`).classList.add('on');b.classList.add('on');$('bc-section').textContent=SNAMES[id]||id;$('bc-sep2').style.display='none';$('bc-page').style.display='none';closeGallery();({gallery:loadDays,ssh:initSSH,webdav:initWebDAV,folders:initCarpetas})[id]?.();}
+const SNAMES={gallery:'Gallery',albums:'Albums',cities:'Cities',pipeline:'Pipeline',ssh:'SSH Servers',webdav:'WebDAV',folders:'Folders',users:'Users',trash:'Trash'};
+function tab(id,b){document.querySelectorAll('[data-s]').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));document.querySelector(`[data-s="${id}"]`).classList.add('on');b.classList.add('on');$('bc-section').textContent=SNAMES[id]||id;$('bc-sep2').style.display='none';$('bc-page').style.display='none';_activeCity='';closeGallery();({gallery:loadDays,albums:loadAlbums,cities:loadCitiesTab,ssh:initSSH,webdav:initWebDAV,folders:initCarpetas,users:loadUsers,trash:loadTrash})[id]?.();}
 
 const logBox=$('log-box');let ws;
 function conectarWS(){const p=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${p}://${location.host}/ws/log`);
@@ -966,16 +1328,342 @@ async function loadDays(){
     $('stat-size').textContent=d.total_mb.toLocaleString();$('stat-size-sub').textContent=d.total_mb.toLocaleString()+' MB';
     // Update sidebar storage bar
     const pct=Math.min(99,Math.round(d.total_mb/10000*100));
-    $('storage-fill').style.width=Math.max(5,pct)+'%';$('storage-val').textContent=d.total_mb.toLocaleString()+' MB';
-    $('storage-meta').textContent=d.total_mb.toLocaleString()+' MB stored';
+    $('storage-fill').style.width=Math.max(5,pct)+'%';
+    $('storage-val').textContent=d.total_mb.toLocaleString()+' MB';
     $('day-filter').value='';$('view-count').textContent=d.total_days+' days';
     const g=$('days-grid');g.innerHTML='';
+    loadCities();
     if(!d.days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:72px 20px;color:var(--ink4)"><svg style="width:48px;height:48px;margin:0 auto 14px;color:var(--ink5)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><div style="font-weight:700;font-size:14px;color:var(--ink3);margin-bottom:4px">No photos organized yet</div><div style="font-size:12px">Run the Pipeline to scan and organize.</div></div>`;return;}
     renderDayCards(d.days,g);
     const cloud=$('tag-cloud');cloud.innerHTML='';(tg.tags||[]).slice(0,20).forEach(({tag,count})=>{const b=document.createElement('div');b.className='tc';b.textContent=`${tag} ${count}`;cloud.appendChild(b);});
   }catch(e){$('days-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--red)"><div style="font-weight:700;font-size:14px;margin-bottom:6px">Could not load gallery</div><div style="font-size:12px;color:var(--ink4);margin-bottom:12px">${e.message}</div><button onclick="loadDays()" class="bg" style="font-size:11px">Retry</button></div>`;}
 }
-loadDays();
+
+// ══════════════════════════ AUTH FLOW ══════════════════════════
+let _authMode = 'login';   // 'setup' | 'login'
+let _currentUser = null;
+
+async function checkAuth(){
+  let status;
+  try{
+    const r=await fetch('/api/auth/status');
+    status=await r.json();
+  }catch(e){
+    // Backend unreachable — show login anyway
+    status={admin_exists:true,authenticated:false,user:null};
+  }
+  if(status.authenticated){
+    _currentUser=status.user;
+    showApp();
+  }else if(!status.admin_exists){
+    showAuth('setup');
+  }else{
+    showAuth('login');
+  }
+}
+
+function showAuth(mode){
+  _authMode=mode;
+  $('main-shell').style.display='none';
+  const ov=$('auth-overlay');ov.style.display='grid';
+  const fields=$('auth-fields');
+  if(mode==='setup'){
+    $('auth-subtitle').textContent='Create the administrator account';
+    $('auth-submit').textContent='Create administrator';
+    $('auth-hint').textContent='This is the first run. The account you create is the only administrator.';
+    fields.innerHTML=`
+      <label class="lbl">Username</label>
+      <input id="auth-username" class="inp" autocomplete="username" placeholder="admin" style="margin-bottom:12px">
+      <label class="lbl">Password</label>
+      <input id="auth-password" type="password" class="inp" autocomplete="new-password" placeholder="At least 8 characters" style="margin-bottom:12px">
+      <label class="lbl">Confirm password</label>
+      <input id="auth-password2" type="password" class="inp" autocomplete="new-password" placeholder="Repeat password">`;
+  }else{
+    $('auth-subtitle').textContent='Sign in to continue';
+    $('auth-submit').textContent='Sign in';
+    $('auth-hint').textContent='';
+    fields.innerHTML=`
+      <label class="lbl">Username</label>
+      <input id="auth-username" class="inp" autocomplete="username" placeholder="Username" style="margin-bottom:12px">
+      <label class="lbl">Password</label>
+      <input id="auth-password" type="password" class="inp" autocomplete="current-password" placeholder="Password">`;
+  }
+  $('auth-msg').textContent='';$('auth-msg').className='msg';
+  const inp=$('auth-username');if(inp)inp.focus();
+  // Enter submits
+  fields.querySelectorAll('input').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')authSubmit();});
+}
+
+async function authSubmit(){
+  const btn=$('auth-submit');
+  const username=($('auth-username')||{}).value||'';
+  const password=($('auth-password')||{}).value||'';
+  if(!username.trim()||!password){showMsg('auth-msg','Enter username and password',false);return;}
+  if(_authMode==='setup'){
+    const pw2=($('auth-password2')||{}).value||'';
+    if(password!==pw2){showMsg('auth-msg','Passwords do not match',false);return;}
+    if(password.length<8){showMsg('auth-msg','Password must be at least 8 characters',false);return;}
+  }
+  btn.disabled=true;btn.textContent='…';
+  try{
+    const url=_authMode==='setup'?'/api/auth/setup-admin':'/api/auth/login';
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username:username.trim(),password})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(d.detail||`HTTP ${r.status}`);
+    _currentUser=d.user;
+    showApp();
+  }catch(e){
+    showMsg('auth-msg',e.message,false);
+    btn.disabled=false;btn.textContent=_authMode==='setup'?'Create administrator':'Sign in';
+  }
+}
+
+async function logout(){
+  try{await fetch('/api/auth/logout',{method:'POST'});}catch(e){}
+  _currentUser=null;
+  location.reload();
+}
+
+function showApp(){
+  $('auth-overlay').style.display='none';
+  $('main-shell').style.display='';
+  // Show/hide admin-only UI
+  applyRoleVisibility();
+  // Set the user menu label
+  const label=$('user-menu-label');
+  if(label&&_currentUser)label.textContent=_currentUser.username;
+  loadDays();
+}
+
+function applyRoleVisibility(){
+  const isAdmin=_currentUser&&_currentUser.role==='admin';
+  // Admin-only nav sections
+  ['webdav','ssh','folders','pipeline','users'].forEach(sec=>{
+    document.querySelectorAll(`.nb[onclick*="'${sec}'"]`).forEach(b=>{
+      b.style.display=isAdmin?'':'none';
+    });
+  });
+  // User menu header
+  if(_currentUser){
+    const label=$('user-menu-label');if(label)label.textContent=_currentUser.username;
+    const role=$('user-menu-role');if(role)role.textContent=_currentUser.role;
+    const ini=$('user-menu-initials');if(ini)ini.textContent=_currentUser.username.slice(0,2).toUpperCase();
+  }
+}
+
+// ── User menu dropdown ─────────────────────────────────────────
+function toggleUserMenu(e){
+  e.stopPropagation();
+  const m=$('user-menu');
+  m.style.display=m.style.display==='none'?'':'none';
+}
+document.addEventListener('click',()=>{const m=$('user-menu');if(m)m.style.display='none';});
+
+// ── Users tab ──────────────────────────────────────────────────
+async function loadUsers(){
+  const tb=document.querySelector('#users-table tbody');
+  if(tb)tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--ink5);padding:20px">Loading…</td></tr>';
+  try{
+    const d=await api('/api/users');
+    const users=d.users||[];
+    if(tb){
+      tb.innerHTML='';
+      users.forEach(u=>{
+        const tr=document.createElement('tr');
+        const isMe=_currentUser&&u.id===_currentUser.id;
+        const roleBadge=u.role==='admin'
+          ? `<span style="background:rgba(167,139,250,.15);color:var(--b3);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">ADMIN</span>`
+          : `<span style="background:var(--bg3);color:var(--ink4);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600">USER</span>`;
+        const canDelete=!isMe&&u.role!=='admin';
+        tr.innerHTML=`
+          <td style="font-weight:600;color:var(--ink)">${u.username}${isMe?' <span style="font-size:10px;color:var(--ink5)">(you)</span>':''}</td>
+          <td>${roleBadge}</td>
+          <td style="font-size:11px;color:var(--ink4);font-family:'JetBrains Mono',monospace">${(u.created_at||'').slice(0,10)}</td>
+          <td style="text-align:right">${canDelete?`<button class="bd" style="font-size:11px;padding:4px 10px" onclick="deleteUser('${u.id}','${u.username}')">Delete</button>`:''}</td>`;
+        tb.appendChild(tr);
+      });
+    }
+  }catch(e){
+    if(tb)tb.innerHTML=`<tr><td colspan="4" style="text-align:center;color:var(--red);padding:20px">${e.message}</td></tr>`;
+  }
+}
+
+function openNewUser(){
+  _openModal('Register user','Create a new account');
+  $('modal-body').innerHTML=`
+    <label class="lbl">Username</label>
+    <input id="nu-username" class="inp" placeholder="username" style="margin-bottom:12px">
+    <label class="lbl">Password</label>
+    <input id="nu-password" type="password" class="inp" placeholder="At least 8 characters" style="margin-bottom:12px">
+    <label class="lbl">Role</label>
+    <select id="nu-role" class="inp"><option value="user">User (view only)</option><option value="admin">Administrator</option></select>
+    <p style="font-size:10px;color:var(--ink5);margin-top:6px">Only one administrator is allowed. Choosing Admin will fail if one already exists.</p>`;
+  $('modal-foot').innerHTML=`<button class="bg" onclick="_closeModal()">Cancel</button><button class="bp" onclick="submitNewUser()">Create user</button>`;
+  setTimeout(()=>{const i=$('nu-username');if(i)i.focus();},50);
+}
+
+async function submitNewUser(){
+  const username=($('nu-username')||{}).value||'';
+  const password=($('nu-password')||{}).value||'';
+  const role=($('nu-role')||{}).value||'user';
+  if(!username.trim()||!password){alert('Enter username and password');return;}
+  if(password.length<8){alert('Password must be at least 8 characters');return;}
+  try{
+    await api('/api/users',{method:'POST',body:{username:username.trim(),password,role}});
+    _closeModal();loadUsers();
+  }catch(e){alert(e.message);}
+}
+
+async function deleteUser(id,username){
+  if(!confirm(`Delete user "${username}"? This cannot be undone.`))return;
+  try{await api('/api/users/'+id,{method:'DELETE'});loadUsers();}
+  catch(e){alert(e.message);}
+}
+
+// ── Change own password ────────────────────────────────────────
+function openChangePassword(){
+  $('user-menu').style.display='none';
+  _openModal('Change password','Update your account password');
+  $('modal-body').innerHTML=`
+    <label class="lbl">Current password</label>
+    <input id="cp-current" type="password" class="inp" style="margin-bottom:12px">
+    <label class="lbl">New password</label>
+    <input id="cp-new" type="password" class="inp" placeholder="At least 8 characters" style="margin-bottom:12px">
+    <label class="lbl">Confirm new password</label>
+    <input id="cp-new2" type="password" class="inp">`;
+  $('modal-foot').innerHTML=`<button class="bg" onclick="_closeModal()">Cancel</button><button class="bp" onclick="submitChangePassword()">Change password</button>`;
+}
+
+async function submitChangePassword(){
+  const cur=($('cp-current')||{}).value||'';
+  const nw=($('cp-new')||{}).value||'';
+  const nw2=($('cp-new2')||{}).value||'';
+  if(nw!==nw2){alert('New passwords do not match');return;}
+  if(nw.length<8){alert('Password must be at least 8 characters');return;}
+  try{
+    await api('/api/auth/change-password',{method:'POST',body:{current_password:cur,new_password:nw}});
+    _closeModal();alert('Password changed successfully');
+  }catch(e){alert(e.message);}
+}
+
+// ── Trash / Recycle bin ────────────────────────────────────────
+let _trashData=[];
+let _trashSel=new Set();
+
+async function loadTrash(){
+  const grid=$('trash-grid');
+  const empty=$('trash-empty');
+  const emptyBtn=$('btn-empty-trash');
+  clearTrashSelection();
+  if(grid)grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--ink5)">Loading…</div>';
+  try{
+    const d=await api('/api/trash');
+    _trashData=d.trash||[];
+    // Badge
+    const badge=$('trash-badge');
+    if(badge){badge.textContent=d.count;badge.style.display=d.count?'':'none';}
+    if(emptyBtn)emptyBtn.style.display=_trashData.length?'':'none';
+    if(!_trashData.length){
+      if(grid)grid.innerHTML='';
+      if(empty)empty.style.display='block';
+      return;
+    }
+    if(empty)empty.style.display='none';
+    if(!grid)return;
+    grid.innerHTML='';
+    _trashData.forEach(item=>{
+      const card=document.createElement('div');
+      card.style.cssText='position:relative;border-radius:8px;overflow:hidden;background:var(--bg3);cursor:pointer;border:2px solid transparent;transition:.14s';
+      card.dataset.id=item.id;
+      const daysAgo=_daysSince(item.deleted_at);
+      card.innerHTML=`
+        <div style="aspect-ratio:1;overflow:hidden;position:relative">
+          <img src="/api/thumb?path=${encodeURIComponent(item.trash_path)}&size=200" style="width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .2s" onload="this.style.opacity=1" onerror="this.style.display='none'">
+          <div class="trash-check" style="position:absolute;top:6px;left:6px;width:20px;height:20px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.4);display:grid;place-items:center;transition:.14s"></div>
+        </div>
+        <div style="padding:7px 9px">
+          <div style="font-size:11px;font-weight:600;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.filename}</div>
+          <div style="font-size:9px;color:var(--ink5);font-family:'JetBrains Mono',monospace;margin-top:2px">${daysAgo}</div>
+        </div>`;
+      card.onclick=()=>toggleTrashSelect(item.id,card);
+      grid.appendChild(card);
+    });
+  }catch(e){
+    if(grid)grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--red)">${e.message}</div>`;
+  }
+}
+
+function _daysSince(iso){
+  try{
+    const then=new Date(iso);const now=new Date();
+    const days=Math.floor((now-then)/86400000);
+    if(days===0)return 'today';
+    if(days===1)return 'yesterday';
+    return `${days} days ago`;
+  }catch(e){return '';}
+}
+
+function toggleTrashSelect(id,card){
+  const chk=card.querySelector('.trash-check');
+  if(_trashSel.has(id)){
+    _trashSel.delete(id);card.style.borderColor='transparent';
+    if(chk){chk.style.background='rgba(0,0,0,.4)';chk.style.borderColor='#fff';chk.innerHTML='';}
+  }else{
+    _trashSel.add(id);card.style.borderColor='var(--b)';
+    if(chk){chk.style.background='var(--b)';chk.style.borderColor='var(--b)';chk.innerHTML='<svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';}
+  }
+  updateTrashBar();
+}
+
+function updateTrashBar(){
+  const bar=$('trash-bulkbar');
+  const n=_trashSel.size;
+  if(bar)bar.style.display=n?'flex':'none';
+  const cnt=$('trash-sel-count');
+  if(cnt)cnt.textContent=n+' selected';
+}
+
+function clearTrashSelection(){
+  _trashSel.clear();
+  document.querySelectorAll('#trash-grid [data-id]').forEach(c=>{
+    c.style.borderColor='transparent';
+    const chk=c.querySelector('.trash-check');
+    if(chk){chk.style.background='rgba(0,0,0,.4)';chk.style.borderColor='#fff';chk.innerHTML='';}
+  });
+  updateTrashBar();
+}
+
+async function restoreSelected(){
+  if(!_trashSel.size)return;
+  const ids=[..._trashSel];
+  try{
+    const d=await api('/api/trash/restore',{method:'POST',body:{ids}});
+    if(d.errors&&d.errors.length)alert('Some photos could not be restored:\n'+d.errors.join('\n'));
+    await loadTrash();loadDays();
+  }catch(e){alert(e.message);}
+}
+
+async function deleteSelectedForever(){
+  if(!_trashSel.size)return;
+  if(!confirm(`Permanently delete ${_trashSel.size} photo(s)? This cannot be undone.`))return;
+  const ids=[..._trashSel];
+  try{
+    await api('/api/trash/delete',{method:'POST',body:{ids}});
+    await loadTrash();
+  }catch(e){alert(e.message);}
+}
+
+async function emptyTrash(){
+  if(!_trashData.length)return;
+  if(!confirm(`Permanently delete ALL ${_trashData.length} photos in the trash? This cannot be undone.`))return;
+  try{
+    await api('/api/trash/empty',{method:'POST'});
+    await loadTrash();
+  }catch(e){alert(e.message);}
+}
+
+checkAuth();
 
 let _imgObserver=null,_showViewToken=0;
 function _ensureObserver(){if(_imgObserver)return _imgObserver;_imgObserver=new IntersectionObserver((entries,obs)=>{entries.forEach(entry=>{if(!entry.isIntersecting)return;const img=entry.target;const real=img.dataset.src;if(real){img.src=real;img.removeAttribute('data-src');}obs.unobserve(img);});},{rootMargin:'300px 0px',threshold:.01});return _imgObserver;}
@@ -1012,19 +1700,23 @@ function _renderTlSection(day,photos,tv){
     const img=document.createElement('img');img.className='loading';img.alt=ph.filename;img.dataset.src=`/api/thumb?path=${encodeURIComponent(ph.id)}&size=250`;img.onload=()=>img.classList.replace('loading','loaded');obs.observe(img);
     const favBtn=document.createElement('button');favBtn.className='tl-thumb-fav'+(ph.favourite?' fav':'');favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
     favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(ph);favBtn.classList.toggle('fav',ph.favourite);$('stat-favs').textContent=_tlPhotos.filter(x=>x.favourite).length;$('stat-favs-sub').textContent=_tlPhotos.filter(x=>x.favourite).length+' saved';};
+    const delBtn=document.createElement('button');delBtn.className='tl-thumb-del';delBtn.title='Move to trash';
+    delBtn.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/></svg>`;
+    delBtn.onclick=async(e)=>{e.stopPropagation();await _deletePhoto(ph.id,'timeline',div);};
     const chk=document.createElement('div');chk.className='sel-check';
-    div.appendChild(img);div.appendChild(favBtn);div.appendChild(chk);
+    div.appendChild(img);div.appendChild(favBtn);div.appendChild(delBtn);div.appendChild(chk);
     div.onclick=(e)=>{if(e.target===favBtn||favBtn.contains(e.target))return;if(_selThumb(div,ph,e))return;const tlIdx=_tlPhotos.findIndex(x=>x.id===ph.id);openLightbox(tlIdx,_tlPhotos,'timeline');};
     div.oncontextmenu=(e)=>{e.preventDefault();_selMode=true;_selThumb(div,ph,{shiftKey:false});};
     grid.appendChild(div);
   });
 }
 
-let _gpPhotos=[],_gpFilter='all',_gpTagFilter='',_gpDate='';
+let _gpPhotos=[],_gpFilter='all',_gpTagFilter='',_gpDate='',_gpAlbumId=null;
 async function openDayGallery(day){
-  _gpDate=day.fecha;_gpFilter='all';_gpTagFilter='';
+  _gpDate=day.fecha;_gpAlbumId=null;_gpFilter='all';_gpTagFilter='';
   document.querySelectorAll('.gpfb').forEach(b=>b.classList.remove('on'));document.querySelector('.gpfb').classList.add('on');
   $('gp-title').textContent=`${MN[parseInt(day.mes,10)]} ${parseInt(day.dia,10)}, ${day.anio}`;$('gp-sub').textContent='Loading…';
+  $('gp-add-btn').classList.remove('visible'); // hide album-add button for day view
   $('gp-grid').innerHTML='<div style="grid-column:1/-1;display:flex;justify-content:center;padding:40px"><div style="width:18px;height:18px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div></div>';
   $('gallery-panel').classList.add('open');
   $('bc-sep2').style.display='';$('bc-page').style.display='';$('bc-page').textContent=`${MN[parseInt(day.mes,10)]} ${parseInt(day.dia,10)}`;
@@ -1032,13 +1724,177 @@ async function openDayGallery(day){
     const d=await api(`/api/days/${day.fecha}/photos`);_gpPhotos=d.photos;
     $('gp-sub').textContent=d.count>0?`${d.count} photos · ${day.tamano_total_mb} MB`:(d.exists?'No images':'Folder not found');
     if(!d.exists){$('gp-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--amber);font-size:12px"><b>Folder not found.</b><br>Run Organize in Pipeline.</div>`;return;}
-    const allTags=[...new Set(d.photos.flatMap(p=>p.tags||[]))].sort();
-    const tb=$('gp-tag-btns-inner2');tb.innerHTML='';const gt=$('gp-tags');
-    if(allTags.length){gt.style.display='flex';allTags.forEach(t=>{const b=document.createElement('button');b.className='gpfb';b.textContent=t;b.style.fontSize='10px';b.onclick=()=>{if(b.classList.contains('on')){b.classList.remove('on');_gpTagFilter='';}else{document.querySelectorAll('#gp-tag-btns-inner2 .gpfb').forEach(x=>x.classList.remove('on'));b.classList.add('on');_gpTagFilter=t;}renderGpGrid();};tb.appendChild(b);});}else{gt.style.display='none';}
+    _buildGpTags(d.photos);
     renderGpGrid();
   }catch(e){$('gp-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red);font-size:12px">${e.message}</div>`;}
 }
-function closeGallery(){$('gallery-panel').classList.remove('open');_gpPhotos=[];_gpDate='';$('bc-sep2').style.display='none';$('bc-page').style.display='none';selClear();}
+
+async function _reloadAlbumGrid(){
+  if(!_gpAlbumId)return;
+  try{
+    const d=await api(`/api/albums/${_gpAlbumId}`);_gpPhotos=d.photos;
+    $('gp-sub').textContent=d.count>0?`${d.count} photos · click to select`:'Empty — press ＋ to add photos';
+    if(!d.count){
+      $('gp-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--ink4);font-size:12px">
+        <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2" style="margin:0 auto 10px;display:block;color:var(--ink5)"><path d="M4 5a2 2 0 012-2h9l3 3M4 5v14a2 2 0 002 2h12a2 2 0 002-2V8M4 5h11"/></svg>
+        <b style="color:var(--ink3)">Album is empty</b><br>
+        Press <span style="display:inline-flex;align-items:center;gap:3px;background:rgba(167,139,250,.15);color:var(--b3);padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700">＋ Add photos</span> to browse your library
+      </div>`;
+      $('gp-tags').style.display='none';return;
+    }
+    _buildGpTags(d.photos);
+    renderGpGrid();
+  }catch(e){$('gp-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red);font-size:12px">${e.message}</div>`;}
+}
+
+// ── Add photos to album: browse-by-day modal ───────────────────
+async function openAddPhotosToAlbum(){
+  if(!_gpAlbumId)return;
+  const albumId=_gpAlbumId;
+  _openModal('Add photos to album','Pick a day, then select photos to add');
+  $('modal-foot').innerHTML=`<button class="bg" onclick="_closeModal()">Done</button>`;
+  // State for the day-picker sub-modal
+  $('modal-body').innerHTML=`<div style="text-align:center;padding:18px;color:var(--ink5);font-size:12px">Loading days…</div>`;
+  try{
+    const data=await api('/api/days');
+    const days=data.days||[];
+    if(!days.length){$('modal-body').innerHTML=`<div style="text-align:center;padding:18px;color:var(--ink4);font-size:12px">No organized photos yet. Run the Pipeline first.</div>`;return;}
+    _renderDayPickerModal(days,albumId);
+  }catch(e){$('modal-body').innerHTML=`<div style="color:var(--red);font-size:12px">${e.message}</div>`;}
+}
+
+const MN_FULL=['','January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function _renderDayPickerModal(days,albumId){
+  const wrap=document.createElement('div');
+  // Days list
+  const list=document.createElement('div');
+  list.className='modal-list';
+  list.style.maxHeight='260px';
+  days.forEach(d=>{
+    const m=parseInt(d.mes,10);
+    const btn=document.createElement('button');
+    btn.className='modal-alb';
+    btn.style.justifyContent='space-between';
+    btn.innerHTML=`<span style="font-size:12.5px;font-weight:600;color:var(--ink2)">${MN[m]} ${parseInt(d.dia,10)}, ${d.anio}</span>
+      <span style="font-size:10px;color:var(--ink4);font-family:'JetBrains Mono',monospace">${d.cantidad_fotos} photos</span>`;
+    btn.onclick=async()=>{
+      btn.disabled=true;btn.style.opacity='.5';
+      try{
+        const pd=await api(`/api/days/${d.fecha}/photos`);
+        _renderPhotoPickerModal(pd.photos,albumId,()=>_renderDayPickerModal(days,albumId));
+      }catch(e){alert(e.message);}finally{btn.disabled=false;btn.style.opacity='';}
+    };
+    list.appendChild(btn);
+  });
+  wrap.appendChild(list);
+  $('modal-body').innerHTML='';
+  $('modal-body').appendChild(wrap);
+  $('modal-title').textContent='Choose a day';
+  $('modal-sub').textContent='Pick a day to browse its photos';
+  $('modal-foot').innerHTML=`<button class="bg" onclick="_closeModal()">Close</button>`;
+}
+
+function _renderPhotoPickerModal(photos,albumId,onBack){
+  const selected=new Set();
+  const wrap=document.createElement('div');
+  // Back button in title area
+  $('modal-title').innerHTML=`<button onclick="onBack&&onBack()" style="background:none;border:none;color:var(--b2);cursor:pointer;font-size:11px;font-weight:600;padding:0;margin-bottom:4px">← Back to days</button><br>Select photos to add`;
+  $('modal-sub').textContent=`${photos.length} photos — click to select`;
+
+  // Photo grid
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:4px;max-height:260px;overflow-y:auto';
+
+  photos.forEach(p=>{
+    const cell=document.createElement('div');
+    cell.style.cssText='aspect-ratio:1;border-radius:5px;overflow:hidden;position:relative;cursor:pointer;background:var(--bg3)';
+    const img=document.createElement('img');
+    img.style.cssText='width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .2s';
+    img.src=`/api/thumb?path=${encodeURIComponent(p.id)}&size=150`;
+    img.onload=()=>img.style.opacity='1';
+    const chk=document.createElement('div');
+    chk.style.cssText='position:absolute;top:4px;left:4px;width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(0,0,0,.3);transition:.14s;display:grid;place-items:center';
+    cell.appendChild(img);cell.appendChild(chk);
+    cell.onclick=()=>{
+      if(selected.has(p.id)){selected.delete(p.id);chk.style.background='rgba(0,0,0,.3)';chk.style.borderColor='rgba(255,255,255,.7)';chk.innerHTML='';}
+      else{selected.add(p.id);chk.style.background='var(--b)';chk.style.borderColor='var(--b)';chk.innerHTML='<svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';}
+      addBtn.textContent=selected.size?`Add ${selected.size} photo${selected.size>1?'s':''}`:'{Add selected}';
+      addBtn.textContent=selected.size?`Add ${selected.size} photo${selected.size>1?'s':''}…`:'Add selected';
+      addBtn.disabled=!selected.size;
+    };
+    grid.appendChild(cell);
+  });
+
+  if(!photos.length){
+    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--ink4);font-size:12px">No photos in this day</div>`;
+  }
+
+  wrap.appendChild(grid);
+  $('modal-body').innerHTML='';$('modal-body').appendChild(wrap);
+
+  const addBtn=document.createElement('button');
+  addBtn.className='bp';addBtn.textContent='Add selected';addBtn.disabled=true;
+  addBtn.onclick=async()=>{
+    if(!selected.size)return;
+    addBtn.disabled=true;addBtn.textContent='Adding…';
+    try{
+      await api(`/api/albums/${albumId}/photos`,{method:'POST',body:{paths:[...selected],action:'add'}});
+      _closeModal();
+      // Refresh the album panel
+      await _reloadAlbumGrid();
+      loadAlbums();
+    }catch(e){alert(e.message);addBtn.disabled=false;addBtn.textContent='Add selected';}
+  };
+  $('modal-foot').innerHTML='';
+  const backBtn=document.createElement('button');
+  backBtn.className='bg';backBtn.textContent='← Back';
+  backBtn.onclick=()=>onBack&&onBack();
+  $('modal-foot').appendChild(backBtn);
+  $('modal-foot').appendChild(addBtn);
+}
+
+// ── Remove selected photos from current album ──────────────────
+async function removeFromAlbum(){
+  if(!_gpAlbumId||!_selPaths.size)return;
+  const paths=[..._selPaths];
+  if(!confirm(`Remove ${paths.length} photo${paths.length>1?'s':''} from this album? Files on disk are not deleted.`))return;
+  try{
+    await api(`/api/albums/${_gpAlbumId}/photos`,{method:'POST',body:{paths,action:'remove'}});
+    // Remove from local state and DOM
+    paths.forEach(id=>{
+      document.querySelectorAll(`[data-photo-id="${CSS.escape(id)}"]`).forEach(el=>el.closest('.gp-photo')?.remove());
+      _gpPhotos=_gpPhotos.filter(x=>x.id!==id);
+    });
+    selClear();
+    await _reloadAlbumGrid();
+    loadAlbums();
+  }catch(e){alert('Remove failed: '+e.message);}
+}
+async function openAlbumView(album){
+  _gpAlbumId=album.id;_gpDate=null;_gpFilter='all';_gpTagFilter='';
+  document.querySelectorAll('.gpfb').forEach(b=>b.classList.remove('on'));document.querySelector('.gpfb').classList.add('on');
+  $('gp-title').textContent=album.name;$('gp-sub').textContent='Loading…';
+  // Show the "+" add-photos button, hide when viewing a day
+  $('gp-add-btn').classList.add('visible');
+  $('gp-add-btn').style.marginLeft='auto';
+  $('gp-grid').innerHTML='<div style="grid-column:1/-1;display:flex;justify-content:center;padding:40px"><div style="width:18px;height:18px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div></div>';
+  $('gallery-panel').classList.add('open');
+  $('bc-section').textContent='Albums';$('bc-sep2').style.display='';$('bc-page').style.display='';$('bc-page').textContent=album.name;
+  await _reloadAlbumGrid();
+}
+function _buildGpTags(photos){
+  const allTags=[...new Set(photos.flatMap(p=>p.tags||[]))].sort();
+  const tb=$('gp-tag-btns-inner2');tb.innerHTML='';const gt=$('gp-tags');
+  if(allTags.length){gt.style.display='flex';allTags.forEach(t=>{const b=document.createElement('button');b.className='gpfb';b.textContent=t;b.style.fontSize='10px';b.onclick=()=>{if(b.classList.contains('on')){b.classList.remove('on');_gpTagFilter='';}else{document.querySelectorAll('#gp-tag-btns-inner2 .gpfb').forEach(x=>x.classList.remove('on'));b.classList.add('on');_gpTagFilter=t;}renderGpGrid();};tb.appendChild(b);});}else{gt.style.display='none';}
+}
+function closeGallery(){
+  $('gallery-panel').classList.remove('open');
+  _gpPhotos=[];_gpDate=null;_gpAlbumId=null;
+  $('gp-add-btn').classList.remove('visible');
+  $('bc-sep2').style.display='none';$('bc-page').style.display='none';
+  selClear();
+}
 function setFilter(f,btn){_gpFilter=f;_gpTagFilter='';document.querySelectorAll('.gpfb').forEach(b=>b.classList.remove('on'));document.querySelectorAll('#gp-tag-btns-inner2 .gpfb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderGpGrid();}
 function renderGpGrid(){
   const g=$('gp-grid');g.innerHTML='';const obs=_ensureObserver();
@@ -1051,14 +1907,274 @@ function renderGpGrid(){
     const img=document.createElement('img');img.className='loading';img.alt=p.filename;img.onload=()=>img.classList.replace('loading','loaded');img.dataset.src=`/api/thumb?path=${encodeURIComponent(p.id)}&size=400`;obs.observe(img);
     const favBtn=document.createElement('button');favBtn.className='gp-photo-fav'+(p.favourite?' fav':'');favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
     favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(p);favBtn.classList.toggle('fav',p.favourite)};
+    // Delete/Remove button — top-right corner
+    // In album view: removes from album. In gallery view: moves to trash.
+    const delBtn=document.createElement('button');delBtn.className='gp-photo-del';
+    delBtn.title=_gpAlbumId?'Remove from album':'Move to trash';
+    delBtn.innerHTML=_gpAlbumId
+      ? `<svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>`
+      : `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/></svg>`;
+    delBtn.onclick=async(e)=>{
+      e.stopPropagation();
+      if(_gpAlbumId){
+        // Remove from album (no confirm needed for single photo)
+        try{
+          await api(`/api/albums/${_gpAlbumId}/photos`,{method:'POST',body:{paths:[p.id],action:'remove'}});
+          div.style.transition='all .2s';div.style.opacity='0';div.style.transform='scale(.85)';
+          setTimeout(()=>div.remove(),200);
+          _gpPhotos=_gpPhotos.filter(x=>x.id!==p.id);
+          $('gp-sub').textContent=`${_gpPhotos.length} photos in album`;
+          loadAlbums();
+        }catch(err){alert('Remove failed: '+err.message);}
+      } else {
+        await _deletePhoto(p.id,'panel',div);
+      }
+    };
     const chk=document.createElement('div');chk.className='sel-check';
-    div.appendChild(img);div.appendChild(favBtn);div.appendChild(chk);
-    div.onclick=(e)=>{if(e.target===favBtn||favBtn.contains(e.target))return;if(_selThumb(div,p,e))return;const idx=_gpFilter==='favourites'?_gpPhotos.filter(x=>x.favourite).indexOf(p):_gpPhotos.indexOf(p);openLightbox(idx);};
+    // Add-to-album button — bottom-left, shown only in gallery (not album) view
+    const albBtn=document.createElement('button');albBtn.className='gp-photo-alb';albBtn.title='Add to album';
+    albBtn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 5a2 2 0 012-2h9l3 3M4 5v14a2 2 0 002 2h12a2 2 0 002-2V8M4 5h11"/><line x1="12" y1="13" x2="12" y2="19"/><line x1="9" y1="16" x2="15" y2="16"/></svg>`;
+    albBtn.onclick=async(e)=>{e.stopPropagation();await _addPhotoToAlbum(p.id);};
+    div.appendChild(img);div.appendChild(favBtn);div.appendChild(delBtn);
+    if(!_gpAlbumId)div.appendChild(albBtn);
+    div.appendChild(chk);
+    div.onclick=(e)=>{
+      if(e.target===favBtn||favBtn.contains(e.target))return;
+      // In album view OR already in selection mode: single click selects
+      if(_gpAlbumId||_selMode){if(_selThumb(div,p,e))return;}
+      else if(e.shiftKey){if(_selThumb(div,p,e))return;}
+      const idx=_gpFilter==='favourites'?_gpPhotos.filter(x=>x.favourite).indexOf(p):_gpPhotos.indexOf(p);
+      openLightbox(idx);
+    };
     div.oncontextmenu=(e)=>{e.preventDefault();_selMode=true;_selThumb(div,p,{shiftKey:false});};
     g.appendChild(div);
   });
 }
 async function toggleFav(photo){photo.favourite=!photo.favourite;await api('/api/favourites',{method:'POST',body:{path:photo.id,favourite:photo.favourite}});const n=_gpPhotos.filter(p=>p.favourite).length||_tlPhotos.filter(p=>p.favourite).length;$('stat-favs').textContent=n;$('stat-favs-sub').textContent=n+' saved';}
+
+/* ─── Add single photo to album ─────────────────────────────────── */
+async function _addPhotoToAlbum(photoId){
+  const d=await api('/api/albums').catch(()=>({albums:[]}));
+  const albums=d.albums||[];
+  _openModal('Add photo to album','Choose an album or create one');
+  if(!albums.length){
+    $('modal-body').innerHTML=`<div style="text-align:center;padding:20px;color:var(--ink4);font-size:12px">No albums yet.</div>`;
+    $('modal-foot').innerHTML=`<button class="bg" onclick="_closeModal()">Cancel</button><button class="bp" onclick="_closeModal();openNewAlbum()">＋ New album</button>`;
+    return;
+  }
+  const list=document.createElement('div');list.className='modal-list';
+  albums.forEach(a=>{
+    const btn=document.createElement('button');btn.className='modal-alb';
+    const thumbHtml=a.cover?`<img class="modal-alb-thumb" src="/api/thumb?path=${encodeURIComponent(a.cover)}&size=100">`:`<div class="modal-alb-ph"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16"/></svg></div>`;
+    btn.innerHTML=`${thumbHtml}<div class="modal-alb-info"><div class="modal-alb-name">${a.name}</div><div class="modal-alb-count">${a.count} photo${a.count!==1?'s':''}</div></div>`;
+    btn.onclick=async()=>{
+      try{
+        await api(`/api/albums/${a.id}/photos`,{method:'POST',body:{paths:[photoId],action:'add'}});
+        _closeModal();loadAlbums();
+        // Brief visual feedback on the photo
+        const thumb=document.querySelector(`[data-photo-id="${CSS.escape(photoId)}"]`);
+        if(thumb){thumb.style.outline='2px solid var(--b)';setTimeout(()=>thumb.style.outline='',1200);}
+      }catch(e){alert(e.message);}
+    };
+    list.appendChild(btn);
+  });
+  $('modal-body').innerHTML='';$('modal-body').appendChild(list);
+  $('modal-foot').innerHTML=`<button class="bg" onclick="_closeModal()">Cancel</button><button class="bp" onclick="_closeModal();openNewAlbum()">＋ New album</button>`;
+}
+
+/* ─── Cities tab ────────────────────────────────────────────────── */
+async function loadCitiesTab(){
+  const grid=$('cities-grid');
+  const empty=$('cities-empty');
+  if(grid)grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--ink5);font-size:13px">Loading…</div>';
+  if(empty)empty.style.display='none';
+  try{
+    const d=await api('/api/cities');
+    const cities=d.cities||[];
+    // Update badge
+    const badge=$('cities-badge');
+    if(badge){badge.textContent=d.total;badge.style.display=d.total?'':'none';}
+    if(!cities.length){
+      if(grid)grid.innerHTML='';
+      if(empty)empty.style.display='block';
+      return;
+    }
+    if(!grid)return;
+    grid.innerHTML='';
+    cities.forEach((c,i)=>{
+      const card=document.createElement('div');
+      card.className='ccard';
+      card.style.animation=`slideIn .2s ease ${Math.min(i,20)*18}ms both`;
+      const hasCover=!!c.cover;
+      const coordStr=(c.lat!=null&&c.lon!=null)?`${c.lat.toFixed(2)}, ${c.lon.toFixed(2)}`:'';
+      card.innerHTML=`
+        <div class="ccard-cover">
+          ${hasCover
+            ? `<div class="ccard-shimmer" id="cshim-${i}"></div>
+               <img class="ccard-cover-img" id="ccimg-${i}" alt="${c.city}">
+               <div class="ccard-cover-scrim"></div>`
+            : `<div class="ccard-empty-cover">
+                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                 <span style="font-size:10px;font-weight:600">No cover</span>
+               </div>`
+          }
+          <div class="ccard-pin">
+            <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+            ${c.count}
+          </div>
+          ${hasCover?`<div class="ccard-name-overlay"><span>${c.city}</span></div>`:''}
+        </div>
+        <div class="ccard-info">
+          ${!hasCover?`<div style="font-size:13px;font-weight:700;color:var(--ink)">${c.city}</div>`:'<div></div>'}
+          <div>
+            <div class="ccard-meta">${c.count} photo${c.count!==1?'s':''}</div>
+            ${coordStr?`<div class="ccard-coords">${coordStr}</div>`:''}
+          </div>
+        </div>`;
+      card.onclick=()=>openCityView(c);
+      grid.appendChild(card);
+      if(hasCover){
+        const img=document.getElementById(`ccimg-${i}`);
+        const shim=document.getElementById(`cshim-${i}`);
+        if(img){
+          img.onload=()=>{img.classList.add('loaded');if(shim)shim.style.display='none';};
+          img.src=`/api/thumb?path=${encodeURIComponent(c.cover)}&size=400`;
+        }
+      }
+    });
+  }catch(e){
+    if(grid)grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--red);font-size:12px">${e.message}</div>`;
+  }
+}
+
+async function openCityView(cityObj){
+  // Reuse the day-panel for city photo browsing
+  _gpAlbumId=null;_gpDate=null;_gpFilter='all';_gpTagFilter='';
+  $('gp-add-btn').classList.remove('visible');
+  $('gp-title').textContent=cityObj.city;
+  $('gp-sub').textContent='Loading…';
+  $('gp-grid').innerHTML='<div style="grid-column:1/-1;display:flex;justify-content:center;padding:40px"><div style="width:18px;height:18px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div></div>';
+  $('gallery-panel').classList.add('open');
+  $('bc-sep2').style.display='';$('bc-page').style.display='';$('bc-page').textContent=cityObj.city;
+  try{
+    const d=await api(`/api/photos/by-city/${encodeURIComponent(cityObj.city)}`);
+    _gpPhotos=d.photos||[];
+    $('gp-sub').textContent=d.count>0
+      ? `${d.count} photos · ${cityObj.city}`
+      : 'No photos found for this city';
+    if(!d.count){
+      $('gp-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--ink4);font-size:12px">No photos found in ${cityObj.city}.</div>`;
+      $('gp-tags').style.display='none';return;
+    }
+    _buildGpTags(d.photos);
+    renderGpGrid();
+  }catch(e){$('gp-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red);font-size:12px">${e.message}</div>`;}
+}
+
+/* ─── Cities strip (gallery inline filter) ───────────────────────── */
+let _citiesData=[];
+let _activeCity='';
+
+async function loadCities(){
+  try{
+    const d=await api('/api/cities').catch(()=>({cities:[]}));
+    _citiesData=d.cities||[];
+    // Update sidebar badge
+    const badge=$('cities-badge');
+    if(badge){badge.textContent=d.total||0;badge.style.display=(d.total>0)?'':'none';}
+    const strip=$('city-strip');
+    strip.innerHTML='';
+    if(!_citiesData.length)return;
+    // "All" reset chip
+    const all=document.createElement('button');
+    all.className='city-chip'+(_activeCity?'':' on');all.id='city-all';
+    all.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 010 20"/></svg> All locations`;
+    all.onclick=()=>filterByCity('');
+    strip.appendChild(all);
+    _citiesData.forEach(c=>{
+      const btn=document.createElement('button');
+      btn.className='city-chip'+(_activeCity===c.city?' on':'');
+      btn.dataset.city=c.city;
+      btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>${c.city}<span class="city-count">${c.count}</span>`;
+      btn.onclick=()=>filterByCity(c.city);
+      strip.appendChild(btn);
+    });
+  }catch(e){}
+}
+
+async function filterByCity(city){
+  _activeCity=city;
+  // Update chip active state
+  document.querySelectorAll('.city-chip').forEach(b=>{
+    const isAll=b.id==='city-all';
+    b.classList.toggle('on',isAll?!city:b.dataset.city===city);
+  });
+  if(!city){
+    // Reset to normal days view
+    showView(_currentView);
+    return;
+  }
+  // Show city photos in timeline-style
+  selClear();
+  $('days-grid').style.display='none';
+  $('timeline-view').style.display='block';
+  const tv=$('timeline-view');
+  tv.innerHTML=`<div style="text-align:center;padding:20px;color:var(--ink4);font-size:12px"><div style="width:16px;height:16px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite;margin:0 auto 8px"></div>Loading photos from ${city}…</div>`;
+  try{
+    const d=await api(`/api/photos/by-city/${encodeURIComponent(city)}`);
+    _tlPhotos=d.photos||[];
+    $('view-count').textContent=`${_tlPhotos.length} photos · ${city}`;
+    if(!_tlPhotos.length){tv.innerHTML=`<div style="text-align:center;padding:64px;color:var(--ink4)"><div style="font-weight:600;font-size:14px">No photos found in ${city}</div></div>`;return;}
+    // Group by date
+    const byDate={};
+    _tlPhotos.forEach(ph=>{
+      const dt=ph.capture_date?ph.capture_date.slice(0,10):'Unknown date';
+      if(!byDate[dt])byDate[dt]=[];
+      byDate[dt].push(ph);
+    });
+    tv.innerHTML='';
+    const obs=_ensureObserver();
+    Object.entries(byDate).sort(([a],[b])=>b.localeCompare(a)).forEach(([dt,photos])=>{
+      const sec=document.createElement('div');sec.className='tl-section';
+      sec.innerHTML=`<div class="tl-date-row"><span class="tl-date-label">${dt}</span><span class="tl-date-meta">${photos.length} photos</span></div><div class="tl-grid"></div>`;
+      tv.appendChild(sec);
+      const grid=sec.querySelector('.tl-grid');
+      photos.forEach(ph=>{
+        const div=document.createElement('div');div.className='tl-thumb';div.dataset.photoId=ph.id;
+        const img=document.createElement('img');img.className='loading';img.dataset.src=`/api/thumb?path=${encodeURIComponent(ph.id)}&size=250`;img.onload=()=>img.classList.replace('loading','loaded');obs.observe(img);
+        const favBtn=document.createElement('button');favBtn.className='tl-thumb-fav'+(ph.favourite?' fav':'');favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
+        favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(ph);favBtn.classList.toggle('fav',ph.favourite);};
+        const delBtn=document.createElement('button');delBtn.className='tl-thumb-del';delBtn.title='Move to trash';
+        delBtn.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/></svg>`;
+        delBtn.onclick=async(e)=>{e.stopPropagation();await _deletePhoto(ph.id,'timeline',div);};
+        const chk=document.createElement('div');chk.className='sel-check';
+        div.appendChild(img);div.appendChild(favBtn);div.appendChild(delBtn);div.appendChild(chk);
+        div.onclick=(e)=>{if(e.target===favBtn||favBtn.contains(e.target)||e.target===delBtn||delBtn.contains(e.target))return;if(_selThumb(div,ph,e))return;const idx=_tlPhotos.indexOf(ph);openLightbox(idx,_tlPhotos,'timeline');};
+        div.oncontextmenu=(e)=>{e.preventDefault();_selMode=true;_selThumb(div,ph,{shiftKey:false});};
+        grid.appendChild(div);
+      });
+    });
+  }catch(e){tv.innerHTML=`<div style="text-align:center;padding:40px;color:var(--red);font-size:12px">${e.message}</div>`;}
+}
+
+/* ─────────────────────────────────────────────────────────────────── */
+/* Shared single-photo delete (gallery + timeline). Moves to trash. */
+async function _deletePhoto(id, source, el){
+  if(!confirm('Move this photo to trash? This cannot be undone from the app.'))return;
+  try{
+    await api('/api/photos/bulk',{method:'POST',body:{paths:[id],action:'delete'}});
+    // Animate out then remove
+    if(el){el.style.transition='all .2s';el.style.opacity='0';el.style.transform='scale(.85)';setTimeout(()=>el.remove(),200);}
+    _tlPhotos=_tlPhotos.filter(x=>x.id!==id);
+    _gpPhotos=_gpPhotos.filter(x=>x.id!==id);
+    // If lightbox is open on this photo, close it
+    if($('lightbox').classList.contains('open')&&_lbPhotos[_lbIdx]?.id===id){
+      _lbPhotos.splice(_lbIdx,1);
+      if(!_lbPhotos.length){closeLightbox();}else{_lbIdx=Math.min(_lbIdx,_lbPhotos.length-1);renderLb();}
+    }
+    await loadDays();
+  }catch(err){alert('Delete failed: '+err.message);}
+}
 
 let _lbIdx=0,_lbPhotos=[],_lbSource='panel',_lbLoadId=0;
 function openLightbox(idx,photos,source){if(photos)_lbPhotos=photos;else _lbPhotos=_gpFilter==='favourites'?_gpPhotos.filter(p=>p.favourite):_gpPhotos;_lbSource=source||'panel';_lbIdx=Math.max(0,Math.min(idx,_lbPhotos.length-1));$('lightbox').classList.add('open');document.body.style.overflow='hidden';renderLb();}
@@ -1067,13 +2183,157 @@ function lbClickBg(e){if(e.target===$('lightbox'))closeLightbox();}
 function lbNav(dir){if(!_lbPhotos.length)return;_lbIdx=(_lbIdx+dir+_lbPhotos.length)%_lbPhotos.length;renderLb();}
 function renderLb(){const photo=_lbPhotos[_lbIdx];if(!photo)return;const loadId=++_lbLoadId;const img=$('lb-img');img.style.transition='none';img.style.opacity='0';img.onload=null;img.onerror=null;img.onload=()=>{if(loadId!==_lbLoadId)return;img.style.transition='opacity .16s ease';img.style.opacity='1';};img.onerror=()=>{if(loadId!==_lbLoadId)return;img.style.opacity='1';};img.src=`/api/photo?path=${encodeURIComponent(photo.id)}`;$('lb-fav-btn').classList.toggle('fav',!!photo.favourite);const tagStr=(photo.tags||[]).slice(0,4).join(' · ');$('lb-info').textContent=photo.filename+(photo.capture_date?'  ·  '+photo.capture_date.slice(0,10):'')+(tagStr?'  ·  '+tagStr:'');$('lb-counter').textContent=`${_lbIdx+1} / ${_lbPhotos.length}`;}
 async function lbToggleFav(){const photo=_lbPhotos[_lbIdx];if(!photo)return;await toggleFav(photo);$('lb-fav-btn').classList.toggle('fav',!!photo.favourite);if(_lbSource==='panel')renderGpGrid();if(_lbSource==='timeline'){const thumb=document.querySelector(`[data-photo-id="${CSS.escape(photo.id)}"]`);if(thumb){const btn=thumb.querySelector('.tl-thumb-fav');if(btn)btn.classList.toggle('fav',photo.favourite);}}}
-document.addEventListener('keydown',e=>{if(!$('lightbox').classList.contains('open'))return;if(e.key==='ArrowLeft'){e.preventDefault();lbNav(-1);}if(e.key==='ArrowRight'){e.preventDefault();lbNav(1);}if(e.key==='Escape')closeLightbox();if(e.key===' '){e.preventDefault();lbToggleFav();}});
+async function lbDelete(){
+  const photo=_lbPhotos[_lbIdx];if(!photo)return;
+  // In album lightbox: remove from album. Otherwise: move to trash.
+  if(_gpAlbumId){
+    if(!confirm('Remove this photo from the album?'))return;
+    try{
+      await api(`/api/albums/${_gpAlbumId}/photos`,{method:'POST',body:{paths:[photo.id],action:'remove'}});
+      _gpPhotos=_gpPhotos.filter(x=>x.id!==photo.id);
+      _lbPhotos.splice(_lbIdx,1);
+      if(!_lbPhotos.length){closeLightbox();await _reloadAlbumGrid();}
+      else{_lbIdx=Math.min(_lbIdx,_lbPhotos.length-1);renderLb();await _reloadAlbumGrid();}
+      loadAlbums();
+    }catch(e){alert(e.message);}
+  } else {
+    await _deletePhoto(photo.id, _lbSource, null);
+  }
+}
+
+/* Download the current lightbox photo as a single file */
+function lbDownload(){
+  const photo=_lbPhotos[_lbIdx];if(!photo)return;
+  _triggerDownload([photo.id], photo.filename||'photo.jpg');
+}
+
+/* Bulk download selected photos as a ZIP archive */
+async function bulkDownloadZip(){
+  const paths=[..._selPaths];
+  if(!paths.length)return;
+  _triggerDownload(paths, `photos_${paths.length}.zip`);
+}
+
+/* Internal: build the download URL and click a temporary <a> tag */
+function _triggerDownload(paths, defaultFilename){
+  if(!paths.length)return;
+  if(paths.length===1){
+    // Single file: serve it directly from /api/photo (no ZIP needed)
+    const url=`/api/photo?path=${encodeURIComponent(paths[0])}`;
+    const a=document.createElement('a');
+    a.href=url;a.download=defaultFilename;a.style.display='none';
+    document.body.appendChild(a);a.click();setTimeout(()=>a.remove(),200);
+    return;
+  }
+  // Multiple: stream as ZIP
+  const param=paths.map(p=>encodeURIComponent(p)).join(',');
+  const url=`/api/photos/download-zip?paths=${param}`;
+  const a=document.createElement('a');
+  a.href=url;a.download=defaultFilename;a.style.display='none';
+  document.body.appendChild(a);a.click();setTimeout(()=>a.remove(),200);
+}
+document.addEventListener('keydown',e=>{if(!$('lightbox').classList.contains('open'))return;if(e.key==='ArrowLeft'){e.preventDefault();lbNav(-1);}if(e.key==='ArrowRight'){e.preventDefault();lbNav(1);}if(e.key==='Escape')closeLightbox();if(e.key===' '){e.preventDefault();lbToggleFav();}if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();lbDelete();}});
 
 let _selPaths=new Set(),_selMode=false,_lastSelEl=null;
 function _selThumb(div,ph,e){if(!_selMode&&!e.shiftKey)return false;_selMode=true;if(e.shiftKey&&_lastSelEl){const all=[...document.querySelectorAll('.tl-thumb,.gp-photo')];const a=all.indexOf(_lastSelEl),b=all.indexOf(div);const[lo,hi]=[Math.min(a,b),Math.max(a,b)];all.slice(lo,hi+1).forEach(el=>{const id=el.dataset.photoId;if(id){_selPaths.add(id);el.classList.add('selected');}});}else{if(_selPaths.has(ph.id)){_selPaths.delete(ph.id);div.classList.remove('selected');}else{_selPaths.add(ph.id);div.classList.add('selected');}_lastSelEl=div;}_selUpdateToolbar();return true;}
-function _selUpdateToolbar(){const n=_selPaths.size;$('bulk-count').textContent=n+' selected';$('bulk-toolbar').classList.toggle('show',n>0);if(n===0){_selMode=false;_lastSelEl=null;}}
+function _selUpdateToolbar(){
+  const n=_selPaths.size;
+  $('bulk-count').textContent=n+' selected';
+  $('bulk-toolbar').classList.toggle('show',n>0);
+  if(n===0){_selMode=false;_lastSelEl=null;return;}
+  // Context-aware buttons: in album view show "Remove from album", hide "Add to album"
+  const inAlbum=!!_gpAlbumId;
+  $('tbb-remove-alb').style.display=inAlbum?'inline-flex':'none';
+  $('tbb-add-alb').style.display=inAlbum?'none':'inline-flex';
+}
 function selClear(){_selPaths.clear();_selMode=false;_lastSelEl=null;document.querySelectorAll('.tl-thumb.selected,.gp-photo.selected').forEach(el=>el.classList.remove('selected'));$('bulk-toolbar').classList.remove('show');}
 async function bulkAction(action){if(!_selPaths.size)return;const paths=[..._selPaths];if(action==='delete'&&!confirm(`Move ${paths.length} photo(s) to trash?`))return;try{await api('/api/photos/bulk',{method:'POST',body:{paths,action}});if(action==='delete'){paths.forEach(id=>{document.querySelectorAll(`[data-photo-id="${CSS.escape(id)}"]`).forEach(el=>el.closest('.tl-thumb,.gp-photo')?.remove());_tlPhotos=_tlPhotos.filter(x=>x.id!==id);_gpPhotos=_gpPhotos.filter(x=>x.id!==id);});await loadDays();}else{paths.forEach(id=>{const isFav=action==='favourite';document.querySelectorAll(`[data-photo-id="${CSS.escape(id)}"]`).forEach(el=>{const btn=el.closest('.tl-thumb,.gp-photo')?.querySelector('.tl-thumb-fav,.gp-photo-fav');if(btn)btn.classList.toggle('fav',isFav);});[_tlPhotos,_gpPhotos].forEach(arr=>{const ph=arr.find(x=>x.id===id);if(ph)ph.favourite=isFav;});});}selClear();}catch(err){alert('Action failed: '+err.message);}}
+
+/* ─── Albums ─── */
+let _albumsCache=[];
+async function loadAlbums(){
+  try{
+    const d=await api('/api/albums');_albumsCache=d.albums||[];
+    const badge=$('albums-badge');if(badge){badge.textContent=d.total;badge.style.display=d.total?'':'none';}
+    const g=$('albums-grid');g.innerHTML='';
+    // New album card
+    const nc=document.createElement('div');nc.className='acard-new';nc.onclick=()=>openNewAlbum();
+    nc.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>New album</span>`;
+    g.appendChild(nc);
+    if(!_albumsCache.length)return;
+    _albumsCache.forEach((a,i)=>{
+      const card=document.createElement('div');card.className='acard';card.style.animation=`slideIn .2s ease ${Math.min(i,20)*18}ms both`;
+      const hasCover=!!a.cover;
+      card.innerHTML=`
+        <div class="acard-cover">
+          ${hasCover?`<div class="acard-shimmer" id="ashim-${a.id}"></div><img class="acard-cover-img" id="acimg-${a.id}" alt=""><div class="acard-cover-scrim"></div>`:`<div class="acard-empty"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span style="font-size:10px;font-weight:600">Empty album</span></div>`}
+          <span class="acard-count">${a.count}</span>
+          <button class="acard-del" onclick="event.stopPropagation();deleteAlbum('${a.id}','${a.name.replace(/'/g,"\\'")}')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
+        </div>
+        <div class="acard-info">
+          <div class="acard-name">${a.name}</div>
+          <div class="acard-meta">${a.count} photo${a.count!==1?'s':''}</div>
+        </div>`;
+      card.onclick=()=>openAlbumView(a);
+      g.appendChild(card);
+      if(hasCover){
+        const img=document.getElementById(`acimg-${a.id}`);
+        const shim=document.getElementById(`ashim-${a.id}`);
+        if(img){img.onload=()=>{img.classList.add('loaded');if(shim)shim.style.display='none';};img.src=`/api/thumb?path=${encodeURIComponent(a.cover)}&size=400`;}
+      }
+    });
+  }catch(e){$('albums-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--red);font-size:12px">${e.message}</div>`;}
+}
+
+async function deleteAlbum(id,name){if(!confirm(`Delete album "${name}"? Photos on disk are never deleted.`))return;try{await api(`/api/albums/${id}`,{method:'DELETE'});loadAlbums();}catch(e){alert(e.message);}}
+
+/* ─── Modal helpers ─── */
+function _closeModal(){$('modal').classList.remove('open');$('modal').style.display='none';}
+function _openModal(title,sub){
+  $('modal-title').textContent=title;
+  $('modal-sub').textContent=sub||'';
+  $('modal-body').innerHTML='';$('modal-foot').innerHTML='';
+  $('modal').style.display='';$('modal').classList.add('open');
+}
+
+function openNewAlbum(){
+  _openModal('New album','Give your album a name');
+  $('modal-body').innerHTML=`<input id="new-album-name" class="inp" placeholder="e.g. Summer 2024" autofocus>`;
+  $('modal-foot').innerHTML=`<button class="bg" onclick="_closeModal()">Cancel</button><button class="bp" onclick="_createAlbum()">Create</button>`;
+  setTimeout(()=>{const inp=$('new-album-name');if(inp){inp.focus();inp.onkeydown=e=>{if(e.key==='Enter')_createAlbum();};}},60);
+}
+async function _createAlbum(){
+  const name=($('new-album-name')||{}).value||'';if(!name.trim())return;
+  try{await api('/api/albums',{method:'POST',body:{name:name.trim()}});_closeModal();loadAlbums();}catch(e){alert(e.message);}
+}
+
+async function openAddToAlbum(ev){
+  if(ev)ev.stopPropagation();
+  if(!_selPaths.size)return;
+  const paths=[..._selPaths];
+  _openModal(`Add ${paths.length} photo${paths.length>1?'s':''} to album`,'Choose an album or create one');
+  $('modal-body').innerHTML='<div style="text-align:center;padding:20px;color:var(--ink5);font-size:12px">Loading…</div>';
+  $('modal-foot').innerHTML=`<button class="bg" onclick="_closeModal()">Cancel</button><button class="bp" onclick="_closeModal();openNewAlbum()"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New album</button>`;
+  try{
+    const d=await api('/api/albums');
+    const albums=d.albums||[];
+    if(!albums.length){$('modal-body').innerHTML='<div style="text-align:center;padding:24px;color:var(--ink4);font-size:12px">No albums yet. Create one first.</div>';return;}
+    const list=document.createElement('div');list.className='modal-list';
+    albums.forEach(a=>{
+      const btn=document.createElement('button');btn.className='modal-alb';
+      const thumbHtml=a.cover?`<img class="modal-alb-thumb" src="/api/thumb?path=${encodeURIComponent(a.cover)}&size=100">`:`<div class="modal-alb-ph"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/></svg></div>`;
+      btn.innerHTML=`${thumbHtml}<div class="modal-alb-info"><div class="modal-alb-name">${a.name}</div><div class="modal-alb-count">${a.count} photo${a.count!==1?'s':''}</div></div>`;
+      btn.onclick=async()=>{
+        try{await api(`/api/albums/${a.id}/photos`,{method:'POST',body:{paths,action:'add'}});_closeModal();selClear();loadAlbums();}catch(e){alert(e.message);}
+      };
+      list.appendChild(btn);
+    });
+    $('modal-body').innerHTML='';$('modal-body').appendChild(list);
+  }catch(e){$('modal-body').innerHTML=`<div style="color:var(--red);font-size:12px">${e.message}</div>`;}
+}
+
+// Close modal on click outside
+$('modal').addEventListener('click',e=>{if(e.target===$('modal'))_closeModal();});
 
 async function initPipeline(){const p=await api('/api/pasos');const g=$('paso-checks');g.innerHTML='';p.forEach(x=>{const l=document.createElement('label');l.className='step-card';l.innerHTML=`<input type="checkbox" value="${x.id}" checked><span>${x.nombre}</span>`;g.appendChild(l)});pollEstado()}initPipeline();
 let pt;async function pollEstado(){const{corriendo}=await api('/api/pipeline/estado');setPipelineUI(corriendo);if(corriendo)pt=setTimeout(pollEstado,1500)}
@@ -1088,7 +2348,62 @@ async function guardarSSH(){try{await api('/api/ssh',{method:'POST',body:{alias:
 async function borrarSSH(a){if(!confirm('Delete "'+a+'"?'))return;await api('/api/ssh/'+encodeURIComponent(a),{method:'DELETE'});renderSSH()}
 function limpiarFormSSH(){['ssh-alias','ssh-host','ssh-usuario','ssh-ruta','ssh-ruta-dest','ssh-clave'].forEach(i=>$(i).value='');$('ssh-puerto').value='22';if($('ssh-rol').options.length){$('ssh-rol').selectedIndex=0;onRolChange()}}
 
-async function initWebDAV(){const{libres}=await api('/api/webdav/letras');const s=$('wd-letra');s.innerHTML='';(libres.length?libres:['Z:']).forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;s.appendChild(o)});await renderWD()}
+async function initWebDAV(){
+  // Auto-detect: if on Linux/Docker, default to direct download mode
+  try{
+    const r=await api('/api/webdav/letras');
+    const libres=r.libres||[];
+    const s=$('wd-letra');if(s){s.innerHTML='';(libres.length?libres:['Z:']).forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;s.appendChild(o)});}
+    await renderWD();
+    // If no free drive letters (Linux/Docker), switch to direct mode automatically
+    if(!libres.length)wdMode('direct');
+  }catch(e){}
+}
+
+function wdMode(mode,btn){
+  $('wd-panel-direct').style.display=mode==='direct'?'':'none';
+  $('wd-panel-netuse').style.display=mode==='netuse'?'':'none';
+  document.querySelectorAll('#wd-tab-direct,#wd-tab-netuse').forEach(b=>b.classList.remove('on'));
+  const active=mode==='direct'?$('wd-tab-direct'):$('wd-tab-netuse');
+  if(active)active.classList.add('on');
+  const hint=$('wd-mode-hint');
+  if(hint)hint.textContent=mode==='direct'?'Works on Docker, Linux and Windows':'Windows only — mounts drive letter';
+}
+
+async function wdScan(){
+  const ip=($('wd-dl-ip')||{}).value||'';
+  const port=($('wd-dl-port')||{}).value||'8080';
+  if(!ip.trim()){showMsg('wd-dl-msg','Enter the phone IP address',false);return;}
+  const res=$('wd-dl-scan-result');
+  if(res)res.textContent='Scanning…';
+  try{
+    const d=await api('/api/webdav/scan',{method:'POST',body:{ip:ip.trim(),port:port.trim()}});
+    if(res)res.innerHTML=`Found <b>${d.count}</b> photos on the phone.${d.count?` Click <b>Download all photos</b> to fetch them.`:''}`;
+  }catch(e){
+    if(res)res.textContent='Could not reach phone: '+e.message;
+  }
+}
+
+async function wdDownload(){
+  const ip=($('wd-dl-ip')||{}).value||'';
+  const port=($('wd-dl-port')||{}).value||'8080';
+  const dest=($('wd-dl-dest')||{}).value||'';
+  if(!ip.trim()){showMsg('wd-dl-msg','Enter the phone IP address',false);return;}
+  const btn=$('btn-wd-download');
+  if(btn){btn.disabled=true;btn.textContent='Downloading…';}
+  const res=$('wd-dl-scan-result');
+  if(res)res.textContent='Connecting to phone…';
+  try{
+    const d=await api('/api/webdav/download',{method:'POST',body:{ip:ip.trim(),port:port.trim(),dest_folder:dest.trim()}});
+    showMsg('wd-dl-msg',`✅ Downloaded ${d.downloaded} photos to ${d.dest_folder}`,true);
+    if(res)res.textContent=`${d.downloaded} photos saved. Run the Pipeline to organise them.`;
+    // Add the incoming folder as source folder automatically
+    if(d.dest_folder){
+      try{await api('/api/carpetas/origen/anadir',{method:'POST',body:{carpeta:d.dest_folder}});}catch(_){}
+    }
+  }catch(e){showMsg('wd-dl-msg',e.message,false);if(res)res.textContent='';}
+  finally{if(btn){btn.disabled=false;btn.textContent='Download all photos';}}
+}
 async function renderWD(){const l=await api('/api/webdav');const tb=document.querySelector('#wd-table tbody');tb.innerHTML='';if(!l.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink4);font-size:12px">No WebDAV drives</td></tr>';return}l.forEach(c=>{const ok=c.montada;const tr=document.createElement('tr');tr.innerHTML=`<td style="font-weight:600">${c.letra}</td><td>${c.alias||''}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px">${c.ip}</td><td>${c.puerto}</td><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:${ok?'#12b76a':'#f04438'}${ok?';box-shadow:0 0 5px #12b76a60':''}"></span>${ok?'Connected':'Disconnected'}</span></td><td>${ok?`<button onclick="disconnectWD('${c.letra}')" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;font-weight:600">Disconnect</button>`:'—'}</td>`;tb.appendChild(tr)})}
 async function conectarWD(){const b=$('btn-wd-conectar');b.disabled=true;b.textContent='Connecting…';try{const r=await api('/api/webdav/connect',{method:'POST',body:{letra:$('wd-letra').value,ip:$('wd-ip').value.trim(),puerto:$('wd-puerto').value.trim()||'8080',alias:$('wd-alias').value.trim()}});showMsg('wd-msg',r.mensaje,r.ok);await initWebDAV()}catch(e){showMsg('wd-msg',e.message,false)}finally{b.disabled=false;b.textContent='Connect drive'}}
 async function disconnectWD(l){const r=await api('/api/webdav/disconnect/'+encodeURIComponent(l),{method:'POST'});showMsg('wd-msg',r.mensaje,r.ok);await initWebDAV()}

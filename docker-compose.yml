@@ -1,0 +1,105 @@
+services:
+
+  db:
+    image: postgres:16-alpine
+    container_name: photos_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       photos_sync
+      POSTGRES_USER:     photos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-photos2024}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U photos -d photos_sync"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: photos_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://photos:${POSTGRES_PASSWORD:-photos2024}@db:5432/photos_sync
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-env-file}
+    volumes:
+      - ${PHOTOS_DIR:-./photos}:/data
+    ports:
+      - "${APP_PORT:-8765}:8765"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8765/api/setup-status')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ── Automatic backup ─────────────────────────────────────────────────────
+  # Runs pg_dump every 24 h and keeps the last BACKUP_KEEP_DAYS days of
+  # dumps. Backups land in ./backups/ on the host (or BACKUP_DIR in .env).
+  # To restore: see the "Restore a backup" section in README.
+  backup:
+    image: postgres:16-alpine
+    container_name: photos_backup
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST:     db
+      PGPORT:     5432
+      PGDATABASE: photos_sync
+      PGUSER:     photos
+      PGPASSWORD: ${POSTGRES_PASSWORD:-photos2024}
+      # How many daily dumps to keep (older ones are deleted automatically)
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-7}
+    volumes:
+      - ${BACKUP_DIR:-./backups}:/backups
+    # Infinite loop: dump → sleep 24 h → repeat.
+    # The entrypoint script:
+    #   1. Creates /backups if it doesn't exist.
+    #   2. Dumps the DB with a timestamp filename.
+    #   3. Deletes dumps older than BACKUP_KEEP_DAYS days.
+    #   4. Sleeps 24 h.
+    entrypoint: >
+      sh -c "
+        mkdir -p /backups &&
+        while true; do
+          FILE=/backups/photos_sync_$$(date +%Y%m%d_%H%M%S).sql.gz &&
+          echo \"[backup] Starting dump → $$FILE\" &&
+          pg_dump --no-password | gzip > $$FILE &&
+          echo \"[backup] Done (size: $$(du -sh $$FILE | cut -f1))\" &&
+          find /backups -name '*.sql.gz' -mtime +$${BACKUP_KEEP_DAYS} -delete &&
+          echo \"[backup] Cleaned up dumps older than $${BACKUP_KEEP_DAYS} days\" &&
+          echo \"[backup] Next backup in 24 h\" &&
+          sleep 86400;
+        done
+      "
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: photos_pgadmin
+    restart: unless-stopped
+    profiles: ["admin"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL:    ${PGADMIN_EMAIL:-admin@photos.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  pgadmin_data:

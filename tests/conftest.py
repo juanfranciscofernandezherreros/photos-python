@@ -1,87 +1,105 @@
 """
 conftest.py — shared fixtures for all tests.
 
-Each test receives an isolated temporary directory. All config path
-constants (METADATA_JSON, SSH_CONNECTIONS_JSON, etc.) are monkeypatched
-to point into that tmp_path, so tests never touch ~/PhotosSync/data/.
+Database: each test gets an isolated SQLite in-memory database injected
+via db.set_engine(). Tables are created fresh for every test so tests
+never interfere with each other or with ~/PhotosSync/data/.
+
+Filesystem: ORGANIZED_DIR and THUMBS_DIR are redirected to tmp_path.
 """
+from __future__ import annotations
+
 import json
 import os
-import time
 import pytest
 from pathlib import Path
 
+import os as _os
+_os.environ.setdefault("TESTING", "1")   # disables slowapi IP rate limiting in tests
+
+from sqlalchemy import create_engine
+from sqlalchemy.pool import StaticPool
+
+
+# ── Fast password hashing in tests ────────────────────────────────────────────
+# bcrypt is deliberately slow; running it for every fixture makes the suite
+# crawl. Replace it with a plain (still-salted) sha256 for tests only.
+@pytest.fixture(autouse=True, scope="session")
+def _fast_password_hashing():
+    import photos_sync.auth as _auth
+    import hashlib, os
+
+    def _fast_hash(plain: str) -> str:
+        salt = os.urandom(8).hex()
+        h = hashlib.sha256((salt + plain).encode()).hexdigest()
+        return f"sha256${salt}${h}"
+
+    _auth.hash_password = _fast_hash
+    yield
+
 
 @pytest.fixture(autouse=True)
-def cwd_temporal(tmp_path, monkeypatch):
-    """Redirect all config path constants into tmp_path for full isolation.
-    Without this, the absolute paths in config.py would write to the real
-    ~/PhotosSync/data/ directory during tests."""
+def _clear_login_lockouts():
+    """Reset the in-memory lockout state before each test so tests don't
+    bleed into each other through the global _login_failures dict."""
+    from photos_sync.web_server import _login_failures
+    _login_failures.clear()
+    yield
+    _login_failures.clear()
+
+
+# ── Database fixture ──────────────────────────────────────────────────────────
+
+@pytest.fixture(autouse=True)
+def db_engine(tmp_path, monkeypatch):
+    """Create a fresh SQLite in-memory engine for every test."""
+    from photos_sync import db as db_mod
+
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    db_mod.init_db(engine)
+    db_mod.set_engine(engine)
+
+    yield engine
+
+    # Tear down
+    db_mod.metadata.drop_all(engine)
+    engine.dispose()
+    db_mod.set_engine(None)
+
+
+# ── Filesystem fixture ────────────────────────────────────────────────────────
+
+@pytest.fixture(autouse=True)
+def cwd_temporal(tmp_path, monkeypatch, db_engine):
+    """Redirect filesystem paths to tmp_path for isolation."""
     monkeypatch.chdir(tmp_path)
 
-    # Patch every path constant in config and every module that imported it —
-    # including both the facade modules (photos_sync.storage.folders, etc.) and the
-    # actual implementation modules (photos_sync.storage.folders, etc.)
     import photos_sync.config as cfg
-    import photos_sync.storage.folders as folders_facade
-    import photos_sync.storage.connection as connection_facade
-    import photos_sync.ssh_connection as ssh_facade
-    import photos_sync.pipeline.download as download_facade
-    import photos_sync.pipeline.compress as compress_facade
-    import photos_sync.pipeline.summary as summary_facade
-    import photos_sync.pipeline.organize as organize_facade
-    import photos_sync.storage.folders as folders_impl
-    import photos_sync.storage.connection as connection_impl
-    import photos_sync.storage.ssh_repo as ssh_repo_impl
-    import photos_sync.pipeline.download as download_impl
-    import photos_sync.pipeline.compress as compress_impl
-    import photos_sync.pipeline.summary as summary_impl
-    import photos_sync.pipeline.organize as organize_impl
-    import photos_sync.pipeline.classify as classify_impl
-    import photos_sync.pipeline.upload_ssh as upload_impl
+    monkeypatch.setattr(cfg, "ORGANIZED_DIR", tmp_path / "organizado")
+    monkeypatch.setattr(cfg, "THUMBS_DIR", tmp_path / "thumbs")
+    (tmp_path / "thumbs").mkdir(parents=True, exist_ok=True)
 
-    all_modules = (
-        cfg,
-        folders_facade, connection_facade, ssh_facade,
-        download_facade, compress_facade, summary_facade, organize_facade,
-        folders_impl, connection_impl, ssh_repo_impl,
-        download_impl, compress_impl, summary_impl, organize_impl, classify_impl, upload_impl,
-    )
-
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-
-    paths = {
-        "METADATA_JSON":          str(tmp_path / "metadatos_screenshots.json"),
-        "SELECTED_FOLDERS_JSON":  str(tmp_path / "carpetas_screenshots.json"),
-        "DESTINATION_JSON":       str(tmp_path / "destino_guardado.json"),
-        "DAILY_SUMMARY_JSON":     str(tmp_path / "resumen_por_dia.json"),
-        "ORCHESTRATOR_LOG":       str(tmp_path / "orquestador.log"),
-        "WEBDAV_CONNECTIONS_JSON":str(tmp_path / "conexiones_webdav.json"),
-        "SSH_CONNECTIONS_JSON":   str(tmp_path / "conexiones_ssh.json"),
-    }
-
-    for attr, val in paths.items():
-        for mod in all_modules:
-            if hasattr(mod, attr):
-                monkeypatch.setattr(mod, attr, val)
-
-    # Also patch ORGANIZED_DIR so compress/organize use tmp_path
-    org_dir = tmp_path / "organizado"
-    for mod in all_modules:
-        if hasattr(mod, "ORGANIZED_DIR"):
-            monkeypatch.setattr(mod, "ORGANIZED_DIR", org_dir)
-
-    # Patch THUMBS_DIR so thumbnail cache goes to tmp_path
-    import photos_sync.config as _cfg
-    monkeypatch.setattr(_cfg, "THUMBS_DIR", tmp_path / "thumbs")
+    # Patch ORGANIZED_DIR in pipeline modules that import it directly
+    import photos_sync.pipeline.organize as organize_mod
+    import photos_sync.pipeline.compress as compress_mod
+    monkeypatch.setattr(organize_mod, "ORGANIZED_DIR", tmp_path / "organizado")
+    if hasattr(compress_mod, "ORGANIZED_DIR"):
+        monkeypatch.setattr(compress_mod, "ORGANIZED_DIR", tmp_path / "organizado")
 
     return tmp_path
 
 
+# ── Helper fixtures ───────────────────────────────────────────────────────────
+
 @pytest.fixture()
 def metadatos_json(tmp_path):
-    """Creates a minimal metadatos_screenshots.json and returns its path."""
+    """Insert sample captures into the database and return their dicts."""
+    from photos_sync import repository as repo
+
     datos = [
         {
             "id": "aaa-111",
@@ -102,19 +120,18 @@ def metadatos_json(tmp_path):
             "ruta_original": str(tmp_path / "Screenshot_20231025_090000.jpg"),
         },
     ]
-    p = tmp_path / "metadatos_screenshots.json"
-    p.write_text(json.dumps(datos, ensure_ascii=False), encoding="utf-8")
-    return p
+    repo.upsert_captures(datos)
+    return datos
 
 
 @pytest.fixture()
 def carpeta_organizada(tmp_path, metadatos_json):
-    """Creates the organized folder structure (YYYY/MM/DD) and creates
-    the physical files referenced in metadata, needed for compression."""
-    import json as _json
-    datos = _json.loads(metadatos_json.read_text())
+    """Create organized folder structure and update capture dest_paths."""
+    from photos_sync import repository as repo
+
     destino = tmp_path / "organizado"
-    for captura in datos:
+    updated = []
+    for captura in metadatos_json:
         fecha = captura["fecha_captura"][:10]
         ano, mes, dia = fecha.split("-")
         carpeta = destino / ano / mes / dia
@@ -122,15 +139,49 @@ def carpeta_organizada(tmp_path, metadatos_json):
         archivo = carpeta / captura["archivo"]
         archivo.write_bytes(b"fake image data")
         captura["ruta_destino"] = str(archivo)
-    metadatos_json.write_text(_json.dumps(datos, ensure_ascii=False), encoding="utf-8")
+        updated.append(captura)
+    repo.upsert_captures(updated)
     return destino
 
 
 @pytest.fixture()
 def cliente_api(tmp_path):
-    """Synchronous HTTP client using FastAPI/Starlette TestClient.
-    Does not start a real server: tests are instant and port-free."""
+    """Authenticated admin HTTP test client.
+
+    Creates an admin via the setup endpoint (which also logs in), so all
+    existing data/config endpoints work. The session cookie is kept by
+    the TestClient across requests.
+    """
     from fastapi.testclient import TestClient
     from photos_sync.web_server import app
     with TestClient(app, raise_server_exceptions=True) as c:
+        # Bootstrap + auto-login the admin
+        c.post("/api/auth/setup-admin",
+               json={"username": "admin", "password": "admin12345"})
+        yield c
+
+
+@pytest.fixture()
+def cliente_anon(tmp_path):
+    """Unauthenticated client — for testing 401 responses."""
+    from fastapi.testclient import TestClient
+    from photos_sync.web_server import app
+    with TestClient(app, raise_server_exceptions=True) as c:
+        yield c
+
+
+@pytest.fixture()
+def cliente_user(tmp_path):
+    """Client logged in as a normal (non-admin) user — for testing 403."""
+    from fastapi.testclient import TestClient
+    from photos_sync.web_server import app
+    with TestClient(app, raise_server_exceptions=True) as c:
+        # First create the admin (needed to create other users)
+        admin = TestClient(app)
+        admin.post("/api/auth/setup-admin",
+                   json={"username": "admin", "password": "admin12345"})
+        admin.post("/api/users",
+                   json={"username": "bob", "password": "bob12345", "role": "user"})
+        # Now log in as bob on the returned client
+        c.post("/api/auth/login", json={"username": "bob", "password": "bob12345"})
         yield c

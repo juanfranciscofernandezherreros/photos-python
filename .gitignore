@@ -34,3 +34,11 @@ venv/
 # Thumbnail cache
 PhotosSync/data/thumbs/
 dist/
+
+# Docker
+.env
+photos/
+.coverage
+-e 
+# Backup dumps
+backups/

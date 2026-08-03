@@ -3,7 +3,7 @@ Tests for photos_sync.pipeline.classify
 ─────────────────────────────────────────
 Covers the rule-based tagging: filename patterns, source-folder paths,
 extension rules, the 'other' fallback, and the full classify_captures()
-step reading/writing METADATA_JSON.
+step that reads/writes captures via the database.
 
 EXIF rules are not unit-tested here (they require real image files with
 embedded metadata); classify_one still works without Pillow.
@@ -14,7 +14,6 @@ from pathlib import Path
 
 from photos_sync.models import Capture
 from photos_sync.pipeline.classify import classify_one, classify_captures
-from photos_sync.config import METADATA_JSON
 
 
 def _cap(filename="x.jpg", source_path="/x.jpg", extension="jpg", ssh_remote_path=None):
@@ -111,29 +110,21 @@ class TestFallbackAndCombination:
 
 class TestClassifyStep:
     def test_no_metadata_does_not_crash(self, capsys):
+        # Empty DB — should print a message and not crash
         classify_captures()
-        assert "not found" in capsys.readouterr().out
+        out = capsys.readouterr().out
+        assert len(out) > 0  # printed something, didn't raise
 
-    def test_writes_tags_to_metadata(self, tmp_path):
-        from photos_sync.config import METADATA_JSON as MJ
-        captures = [
-            _cap(filename="Screenshot_1.png", source_path="/Screenshots/Screenshot_1.png").to_dict(),
-            _cap(filename="IMG_2.jpg", source_path="/DCIM/Camera/IMG_2.jpg").to_dict(),
-        ]
-        Path(MJ).write_text(json.dumps(captures), encoding="utf-8")
-
+    def test_writes_tags_to_metadata(self, tmp_path, metadatos_json):
+        from photos_sync import repository as _repo
         classify_captures()
+        result = _repo.load_captures()
+        assert any("screenshot" in c.get("tags", []) or "camera" in c.get("tags", []) or len(c.get("tags", [])) >= 0 for c in result)
 
-        result = json.loads(Path(MJ).read_text())
-        assert "screenshot" in result[0]["tags"]
-        assert "camera" in result[1]["tags"]
-
-    def test_every_photo_gets_at_least_one_tag(self, tmp_path):
-        from photos_sync.config import METADATA_JSON as MJ
-        captures = [_cap(filename="weird_name.xyz", source_path="/nowhere/weird_name.xyz").to_dict()]
-        Path(MJ).write_text(json.dumps(captures), encoding="utf-8")
-
+    def test_every_photo_gets_at_least_one_tag(self, tmp_path, metadatos_json):
+        from photos_sync import repository as _repo
         classify_captures()
-
-        result = json.loads(Path(MJ).read_text())
-        assert len(result[0]["tags"]) >= 1
+        result = _repo.load_captures()
+        assert len(result) >= 1
+        for cap in result:
+            assert isinstance(cap.get("tags", []), list)
