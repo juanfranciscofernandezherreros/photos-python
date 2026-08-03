@@ -333,3 +333,27 @@ class TestRateLimit:
     def test_non_admin_cannot_unlock(self, cliente_user):
         r = cliente_user.delete("/api/auth/lockouts/anyone")
         assert r.status_code == 403
+
+
+# ── Diagnostic endpoint ───────────────────────────────────────────────────────
+
+class TestDiagnostic:
+    def test_diag_returns_table_counts(self, cliente_api):
+        r = cliente_api.get("/api/diag")
+        assert r.status_code == 200
+        body = r.json()
+        assert "db_dialect" in body
+        assert "counts" in body
+        assert body["counts"]["users"] == 1   # only the admin
+        assert body["counts"]["captures"] == 0
+
+    def test_diag_requires_admin(self, cliente_user):
+        r = cliente_user.get("/api/diag")
+        assert r.status_code == 403
+
+    def test_diag_anon_401(self, cliente_anon):
+        cliente_anon.post("/api/auth/setup-admin",
+                          json={"username": "root", "password": "rootpass1"})
+        cliente_anon.post("/api/auth/logout")
+        r = cliente_anon.get("/api/diag")
+        assert r.status_code == 401

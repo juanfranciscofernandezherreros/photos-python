@@ -11,6 +11,58 @@ docker compose up -d
 
 Abre **http://localhost:8765**
 
+## Actualizar a la última versión
+
+**IMPORTANTE:** si ya tenías la app corriendo, Docker no reconstruye la
+imagen por sí solo cuando cambia el código Python. Después de descomprimir
+una versión nueva del proyecto, ejecuta:
+
+```bash
+docker compose down
+docker compose build --no-cache app
+docker compose up -d
+```
+
+O más rápido y equivalente:
+
+```bash
+docker compose up -d --build --force-recreate
+```
+
+Si sospechas que la BD ha quedado en mal estado (fotos que no aparecen,
+usuarios raros, etc.), puedes empezar de cero conservando las fotos:
+
+```bash
+docker compose down -v      # -v borra el volumen postgres_data
+docker compose up -d --build
+```
+
+Con `-v` se borra la base de datos entera; la primera vez que abras la app
+te pedirá crear el administrador otra vez. Las **fotos en tu `PHOTOS_DIR` NO
+se tocan**, solo la BD. Después de esto puedes reingestar via WebDAV o
+ejecutar el Pipeline sobre tus carpetas existentes.
+
+### Verificar que la BD tiene datos
+
+Con el admin logueado, visita **http://localhost:8765/api/diag** — muestra
+el número de filas en cada tabla:
+
+```json
+{
+  "db_dialect": "postgresql",
+  "counts": {
+    "captures": 42,
+    "day_summaries": 5,
+    "source_folders": 1,
+    "users": 1,
+    ...
+  }
+}
+```
+
+Si `captures` es 0 después de descargar fotos, algo va mal — comparte esa
+salida.
+
 ## Variables de entorno (`.env`)
 
 | Variable | Por defecto | Descripción |

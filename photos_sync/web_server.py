@@ -470,64 +470,69 @@ def get_pasos(_auth: dict = Depends(require_admin)):
 
 @app.get("/api/days")
 def get_days(_auth: dict = Depends(require_login)):
-    """Scan the configured destination folder for YYYY/MM/DD structure.
-    Scans the filesystem for YYYY/MM/DD structure; enriches with
-    DB metadata (zip paths, capture_date, tags) where available."""
-    from .config import ORGANIZED_DIR
-    from .storage.folders import load_saved_destination, load_destination_config
+    """Group all captures by date.
 
-    # Resolve actual destination
-    dest_config = load_destination_config()
-    if dest_config.get("tipo") == "local" and dest_config.get("ruta"):
-        base_dir = Path(dest_config["ruta"])
-    else:
-        dest_str = load_saved_destination()
-        base_dir = Path(dest_str) if dest_str else Path(ORGANIZED_DIR)
+    Uses the captures table as the source of truth: every photo that has
+    a row here appears in the gallery, no matter where it lives on disk
+    (organized by YYYY/MM/DD, in /incoming, in a custom folder, etc).
 
-    # Enrich with DB summary metadata (zip paths, etc.)
-    summary_raw = repo.load_summaries()
+    The date used to group is capture_date if present, otherwise the
+    file's mtime, otherwise the file itself gets grouped under 'undated'.
+    """
+    from datetime import datetime as _dt
+
+    # DB metadata: photo path → (capture_date, tags, city, gps, is_favourite)
+    caps = repo.load_captures()
+
+    # DB summaries provide zip_path for a given date if the pipeline ran
     summary_by_date: dict[str, dict] = {}
-    if isinstance(summary_raw, list):
-        for s in summary_raw:
-            if s.get("fecha"):
-                summary_by_date[s["fecha"]] = s
+    for s in repo.load_summaries() or []:
+        if s.get("fecha"):
+            summary_by_date[s["fecha"]] = s
 
-    VALID_IMG = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff",
-                 ".mp4", ".mov", ".avi", ".mkv"}
+    # Group by YYYY-MM-DD
+    by_date: dict[str, list[dict]] = {}
+    for c in caps:
+        fpath = c.get("ruta_destino") or c.get("ruta_original") or ""
+        if not fpath:
+            continue
+
+        # Pick the best date we have for this photo
+        date_str = ""
+        cap_date = (c.get("fecha_captura") or "").strip()
+        if cap_date and len(cap_date) >= 10:
+            date_str = cap_date[:10]     # ISO 'YYYY-MM-DD...'
+        elif c.get("mtime"):
+            try:
+                date_str = _dt.fromtimestamp(float(c["mtime"])).strftime("%Y-%m-%d")
+            except Exception:
+                pass
+        if not date_str:
+            date_str = "undated"
+
+        by_date.setdefault(date_str, []).append({
+            "path":    fpath,
+            "size_mb": c.get("tamano_mb", 0) or 0,
+        })
+
     days = []
-
-    if base_dir.exists():
-        for year_dir in sorted(base_dir.iterdir()):
-            if not year_dir.is_dir() or year_dir.name in ("Comprimidos", "data"):
-                continue
-            if not year_dir.name.isdigit():
-                continue
-            for month_dir in sorted(year_dir.iterdir()):
-                if not month_dir.is_dir() or not month_dir.name.isdigit():
-                    continue
-                for day_dir in sorted(month_dir.iterdir()):
-                    if not day_dir.is_dir() or not day_dir.name.isdigit():
-                        continue
-                    files = [
-                        f for f in day_dir.iterdir()
-                        if f.is_file() and f.suffix.lower() in VALID_IMG
-                    ]
-                    if not files:
-                        continue
-                    date_str = f"{year_dir.name}-{month_dir.name}-{day_dir.name}"
-                    extra = summary_by_date.get(date_str, {})
-                    days.append({
-                        "fecha":          date_str,
-                        "anio":           year_dir.name,
-                        "mes":            month_dir.name,
-                        "dia":            day_dir.name,
-                        "cantidad_fotos": len(files),
-                        "tamano_total_mb": round(
-                            sum(f.stat().st_size for f in files) / 1048576, 2
-                        ),
-                        "destino":        str(day_dir),
-                        "ruta_zip":       extra.get("ruta_zip", ""),
-                    })
+    for date_str, entries in by_date.items():
+        year, month, day = (date_str.split("-") + ["", "", ""])[:3] \
+                           if date_str != "undated" else ("", "", "")
+        # Best-effort: point 'destino' at the folder of the first photo
+        first_path = entries[0]["path"] if entries else ""
+        first_dir  = str(Path(first_path).parent) if first_path else ""
+        extra = summary_by_date.get(date_str, {})
+        days.append({
+            "fecha":            date_str,
+            "anio":             year,
+            "mes":              month,
+            "dia":              day,
+            "cantidad_fotos":   len(entries),
+            "tamano_total_mb":  round(sum(e["size_mb"] for e in entries), 2),
+            "destino":          first_dir,
+            "ruta_zip":         extra.get("ruta_zip", ""),
+        })
 
     days.sort(key=lambda d: d["fecha"], reverse=True)
     total_photos = sum(d["cantidad_fotos"] for d in days)
@@ -537,71 +542,63 @@ def get_days(_auth: dict = Depends(require_login)):
         "total_photos": total_photos,
         "total_mb":     total_mb,
         "total_days":   len(days),
-        "base_dir":     str(base_dir),
     }
 
 
 @app.get("/api/days/{date}/photos")
 def get_day_photos(date: str, _auth: dict = Depends(require_login)):
-    """Return all photo files for a specific day (YYYY-MM-DD).
-    Scans the filesystem directly. Enriches with capture_date,
-    tags, GPS and city from the captures table."""
-    from .config import ORGANIZED_DIR
-    from .storage.folders import load_saved_destination, load_destination_config
+    """Return all photos for a specific day (YYYY-MM-DD or 'undated').
+
+    Reads from the captures table — same source as /api/days.
+    """
     from urllib.parse import quote
+    from datetime import datetime as _dt
 
-    # Resolve actual destination
-    dest_config = load_destination_config()
-    if dest_config.get("tipo") == "local" and dest_config.get("ruta"):
-        base_dir = Path(dest_config["ruta"])
-    else:
-        dest_str = load_saved_destination()
-        base_dir = Path(dest_str) if dest_str else Path(ORGANIZED_DIR)
-
-    parts = date.split("-")
-    if len(parts) != 3:
-        raise HTTPException(400, "Date must be YYYY-MM-DD")
-    year, month, day = parts
-    day_folder = base_dir / year / month / day
-
-    # Load favourites
     favs: set[str] = repo.favourites_set()
-
-    # Enrich from database
-    meta_by_dest: dict[str, dict] = {}
-    for m in repo.load_captures():
-        dest = m.get("ruta_destino") or m.get("dest_path")
-        if dest:
-            meta_by_dest[dest] = m
-
-    VALID_IMG = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff"}
     photos = []
 
-    if day_folder.exists():
-        for f in sorted(day_folder.iterdir()):
-            if not f.is_file() or f.suffix.lower() not in VALID_IMG:
-                continue
-            meta  = meta_by_dest.get(str(f), {})
-            fpath = str(f)
-            photos.append({
-                "id":           fpath,
-                "filename":     f.name,
-                "size_mb":      round(f.stat().st_size / 1048576, 2),
-                "capture_date": meta.get("fecha_captura", ""),
-                "tags":         meta.get("tags", []),
-                "city":         meta.get("city", ""),
-                "gps_lat":      meta.get("gps_lat"),
-                "gps_lon":      meta.get("gps_lon"),
-                "favourite":    fpath in favs,
-                "url":          f"/api/photo?path={quote(fpath)}",
-            })
+    for c in repo.load_captures():
+        fpath = c.get("ruta_destino") or c.get("ruta_original") or ""
+        if not fpath:
+            continue
 
+        # Same date-picking logic as /api/days
+        cap_date = (c.get("fecha_captura") or "").strip()
+        this_date = ""
+        if cap_date and len(cap_date) >= 10:
+            this_date = cap_date[:10]
+        elif c.get("mtime"):
+            try:
+                this_date = _dt.fromtimestamp(float(c["mtime"])).strftime("%Y-%m-%d")
+            except Exception:
+                pass
+        if not this_date:
+            this_date = "undated"
+
+        if this_date != date:
+            continue
+
+        p = Path(fpath)
+        exists = p.is_file()
+        photos.append({
+            "id":           fpath,
+            "filename":     p.name,
+            "size_mb":      round(p.stat().st_size / 1048576, 2) if exists else (c.get("tamano_mb") or 0),
+            "capture_date": cap_date,
+            "tags":         c.get("tags", []),
+            "city":         c.get("city", ""),
+            "gps_lat":      c.get("gps_lat"),
+            "gps_lon":      c.get("gps_lon"),
+            "favourite":    fpath in favs,
+            "exists":       exists,
+            "url":          f"/api/photo?path={quote(fpath)}",
+        })
+
+    photos.sort(key=lambda x: x["filename"])
     return {
         "date":   date,
         "photos": photos,
         "count":  len(photos),
-        "folder": str(day_folder),
-        "exists": day_folder.exists(),
     }
 
 
@@ -863,6 +860,51 @@ def purge_old_trash(days: int = 30, _admin: dict = Depends(require_admin)):
         except Exception:
             pass
     return {"ok": True, "purged": purged, "days": days}
+
+
+@app.post("/api/photos/fix-dates")
+def fix_capture_dates(_auth: dict = Depends(require_admin)):
+    """Recompute capture_date for every photo from its filename (Screenshot_
+    20250629-133659.png → 2025-06-29T13:36:59) so the gallery groups them
+    by their real photo date instead of the download date.
+
+    Only touches rows whose current capture_date looks like a download
+    timestamp (i.e. matches the file's mtime within a few seconds). Rows
+    with a good-looking date from EXIF or a previous run are left alone.
+    """
+    from .utils.dates import extract_date_from_filename
+    from datetime import datetime as _dt
+
+    caps = repo.load_captures()
+    updated = 0
+    skipped_no_pattern = 0
+    skipped_already_good = 0
+
+    for c in caps:
+        filename = c.get("archivo") or ""
+        real_date = extract_date_from_filename(filename)
+        if not real_date:
+            skipped_no_pattern += 1
+            continue
+
+        current = (c.get("fecha_captura") or "").strip()
+        # If the current date is already the real one, skip
+        if current and current[:19] == real_date[:19]:
+            skipped_already_good += 1
+            continue
+
+        # Preserve everything else in the row; overwrite only capture_date
+        c["fecha_captura"] = real_date
+        repo.upsert_captures([c])
+        updated += 1
+
+    return {
+        "ok": True,
+        "total": len(caps),
+        "updated": updated,
+        "skipped_no_pattern": skipped_no_pattern,
+        "skipped_already_good": skipped_already_good,
+    }
 
 
 @app.get("/api/photos/download-zip")
@@ -1269,20 +1311,234 @@ def webdav_scan(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
 
 @app.post("/api/webdav/download")
 def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
-    """Download all photos from the phone directly via HTTP to dest_folder.
-    Works on any OS — uses direct HTTP, no 'net use' needed.
-    This is the Docker-friendly alternative to mounting a drive with net use."""
-    from .storage.webdav_downloader import sync_webdav_connection
+    """Kick off a WebDAV download in a background thread and return immediately.
+
+    Each photo is registered in the `captures` table AS SOON AS it lands on
+    disk (not at the end), so the gallery starts filling up right away and
+    partial downloads still save what they got.
+
+    Progress is streamed via the WebSocket at /ws/log — the same log the
+    Pipeline uses. The response returns immediately with job info so the
+    UI can start polling /api/webdav/download-status.
+    """
+    from .storage.webdav_downloader import (
+        list_remote_files, DEFAULT_REMOTE_PATHS,
+    )
     from .config import ORGANIZED_DIR
+    from datetime import datetime
+    import threading
+    import time as _t
 
     dest = Path(req.dest_folder) if req.dest_folder else ORGANIZED_DIR / "incoming"
-    downloaded = sync_webdav_connection(req.ip, req.port, dest)
+    dest.mkdir(parents=True, exist_ok=True)
+
+    # Prevent concurrent downloads (simple guard)
+    global _webdav_job
+    if _webdav_job.get("running"):
+        raise HTTPException(409, "A WebDAV download is already in progress")
+
+    # Reset job state
+    _webdav_job.update({
+        "running": True, "done": False, "error": None,
+        "total": 0, "downloaded": 0, "registered": 0, "skipped": 0,
+        "started_at": _t.time(), "finished_at": None,
+        "dest": str(dest), "current_file": "",
+    })
+    broadcaster.emit(f"🔍 Scanning {req.ip}:{req.port} for photos…\n")
+
+    def _worker():
+        try:
+            import requests as _requests
+            # 1) List all photos across the default folders
+            all_files = []
+            seen = set()
+            for rpath in DEFAULT_REMOTE_PATHS:
+                found = list_remote_files(req.ip, req.port, rpath)
+                for f in found:
+                    if f.name not in seen:
+                        all_files.append(f)
+                        seen.add(f.name)
+                if found:
+                    broadcaster.emit(f"   {rpath}: {len(found)} photos\n")
+
+            _webdav_job["total"] = len(all_files)
+            if not all_files:
+                broadcaster.emit("⚠️  No photos found on WebDAV server.\n")
+                return
+
+            broadcaster.emit(f"📥 Downloading {len(all_files)} photos to {dest}…\n")
+
+            base_url = f"http://{req.ip}:{req.port}"
+            for idx, f in enumerate(all_files, 1):
+                _webdav_job["current_file"] = f.name
+                local = dest / f.name
+
+                # Skip if same-size copy already on disk
+                if local.exists() and local.stat().st_size == f.size and f.size > 0:
+                    _webdav_job["skipped"] += 1
+                else:
+                    # Download this one file
+                    try:
+                        url = base_url.rstrip("/") + "/" + f.href.lstrip("/")
+                        r = _requests.get(url, stream=True, timeout=60)
+                        r.raise_for_status()
+                        tmp = local.with_suffix(local.suffix + ".part")
+                        with open(tmp, "wb") as fh:
+                            for chunk in r.iter_content(chunk_size=65536):
+                                fh.write(chunk)
+                        tmp.replace(local)
+                        _webdav_job["downloaded"] += 1
+                    except Exception as e:
+                        broadcaster.emit(f"   ⚠️  Skip {f.name}: {e}\n")
+                        continue
+
+                # Register in DB IMMEDIATELY — one row per photo, per iteration.
+                # Even if the whole job fails later, what we've got is saved.
+                try:
+                    path_str = str(local)
+                    if not repo.get_capture_by_dest(path_str):
+                        stat = local.stat()
+                        # Best capture_date: from filename (real photo date)
+                        # → fall back to WebDAV Last-Modified header (best remote
+                        #   timestamp we have) → fall back to local mtime (worst,
+                        #   equals when the download happened).
+                        from .utils.dates import extract_date_from_filename
+                        cap_date = extract_date_from_filename(f.name)
+                        if not cap_date:
+                            cap_date = _parse_webdav_modified(f.modified) \
+                                       or datetime.fromtimestamp(stat.st_mtime).isoformat(timespec="seconds")
+                        repo.upsert_captures([{
+                            "id":            path_str,
+                            "archivo":       f.name,
+                            "formato":       Path(f.name).suffix.lstrip(".").lower(),
+                            "tamano_mb":     round(stat.st_size / 1048576, 2),
+                            "mtime":         stat.st_mtime,
+                            "fecha_captura": cap_date,
+                            "ruta_original": path_str,
+                            "ruta_destino":  path_str,
+                            "tags":          [],
+                        }])
+                        _webdav_job["registered"] += 1
+                except Exception as e:
+                    broadcaster.emit(f"   ⚠️  DB register failed for {f.name}: {e}\n")
+
+                # Progress log every 25 files (not every one — would spam)
+                if idx % 25 == 0 or idx == len(all_files):
+                    broadcaster.emit(
+                        f"   [{idx}/{len(all_files)}] downloaded={_webdav_job['downloaded']} "
+                        f"registered={_webdav_job['registered']} skipped={_webdav_job['skipped']}\n"
+                    )
+
+            broadcaster.emit(
+                f"✅ Done. downloaded={_webdav_job['downloaded']} "
+                f"registered={_webdav_job['registered']} skipped={_webdav_job['skipped']}\n"
+            )
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            _webdav_job["error"] = str(e)
+            broadcaster.emit(f"❌ Download failed: {e}\n")
+        finally:
+            _webdav_job["running"] = False
+            _webdav_job["done"] = True
+            _webdav_job["finished_at"] = _t.time()
+
+    threading.Thread(target=_worker, daemon=True).start()
+
     return {
         "ok": True,
-        "downloaded": len(downloaded),
+        "started": True,
+        "message": "Download started in background. Watch progress in the log or poll /api/webdav/download-status.",
         "dest_folder": str(dest),
-        "files": [str(p) for p in downloaded],
     }
+
+
+def _parse_webdav_modified(raw: str) -> str:
+    """Parse a WebDAV Last-Modified header like 'Mon, 01 Jan 2024 00:00:00 GMT'
+    into an ISO date. Returns '' on failure."""
+    if not raw:
+        return ""
+    try:
+        from email.utils import parsedate_to_datetime
+        dt = parsedate_to_datetime(raw)
+        return dt.isoformat(timespec="seconds") if dt else ""
+    except Exception:
+        return ""
+
+
+# Job state (single global; only one WebDAV download at a time)
+_webdav_job: dict = {"running": False, "done": False, "error": None,
+                     "total": 0, "downloaded": 0, "registered": 0, "skipped": 0,
+                     "started_at": None, "finished_at": None,
+                     "dest": "", "current_file": ""}
+
+
+def _parse_webdav_modified(raw: str) -> str:
+    """Parse a WebDAV getlastmodified header (RFC-1123) into ISO.
+
+    Example input:  'Mon, 29 Jun 2025 13:36:59 GMT'
+    Returns '' on failure so caller can fall back.
+    """
+    if not raw:
+        return ""
+    try:
+        from email.utils import parsedate_to_datetime
+        dt = parsedate_to_datetime(raw)
+        return dt.replace(tzinfo=None).isoformat(timespec="seconds")
+    except Exception:
+        return ""
+
+
+@app.get("/api/webdav/download-status")
+def webdav_download_status(_auth: dict = Depends(require_admin)):
+    """Poll this to know how the background download is going."""
+    return dict(_webdav_job)
+
+
+@app.post("/api/captures/fix-dates")
+def fix_capture_dates(_admin: dict = Depends(require_admin)):
+    """Back-fill capture_date on existing captures by extracting the real
+    photo date from the filename (Screenshot_YYYYMMDD-HHMMSS.png,
+    IMG_YYYYMMDD_HHMMSS.jpg, etc.).
+
+    Only touches rows whose current fecha_captura is empty OR was set to
+    today (which happens when WebDAV download used mtime — a bad signal).
+    Returns how many rows were updated.
+    """
+    from .utils.dates import extract_date_from_filename
+    from datetime import datetime, timedelta
+
+    caps = repo.load_captures()
+    today = datetime.now().date()
+    yesterday = today - timedelta(days=1)
+
+    updated = []
+    for c in caps:
+        current = (c.get("fecha_captura") or "").strip()
+        # Skip if the row already has a plausibly-real date (not today's).
+        # We consider "today" or "yesterday" as bogus because that's what
+        # mtime produces during download.
+        if current and len(current) >= 10:
+            try:
+                d = datetime.fromisoformat(current[:19]).date()
+                if d != today and d != yesterday:
+                    continue  # already has a real date, don't touch
+            except Exception:
+                pass
+
+        # Extract the real date from the filename
+        real_date = extract_date_from_filename(c.get("archivo", ""))
+        if not real_date:
+            continue
+        if real_date == current:
+            continue
+
+        updated.append({**c, "fecha_captura": real_date})
+
+    if updated:
+        repo.upsert_captures(updated)
+
+    return {"ok": True, "updated": len(updated), "total_scanned": len(caps)}
 
 
 # ═══════════════════════════════════════════ Carpetas ═══════════════════════
@@ -1365,6 +1621,29 @@ def quitar_destino(_auth: dict = Depends(require_admin)):
 
 
 # ═══════════════════════════════════════════ Setup wizard ═══════════════════
+
+@app.get("/api/diag")
+def diagnostic(_admin: dict = Depends(require_admin)):
+    """Diagnostic endpoint — quick overview of what's in the database.
+    Useful for verifying that ingest is actually landing in the tables."""
+    from .db import get_engine
+    engine = get_engine()
+    return {
+        "db_dialect": engine.dialect.name,
+        "db_url":     str(engine.url).replace(engine.url.password or "", "***"),
+        "counts": {
+            "captures":            len(repo.load_captures()),
+            "day_summaries":       len(repo.load_summaries()),
+            "source_folders":      len(repo.load_source_folders()),
+            "ssh_connections":     len(repo.load_ssh_connections()),
+            "webdav_connections":  len(repo.load_webdav_connections()),
+            "albums":              len(repo.load_albums()),
+            "trash":               repo.trash_count(),
+            "users":               repo.user_count(),
+        },
+        "destination": repo.load_destination_config(),
+    }
+
 
 @app.get("/api/setup-status")
 def setup_status():
