@@ -1304,22 +1304,15 @@ function renderDayCards(days,g){
       </div>`;
     card.onclick=()=>openDayGallery(d);
     g.appendChild(card);
-    // Lazy-load first thumbnail as cover image
-    _loadDayThumb(d.fecha);
+    if(d.cover_path){
+      const img=document.getElementById(`cimg-${d.fecha}`);
+      const shim=document.getElementById(`shim-${d.fecha}`);
+      if(img){
+        img.onload=()=>{img.classList.add('loaded');if(shim)shim.style.display='none';};
+        img.src=`/api/thumb?path=${encodeURIComponent(d.cover_path)}&size=400`;
+      }
+    }
   });
-}
-
-async function _loadDayThumb(fecha){
-  try{
-    const d=await api(`/api/days/${fecha}/photos`);
-    const first=d.photos&&d.photos[0];
-    if(!first)return;
-    const img=document.getElementById(`cimg-${fecha}`);
-    const shim=document.getElementById(`shim-${fecha}`);
-    if(!img)return;
-    img.onload=()=>{img.classList.add('loaded');if(shim)shim.style.display='none';};
-    img.src=`/api/thumb?path=${encodeURIComponent(first.id)}&size=400`;
-  }catch(e){}
 }
 
 async function loadDays(){

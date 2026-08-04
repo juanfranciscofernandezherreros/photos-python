@@ -69,6 +69,13 @@ def get_days(_auth: dict = Depends(require_login)):
         # Best-effort: point 'destino' at the folder of the first photo
         first_path = entries[0]["path"] if entries else ""
         first_dir  = str(Path(first_path).parent) if first_path else ""
+        # The day-card cover is returned with the summary so the frontend does
+        # not need one additional /api/days/{date}/photos request per day.
+        cover_path = min(
+            (entry["path"] for entry in entries),
+            key=lambda path: Path(path).name.casefold(),
+            default="",
+        )
         extra = summary_by_date.get(date_str, {})
         days.append({
             "fecha":            date_str,
@@ -79,6 +86,7 @@ def get_days(_auth: dict = Depends(require_login)):
             "tamano_total_mb":  round(sum(e["size_mb"] for e in entries), 2),
             "destino":          first_dir,
             "ruta_zip":         extra.get("ruta_zip", ""),
+            "cover_path":       cover_path,
         })
 
     days.sort(key=lambda d: d["fecha"], reverse=True)

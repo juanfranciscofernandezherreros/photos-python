@@ -628,7 +628,8 @@ class TestDaysReadsFromCaptures:
         body = r.json()
         assert body["total_photos"] == 1
         # The day '2024-05-20' shows up
-        assert any(d["fecha"] == "2024-05-20" for d in body["days"])
+        day = next(d for d in body["days"] if d["fecha"] == "2024-05-20")
+        assert day["cover_path"] == str(flat)
 
     def test_day_photos_returns_flat_photo(self, cliente_api, cwd_temporal):
         from photos_sync import repository as repo
