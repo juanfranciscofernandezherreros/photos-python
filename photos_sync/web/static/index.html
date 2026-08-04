@@ -1683,35 +1683,102 @@ async function emptyTrash(){
 
 checkAuth();
 
-let _imgObserver=null,_showViewToken=0;
+const TL_PAGE_SIZE=60;
+let _imgObserver=null,_tlPageObserver=null,_showViewToken=0;
+let _tlHasMore=false,_tlNextOffset=null,_tlTotal=0,_tlLoadingPage=false;
 function _ensureObserver(){if(_imgObserver)return _imgObserver;_imgObserver=new IntersectionObserver((entries,obs)=>{entries.forEach(entry=>{if(!entry.isIntersecting)return;const img=entry.target;const real=img.dataset.src;if(real){img.src=real;img.removeAttribute('data-src');}obs.unobserve(img);});},{rootMargin:'300px 0px',threshold:.01});return _imgObserver;}
+
+function _resetTimelineObservers(){
+  if(_imgObserver){_imgObserver.disconnect();_imgObserver=null;}
+  if(_tlPageObserver){_tlPageObserver.disconnect();_tlPageObserver=null;}
+}
+
+async function _loadTimelinePage(token,isFavs,tv){
+  if(_tlLoadingPage||_tlNextOffset==null)return false;
+  const offset=_tlNextOffset;
+  _tlLoadingPage=true;
+  try{
+    const d=await api(`/api/photos?offset=${offset}&limit=${TL_PAGE_SIZE}&favourite=${isFavs}`);
+    if(token!==_showViewToken)return false;
+    const known=new Set(_tlPhotos.map(photo=>photo.id));
+    const incoming=(d.photos||[]).filter(photo=>!known.has(photo.id));
+    const mapped=incoming.map(photo=>({...photo,_date:photo.date||'undated'}));
+    _tlPhotos.push(...mapped);
+    _tlTotal=d.count||0;_tlHasMore=!!d.has_more;_tlNextOffset=d.next_offset;
+
+    const byDate=new Map();
+    mapped.forEach(photo=>{
+      const date=photo._date;
+      if(!byDate.has(date))byDate.set(date,[]);
+      byDate.get(date).push(photo);
+    });
+    byDate.forEach((photos,date)=>{
+      const day=_allDays.find(item=>item.fecha===date)||{
+        fecha:date,anio:date.slice(0,4),mes:date.slice(5,7),dia:date.slice(8,10),
+        cantidad_fotos:photos.length,tamano_total_mb:0,
+      };
+      _renderTlSection(day,photos,tv);
+    });
+    $('view-count').textContent=_tlHasMore
+      ? `${_tlPhotos.length} of ${_tlTotal} photos`
+      : `${_tlPhotos.length} photos`;
+    return true;
+  }finally{
+    if(token===_showViewToken)_tlLoadingPage=false;
+  }
+}
+
+function _observeNextTimelinePage(token,isFavs,tv){
+  if(!_tlHasMore||token!==_showViewToken)return;
+  const sentinel=document.createElement('div');sentinel.style.cssText='text-align:center;padding:14px;color:var(--ink4);font-size:11px';tv.appendChild(sentinel);
+  _tlPageObserver=new IntersectionObserver(async(entries,observer)=>{
+    if(!entries.some(entry=>entry.isIntersecting))return;
+    observer.disconnect();_tlPageObserver=null;sentinel.textContent='Loading more…';
+    try{
+      const loaded=await _loadTimelinePage(token,isFavs,tv);
+      if(!loaded||token!==_showViewToken)return;
+      sentinel.remove();_observeNextTimelinePage(token,isFavs,tv);
+    }catch(e){
+      if(token!==_showViewToken)return;
+      sentinel.textContent='Could not load more · click to retry';sentinel.style.cursor='pointer';
+      sentinel.onclick=()=>{sentinel.remove();_observeNextTimelinePage(token,isFavs,tv);};
+    }
+  },{rootMargin:'500px 0px',threshold:0});
+  _tlPageObserver.observe(sentinel);
+}
 
 async function showView(view){
   _currentView=view;const token=++_showViewToken;selClear();
+  _resetTimelineObservers();
   ['days','all','favs'].forEach(v=>{const b=$('vbtn-'+v);if(b)b.classList.toggle('on',v===view);});
   $('days-grid').style.display=view==='days'?'grid':'none';$('timeline-view').style.display=view!=='days'?'block':'none';
   if(view==='days'){$('view-count').textContent=_allDays.length+' days';return;}
-  if(_imgObserver){_imgObserver.disconnect();_imgObserver=null;}
   const tv=$('timeline-view');const isFavs=view==='favs';_tlPhotos=[];
+  _tlHasMore=false;_tlNextOffset=0;_tlTotal=0;_tlLoadingPage=false;
   tv.innerHTML=`<div id="tl-loading" style="text-align:center;padding:20px;color:var(--ink4);font-size:12px"><div style="width:16px;height:16px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite;margin:0 auto 8px"></div>Loading…</div>`;
-  let anySection=false;
-  for(const day of _allDays){
-    if(token!==_showViewToken)return;
-    let photos;try{const d=await api(`/api/days/${day.fecha}/photos`);photos=d.photos||[];}catch(e){continue;}
-    if(isFavs)photos=photos.filter(p=>p.favourite);if(!photos.length)continue;
-    _tlPhotos.push(...photos.map(p=>({...p,_date:day.fecha,_day:day})));
-    _renderTlSection(day,photos,tv);anySection=true;$('view-count').textContent=_tlPhotos.length+' photos';
+  try{
+    const loaded=await _loadTimelinePage(token,isFavs,tv);
+    if(!loaded||token!==_showViewToken)return;
+    const loading=$('tl-loading');if(loading)loading.remove();
+    if(!_tlPhotos.length){tv.innerHTML=`<div style="text-align:center;padding:64px;color:var(--ink4)"><div style="font-weight:600;font-size:14px">${isFavs?'No favourites yet':'No photos found'}</div></div>`;return;}
+    _observeNextTimelinePage(token,isFavs,tv);
+  }catch(e){
+    if(token===_showViewToken)tv.innerHTML=`<div style="text-align:center;padding:40px;color:var(--red);font-size:12px">${e.message}</div>`;
   }
-  if(token!==_showViewToken)return;
-  const loading=$('tl-loading');if(loading)loading.remove();
-  if(!anySection)tv.innerHTML=`<div style="text-align:center;padding:64px;color:var(--ink4)"><div style="font-weight:600;font-size:14px">${isFavs?'No favourites yet':'No photos found'}</div></div>`;
 }
 
 function _renderTlSection(day,photos,tv){
   const obs=_ensureObserver();const m=parseInt(day.mes,10);
-  const sec=document.createElement('div');sec.className='tl-section';
-  sec.innerHTML=`<div class="tl-date-row"><span class="tl-date-label">${MN[m]} ${parseInt(day.dia,10)}, ${day.anio}</span><span class="tl-date-meta">${photos.length} photos · ${day.tamano_total_mb} MB</span></div><div class="tl-grid"></div>`;
-  const loading=$('tl-loading');if(loading)tv.insertBefore(sec,loading);else tv.appendChild(sec);
+  let sec=Array.from(tv.querySelectorAll('.tl-section')).find(item=>item.dataset.date===day.fecha);
+  if(!sec){
+    sec=document.createElement('div');sec.className='tl-section';sec.dataset.date=day.fecha;sec.dataset.loaded='0';
+    const dateLabel=day.fecha==='undated'?'Undated':`${MN[m]} ${parseInt(day.dia,10)}, ${day.anio}`;
+    sec.innerHTML=`<div class="tl-date-row"><span class="tl-date-label">${dateLabel}</span><span class="tl-date-meta"></span></div><div class="tl-grid"></div>`;
+    const loading=$('tl-loading');if(loading)tv.insertBefore(sec,loading);else tv.appendChild(sec);
+  }
+  const loaded=Number(sec.dataset.loaded||0)+photos.length;sec.dataset.loaded=String(loaded);
+  const total=_currentView==='favs'?loaded:(day.cantidad_fotos||loaded);
+  sec.querySelector('.tl-date-meta').textContent=`${total} photos${day.tamano_total_mb?` · ${day.tamano_total_mb} MB`:''}`;
   const grid=sec.querySelector('.tl-grid');
   photos.forEach(ph=>{
     const div=document.createElement('div');div.className='tl-thumb';div.dataset.photoId=ph.id;

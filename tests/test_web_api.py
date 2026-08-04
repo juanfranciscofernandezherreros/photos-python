@@ -765,3 +765,71 @@ class TestDaysReadsFromCaptures:
         # (mtime=0 becomes 1970-01-01 which is a valid date, so we just
         # verify the photo is somewhere in the list)
         assert r.json()["total_photos"] == 1
+
+
+class TestGlobalPhotosPagination:
+    def test_global_feed_orders_paginates_and_filters_favourites(
+        self, cliente_api, cwd_temporal,
+    ):
+        from datetime import datetime
+
+        from photos_sync import repository as repo
+
+        captures = []
+        paths = []
+        for index, capture_date in enumerate((
+            "2024-07-01T10:00:00",
+            "2024-07-03T10:00:00",
+            "2024-07-02T10:00:00",
+        )):
+            photo = cwd_temporal / "incoming" / f"global_{index}.jpg"
+            photo.parent.mkdir(parents=True, exist_ok=True)
+            photo.write_bytes(bytes([index]) * 100)
+            paths.append(str(photo))
+            captures.append({
+                "id":            str(photo),
+                "archivo":       photo.name,
+                "formato":       "jpg",
+                "tamano_mb":     0.001,
+                "mtime":         photo.stat().st_mtime,
+                "fecha_captura": capture_date,
+                "ruta_original": str(photo),
+                "ruta_destino":  str(photo),
+                "tags":          [],
+            })
+        legacy = cwd_temporal / "incoming" / "global_legacy.jpg"
+        legacy.write_bytes(b"legacy")
+        captures.append({
+            "id":            str(legacy),
+            "archivo":       legacy.name,
+            "formato":       "jpg",
+            "tamano_mb":     0.001,
+            "mtime":         datetime(2024, 7, 4, 10).timestamp(),
+            "fecha_captura": "",
+            "ruta_original": str(legacy),
+            "ruta_destino":  str(legacy),
+            "tags":          [],
+        })
+        repo.upsert_captures(captures)
+        repo.set_favourite(paths[0], True)
+
+        first = cliente_api.get("/api/photos?offset=0&limit=2").json()
+        second = cliente_api.get(
+            f"/api/photos?offset={first['next_offset']}&limit=2"
+        ).json()
+        favourites = cliente_api.get(
+            "/api/photos?offset=0&limit=10&favourite=true"
+        ).json()
+
+        assert first["count"] == 4
+        assert first["has_more"] is True
+        assert [photo["date"] for photo in first["photos"]] == [
+            "2024-07-04", "2024-07-03",
+        ]
+        assert [photo["date"] for photo in second["photos"]] == [
+            "2024-07-02", "2024-07-01",
+        ]
+        assert second["has_more"] is False
+        assert favourites["count"] == 1
+        assert favourites["photos"][0]["id"] == paths[0]
+        assert favourites["photos"][0]["favourite"] is True

@@ -711,6 +711,7 @@ _ENDPOINT_MODULES = (
     "get_pasos",
     "get_days",
     "get_day_photos",
+    "get_photos",
     "serve_photo",
     "serve_thumbnail",
     "get_favourites",

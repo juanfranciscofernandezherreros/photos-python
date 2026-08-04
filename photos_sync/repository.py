@@ -375,6 +375,88 @@ def load_captures_for_day(
     return merged[offset:offset + limit], total
 
 
+def load_photos_page(
+    offset: int,
+    limit: int,
+    favourite: bool = False,
+) -> tuple[list[dict], int]:
+    """Return a global photo page ordered by effective day descending."""
+    from datetime import datetime
+
+    trimmed_date = func.trim(t_captures.c.capture_date)
+    has_capture_date = func.length(trimmed_date) >= 10
+    capture_day = func.substr(trimmed_date, 1, 10)
+    file_path = case(
+        (t_captures.c.dest_path != "", t_captures.c.dest_path),
+        else_=t_captures.c.source_path,
+    ).label("file_path")
+    base_filter = file_path != ""
+    if favourite:
+        base_filter &= t_captures.c.is_favourite == True  # noqa: E712
+    normal_filter = has_capture_date & base_filter
+    legacy_filter = (~has_capture_date) & base_filter
+    order_by = (
+        capture_day.desc(),
+        func.lower(t_captures.c.filename),
+        func.lower(file_path),
+    )
+
+    def as_capture(row, effective_day: str | None = None) -> dict:
+        capture = _row_to_capture_dict(row)
+        capture["file_path"] = row["file_path"]
+        capture["is_favourite"] = bool(row["is_favourite"])
+        capture["effective_day"] = effective_day or str(
+            row["capture_date"] or ""
+        ).strip()[:10]
+        return capture
+
+    with get_engine().connect() as conn:
+        normal_total = conn.execute(
+            select(func.count()).select_from(t_captures).where(normal_filter)
+        ).scalar_one()
+        legacy_rows = conn.execute(
+            select(t_captures, file_path).where(legacy_filter)
+        ).mappings().all()
+
+        legacy_captures = []
+        for row in legacy_rows:
+            effective_day = ""
+            try:
+                effective_day = datetime.fromtimestamp(float(row["mtime"])).strftime(
+                    "%Y-%m-%d"
+                )
+            except (TypeError, ValueError, OSError, OverflowError):
+                pass
+            legacy_captures.append(as_capture(row, effective_day or "undated"))
+
+        normal_query = select(t_captures, file_path).where(normal_filter)
+        if legacy_captures:
+            normal_rows = conn.execute(
+                normal_query.order_by(*order_by).limit(offset + limit)
+            ).mappings().all()
+        else:
+            normal_rows = conn.execute(
+                normal_query.order_by(*order_by).offset(offset).limit(limit)
+            ).mappings().all()
+
+    normal_captures = [as_capture(row) for row in normal_rows]
+    total = int(normal_total) + len(legacy_captures)
+    if not legacy_captures:
+        return normal_captures, total
+
+    merged = normal_captures + legacy_captures
+    merged.sort(key=lambda capture: (
+        str(capture.get("archivo") or "").casefold(),
+        str(capture["file_path"]).casefold(),
+    ))
+    merged.sort(
+        key=lambda capture: "" if capture["effective_day"] == "undated"
+        else capture["effective_day"],
+        reverse=True,
+    )
+    return merged[offset:offset + limit], total
+
+
 def upsert_captures(caps: list[dict]) -> None:
     """Bulk upsert captures from their to_dict() representation.
 
