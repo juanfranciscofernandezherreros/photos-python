@@ -7,7 +7,7 @@ name = "photos-sync"
 version = "0.1.0"
 description = "Extract, organize by date, and compress screenshots from an Android phone mounted via WebDAV"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 dependencies = [
     "rich>=13.0",
@@ -46,7 +46,6 @@ dev = [
 [project.scripts]
 photos-sync         = "photos_sync.cli:main"
 photos-sync-web     = "photos_sync.__main__:main"
-photos-sync-summary = "photos_sync.pipeline.summary:generate_daily_summary"
 
 [tool.setuptools.packages.find]
 include = ["photos_sync*"]
@@ -72,7 +71,7 @@ ignore = [
 ]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 ignore_missing_imports = true
 warn_return_any = false
 warn_unused_ignores = false

@@ -195,6 +195,20 @@ def modo_gestion_ssh(args: argparse.Namespace) -> bool:
 
 
 def modo_cli(args: argparse.Namespace) -> None:
+    # Verify DB is reachable before running the pipeline
+    try:
+        from .db import get_engine, init_db
+        engine = get_engine()
+        init_db(engine)
+    except Exception as e:
+        log.error(
+            "❌ Cannot connect to the database: %s\n"
+            "   Make sure DATABASE_URL is set and PostgreSQL is running.\n"
+            "   Example: DATABASE_URL=postgresql://user:pass@localhost/photos_sync",
+            e,
+        )
+        sys.exit(1)
+
     pasos_a_ejecutar: list[PasoPipeline]
 
     if args.todo:

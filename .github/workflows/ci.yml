@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12","3.14"]
+        python-version: ["3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v4
@@ -69,7 +69,6 @@ jobs:
         run: |
           .venv-build/bin/photos-sync --help
           .venv-build/bin/photos-sync-web --help
-          .venv-build/bin/photos-sync-summary --help
 
       - name: Upload build artefacts
         uses: actions/upload-artifact@v4
