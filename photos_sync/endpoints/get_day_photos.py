@@ -1,17 +1,13 @@
 """Endpoint implemented in its own router module."""
 from __future__ import annotations
 
-from fastapi import APIRouter
+from pathlib import Path
+from urllib.parse import quote
 
-from .. import web_server as _shared
+from fastapi import APIRouter, Depends, Query
 
-# Endpoint implementations retain access to the application's shared services,
-# models and state without duplicating business infrastructure.
-globals().update({
-    name: value
-    for name, value in vars(_shared).items()
-    if not name.startswith("__")
-})
+from .. import repository as repo
+from ..auth import require_login
 
 router = APIRouter()
 
@@ -30,69 +26,13 @@ def get_day_photos(
     - undated
     """
 
-    favourites: set[str] = repo.favourites_set()
-    candidates: list[dict] = []
-
-    for capture in repo.load_captures():
-        file_path = (
-            capture.get("ruta_destino")
-            or capture.get("ruta_original")
-            or ""
-        )
-
-        if not file_path:
-            continue
-
-        capture_date = str(capture.get("fecha_captura") or "").strip()
-        photo_date = ""
-
-        if len(capture_date) >= 10:
-            photo_date = capture_date[:10]
-
-        elif capture.get("mtime") is not None:
-            try:
-                photo_date = _dt.fromtimestamp(
-                    float(capture["mtime"])
-                ).strftime("%Y-%m-%d")
-            except (TypeError, ValueError, OSError, OverflowError):
-                photo_date = ""
-
-        if not photo_date:
-            photo_date = "undated"
-
-        if photo_date != date:
-            continue
-
-        path = Path(file_path)
-
-        # No se consulta todavía el disco.
-        candidates.append({
-            "id": file_path,
-            "filename": path.name,
-            "capture_date": capture_date,
-            "tags": capture.get("tags") or [],
-            "city": capture.get("city") or "",
-            "gps_lat": capture.get("gps_lat"),
-            "gps_lon": capture.get("gps_lon"),
-            "favourite": file_path in favourites,
-            "stored_size_mb": capture.get("tamano_mb") or 0,
-        })
-
-    candidates.sort(
-        key=lambda photo: (
-            photo["filename"].casefold(),
-            photo["id"].casefold(),
-        )
-    )
-
-    total = len(candidates)
-    selected = candidates[offset:offset + limit]
+    selected, total = repo.load_captures_for_day(date, offset, limit)
 
     photos: list[dict] = []
 
-    # El acceso al disco se limita a las fotos de esta página.
+    # El acceso al disco se limita a las capturas seleccionadas por SQL.
     for candidate in selected:
-        file_path = candidate["id"]
+        file_path = candidate["file_path"]
         path = Path(file_path)
 
         try:
@@ -101,22 +41,22 @@ def get_day_photos(
             size_mb = (
                 round(stat_result.st_size / 1_048_576, 2)
                 if exists
-                else candidate["stored_size_mb"]
+                else candidate.get("tamano_mb") or 0
             )
         except OSError:
             exists = False
-            size_mb = candidate["stored_size_mb"]
+            size_mb = candidate.get("tamano_mb") or 0
 
         photos.append({
             "id": file_path,
-            "filename": candidate["filename"],
+            "filename": candidate.get("archivo") or path.name,
             "size_mb": size_mb,
-            "capture_date": candidate["capture_date"],
-            "tags": candidate["tags"],
-            "city": candidate["city"],
-            "gps_lat": candidate["gps_lat"],
-            "gps_lon": candidate["gps_lon"],
-            "favourite": candidate["favourite"],
+            "capture_date": candidate.get("fecha_captura") or "",
+            "tags": candidate.get("tags") or [],
+            "city": candidate.get("city") or "",
+            "gps_lat": candidate.get("gps_lat"),
+            "gps_lon": candidate.get("gps_lon"),
+            "favourite": bool(candidate.get("is_favourite")),
             "exists": exists,
             "url": (
                 f"/api/photo?"

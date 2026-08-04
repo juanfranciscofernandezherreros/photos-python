@@ -698,6 +698,45 @@ class TestDaysReadsFromCaptures:
         assert names == expected_names
         assert len(names) == len(set(names))
 
+    def test_day_photos_uses_mtime_fallback_for_legacy_capture(
+        self, cliente_api, cwd_temporal, monkeypatch,
+    ):
+        from datetime import datetime
+
+        from photos_sync import repository as repo
+
+        photo = cwd_temporal / "incoming" / "legacy.jpg"
+        photo.parent.mkdir(parents=True, exist_ok=True)
+        photo.write_bytes(b"legacy")
+        repo.upsert_captures([{
+            "id":            str(photo),
+            "archivo":       "legacy.jpg",
+            "formato":       "jpg",
+            "tamano_mb":     0.001,
+            "mtime":         datetime(2024, 6, 3, 12).timestamp(),
+            "fecha_captura": "",
+            "ruta_original": str(photo),
+            "ruta_destino":  str(photo),
+            "tags":          [],
+        }])
+        repo.set_favourite(str(photo), True)
+        monkeypatch.setattr(
+            repo,
+            "load_captures",
+            lambda: (_ for _ in ()).throw(AssertionError("full scan used")),
+        )
+        monkeypatch.setattr(
+            repo,
+            "favourites_set",
+            lambda: (_ for _ in ()).throw(AssertionError("extra query used")),
+        )
+
+        body = cliente_api.get("/api/days/2024-06-03/photos").json()
+
+        assert body["count"] == 1
+        assert body["photos"][0]["filename"] == "legacy.jpg"
+        assert body["photos"][0]["favourite"] is True
+
     def test_capture_with_no_date_grouped_as_undated(
         self, cliente_api, cwd_temporal,
     ):

@@ -65,7 +65,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import case, delete, func, insert, select, update
 
 from .db import (
     decode_tags,
@@ -294,6 +294,85 @@ def load_captures() -> list[dict]:
     with get_engine().connect() as conn:
         rows = conn.execute(select(t_captures)).mappings().all()
     return [_row_to_capture_dict(r) for r in rows]
+
+
+def load_captures_for_day(
+    date: str,
+    offset: int,
+    limit: int,
+) -> tuple[list[dict], int]:
+    """Return one stable page of captures for an effective capture day.
+
+    Captures with a normalized ``capture_date`` are filtered, counted and
+    paginated by SQL. Legacy rows without a usable date are the only rows
+    inspected in Python because their day must be derived from ``mtime``.
+    """
+    from datetime import datetime
+
+    trimmed_date = func.trim(t_captures.c.capture_date)
+    has_capture_date = func.length(trimmed_date) >= 10
+    capture_day = func.substr(trimmed_date, 1, 10)
+    file_path = case(
+        (t_captures.c.dest_path != "", t_captures.c.dest_path),
+        else_=t_captures.c.source_path,
+    ).label("file_path")
+    has_file_path = file_path != ""
+    normal_filter = has_capture_date & (capture_day == date) & has_file_path
+    legacy_filter = (~has_capture_date) & has_file_path
+    order_by = (
+        func.lower(t_captures.c.filename),
+        func.lower(file_path),
+    )
+
+    def as_capture(row) -> dict:
+        capture = _row_to_capture_dict(row)
+        capture["file_path"] = row["file_path"]
+        capture["is_favourite"] = bool(row["is_favourite"])
+        return capture
+
+    with get_engine().connect() as conn:
+        normal_total = conn.execute(
+            select(func.count()).select_from(t_captures).where(normal_filter)
+        ).scalar_one()
+        legacy_rows = conn.execute(
+            select(t_captures, file_path).where(legacy_filter)
+        ).mappings().all()
+
+        matching_legacy = []
+        for row in legacy_rows:
+            photo_day = ""
+            try:
+                photo_day = datetime.fromtimestamp(float(row["mtime"])).strftime(
+                    "%Y-%m-%d"
+                )
+            except (TypeError, ValueError, OSError, OverflowError):
+                pass
+            if (photo_day or "undated") == date:
+                matching_legacy.append(as_capture(row))
+
+        normal_query = select(t_captures, file_path).where(normal_filter)
+        if matching_legacy:
+            # Fetching the prefix is sufficient to merge a tiny legacy stream
+            # without reading every capture belonging to this day.
+            normal_rows = conn.execute(
+                normal_query.order_by(*order_by).limit(offset + limit)
+            ).mappings().all()
+        else:
+            normal_rows = conn.execute(
+                normal_query.order_by(*order_by).offset(offset).limit(limit)
+            ).mappings().all()
+
+    normal_captures = [as_capture(row) for row in normal_rows]
+    total = int(normal_total) + len(matching_legacy)
+    if not matching_legacy:
+        return normal_captures, total
+
+    merged = normal_captures + matching_legacy
+    merged.sort(key=lambda capture: (
+        str(capture.get("archivo") or "").casefold(),
+        str(capture["file_path"]).casefold(),
+    ))
+    return merged[offset:offset + limit], total
 
 
 def upsert_captures(caps: list[dict]) -> None:
