@@ -220,7 +220,7 @@ limiter = Limiter(
     enabled=not _TESTING,
 )
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 # Session cookie for authentication. SECRET_KEY must be stable across
 # restarts in production (set it in .env); otherwise sessions are dropped
@@ -723,9 +723,9 @@ def serve_thumbnail(path: str, size: int = 300, _auth: dict = Depends(require_lo
     if not thumb_path.exists():
         try:
             with Image.open(p) as img:
-                img = img.convert("RGB")
-                img.thumbnail((size, size), Image.LANCZOS)
-                img.save(thumb_path, "JPEG", quality=82, optimize=True)
+                rgb = img.convert("RGB")
+                rgb.thumbnail((size, size), Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.LANCZOS)  # type: ignore[attr-defined]
+                rgb.save(thumb_path, "JPEG", quality=82, optimize=True)
         except Exception:
             # If thumbnailing fails (corrupt file, unsupported), serve original
             import mimetypes
@@ -1116,6 +1116,8 @@ def update_album(album_id: str, req: AlbumRenameIn, _auth: dict = Depends(requir
         album["cover"] = req.cover or None
 
     album = repo.get_album(album_id)
+    if not album:
+        raise HTTPException(404, "Album not found")
     return {"ok": True, "album": {**album, "count": album["count"]}}
 
 
@@ -1503,20 +1505,6 @@ _webdav_job: dict = {"running": False, "done": False, "error": None,
                      "dest": "", "current_file": ""}
 
 
-def _parse_webdav_modified(raw: str) -> str:
-    """Parse a WebDAV getlastmodified header (RFC-1123) into ISO.
-
-    Example input:  'Mon, 29 Jun 2025 13:36:59 GMT'
-    Returns '' on failure so caller can fall back.
-    """
-    if not raw:
-        return ""
-    try:
-        from email.utils import parsedate_to_datetime
-        dt = parsedate_to_datetime(raw)
-        return dt.replace(tzinfo=None).isoformat(timespec="seconds")
-    except Exception:
-        return ""
 
 
 @app.get("/api/webdav/download-status")

@@ -33,7 +33,7 @@ def _destination_servers() -> list[ssh_connection.SSHConnection]:
         c = ssh_connection.get_connection(alias)
         if c:
             servidores[alias] = c
-    return list(servidores.values())
+    return list(servidores.values())  # type: ignore[return-value, arg-type]
 
 
 def _upload_with_retry(

@@ -23,7 +23,7 @@ class Connection(TypedDict):
     alias: str
 
 
-def load_connections() -> list[Connection]:
+def load_connections() -> list[dict]:
     return repo.load_webdav_connections()
 
 
@@ -38,11 +38,11 @@ def save_connections(conexiones: list[Connection]) -> None:
         repo.add_or_update_webdav(c["letra"], c["ip"], c["puerto"], c.get("alias", ""))
 
 
-def add_or_update_connection(letra: str, ip: str, puerto: str, alias: str = "") -> list[Connection]:
+def add_or_update_connection(letra: str, ip: str, puerto: str, alias: str = "") -> list[dict]:
     return repo.add_or_update_webdav(letra, ip, puerto, alias)
 
 
-def remove_connection(letra: str) -> list[Connection]:
+def remove_connection(letra: str) -> list[dict]:
     return repo.remove_webdav(letra)
 
 
@@ -54,7 +54,7 @@ def is_mounted(letra: str) -> bool:
 def _run_net_use(comando: list[str], timeout: int) -> subprocess.CompletedProcess:
     flags = 0
     if platform.system() == "Windows":
-        flags = subprocess.CREATE_NO_WINDOW
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     return subprocess.run(
         " ".join(comando), shell=True,
         capture_output=True, text=True,

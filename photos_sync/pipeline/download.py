@@ -75,7 +75,7 @@ def scan_ssh_server(conn: ssh_connection.SSHConnection) -> list[Capture]:
 
     try:
         with ssh_connection.SSHClient(conn) as client:
-            files = client.list_files_recursive(ruta_remota, VALID_EXTENSIONS)
+            files = client.list_files_recursive(ruta_remota, list(VALID_EXTENSIONS))
     except Exception as e:
         print(f"⚠️ Could not scan SSH server '{alias}' ({conn['host']}): {e}")
         return []
@@ -153,7 +153,7 @@ def sync_captures() -> None:
             with ThreadPoolExecutor(max_workers=workers,
                                     thread_name_prefix="ssh-scan") as pool:
                 future_to_alias = {
-                    pool.submit(scan_ssh_server, c): c["alias"]
+                    pool.submit(scan_ssh_server, c): c["alias"]  # type: ignore[arg-type]
                     for c in ssh_sources
                 }
                 for future in as_completed(future_to_alias):

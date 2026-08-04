@@ -68,7 +68,7 @@ def organize_captures_by_date() -> None:
                     already_existed += 1
                 else:
                     if cap.ssh_alias:
-                        _client_for(cap.ssh_alias).download(cap.ssh_remote_path, dest_file)
+                        _client_for(cap.ssh_alias).download(cap.ssh_remote_path or "", dest_file)
                     else:
                         shutil.copy2(cap.source_path, dest_file)
                     ts = date.timestamp()

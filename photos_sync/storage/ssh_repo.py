@@ -2,14 +2,13 @@
 from __future__ import annotations
 
 from .. import repository as repo
-from ..ssh.validation import SSHConnection
 
 
-def load_ssh_connections() -> list[SSHConnection]:
+def load_ssh_connections() -> list[dict]:
     return repo.load_ssh_connections()
 
 
-def save_ssh_connections(conns: list[SSHConnection]) -> None:
+def save_ssh_connections(conns: list[dict]) -> None:
     repo.save_ssh_connections(conns)
 
 
@@ -17,7 +16,7 @@ def add_or_update_ssh_connection(
     alias: str, host: str, puerto: int, usuario: str,
     ruta_remota: str, clave_privada: str = "", rol: str = "origen",
     ruta_remota_destino: str = "",
-) -> list[SSHConnection]:
+) -> list[dict]:
     return repo.add_or_update_ssh(
         alias=alias, host=host, puerto=puerto, usuario=usuario,
         ruta_remota=ruta_remota, clave_privada=clave_privada,
@@ -25,13 +24,13 @@ def add_or_update_ssh_connection(
     )
 
 
-def remove_ssh_connection(alias: str) -> list[SSHConnection]:
+def remove_ssh_connection(alias: str) -> list[dict]:
     return repo.remove_ssh(alias)
 
 
-def get_connection(alias: str) -> SSHConnection | None:
+def get_connection(alias: str) -> dict | None:
     return repo.get_ssh(alias)
 
 
-def connections_by_role(desired_role: str) -> list[SSHConnection]:
+def connections_by_role(desired_role: str) -> list[dict]:
     return repo.ssh_by_role(desired_role)

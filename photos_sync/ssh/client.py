@@ -29,7 +29,7 @@ def _require_paramiko() -> None:
 class SSHClient:
     """Wraps an open SSH/SFTP connection to a Linux server."""
 
-    def __init__(self, conn: SSHConnection, password: str = "") -> None:
+    def __init__(self, conn: SSHConnection | dict, password: str = "") -> None:  # type: ignore[type-arg]
         _require_paramiko()
         self.conexion = conn  # kept as 'conexion' for backward compat
         self._password = password
