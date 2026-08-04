@@ -2566,6 +2566,42 @@ async function fixDates(){
   }catch(e){showMsg('wd-dl-msg',e.message,false);if(res)res.textContent='';}
 }
 
+const WD_GALLERY_REFRESH_MS=3000;
+let _wdGalleryRefreshTimer=null,_wdGalleryRefreshPromise=null,_wdGalleryRefreshPending=false;
+
+function _scheduleWebDavGalleryRefresh(delay=WD_GALLERY_REFRESH_MS){
+  _wdGalleryRefreshPending=true;
+  if(_wdGalleryRefreshTimer||_wdGalleryRefreshPromise)return;
+  _wdGalleryRefreshTimer=setTimeout(()=>{
+    _wdGalleryRefreshTimer=null;
+    void _runWebDavGalleryRefresh();
+  },delay);
+}
+
+async function _runWebDavGalleryRefresh(){
+  if(_wdGalleryRefreshPromise){
+    _wdGalleryRefreshPending=true;
+    return _wdGalleryRefreshPromise;
+  }
+  if(!_wdGalleryRefreshPending)return;
+  _wdGalleryRefreshPending=false;
+  _wdGalleryRefreshPromise=Promise.resolve(loadDays());
+  try{
+    await _wdGalleryRefreshPromise;
+  }finally{
+    _wdGalleryRefreshPromise=null;
+    if(_wdGalleryRefreshPending)_scheduleWebDavGalleryRefresh();
+  }
+}
+
+async function _flushWebDavGalleryRefresh(){
+  if(_wdGalleryRefreshTimer){clearTimeout(_wdGalleryRefreshTimer);_wdGalleryRefreshTimer=null;}
+  _wdGalleryRefreshPending=true;
+  if(_wdGalleryRefreshPromise)await _wdGalleryRefreshPromise;
+  if(_wdGalleryRefreshTimer){clearTimeout(_wdGalleryRefreshTimer);_wdGalleryRefreshTimer=null;}
+  if(_wdGalleryRefreshPending)await _runWebDavGalleryRefresh();
+}
+
 async function wdDownload(){
   const ip=($('wd-dl-ip')||{}).value||'';
   const port=($('wd-dl-port')||{}).value||'8080';
@@ -2590,7 +2626,10 @@ async function wdDownload(){
           res.innerHTML=`<b>${s.downloaded+s.skipped}/${s.total}</b> (${pct}%) — Downloaded: ${s.downloaded} · In DB: ${s.registered} · Skipped (already on disk): ${s.skipped}<br><span style="color:var(--ink5);font-family:'JetBrains Mono',monospace;font-size:10px">${s.current_file||''}</span>`;
         }
         // Refresh gallery when new photos are registered
-        if(s.registered!==lastRegistered){lastRegistered=s.registered;try{loadDays();}catch(_){}}
+        if(s.registered!==lastRegistered){
+          lastRegistered=s.registered;
+          if(s.registered>0)_scheduleWebDavGalleryRefresh();
+        }
 
         if(s.done){
           if(s.error){showMsg('wd-dl-msg',`❌ ${s.error}`,false);}
@@ -2598,7 +2637,7 @@ async function wdDownload(){
           if(btn){btn.disabled=false;btn.textContent='Download all photos';}
           // Add incoming folder as source folder
           if(dest.trim()){try{await api('/api/carpetas/origen/anadir',{method:'POST',body:{carpeta:dest.trim()}});}catch(_){}}
-          try{loadDays();}catch(_){}
+          await _flushWebDavGalleryRefresh();
           return;
         }
         setTimeout(poll, 2000);
