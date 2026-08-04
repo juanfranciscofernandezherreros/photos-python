@@ -79,7 +79,10 @@ def get_day_photos(
         })
 
     candidates.sort(
-        key=lambda photo: photo["filename"].casefold()
+        key=lambda photo: (
+            photo["filename"].casefold(),
+            photo["id"].casefold(),
+        )
     )
 
     total = len(candidates)

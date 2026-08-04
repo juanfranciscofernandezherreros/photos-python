@@ -656,6 +656,48 @@ class TestDaysReadsFromCaptures:
         assert r.json()["count"] == 1
         assert r.json()["photos"][0]["filename"] == "img.jpg"
 
+    def test_day_photos_paginates_without_duplicates(
+        self, cliente_api, cwd_temporal,
+    ):
+        from photos_sync import repository as repo
+
+        captures = []
+        expected_names = []
+        for index in range(5):
+            name = f"photo_{index}.jpg"
+            photo = cwd_temporal / "incoming" / name
+            photo.parent.mkdir(parents=True, exist_ok=True)
+            photo.write_bytes(bytes([index]) * 100)
+            expected_names.append(name)
+            captures.append({
+                "id":            str(photo),
+                "archivo":       name,
+                "formato":       "jpg",
+                "tamano_mb":     0.001,
+                "mtime":         photo.stat().st_mtime,
+                "fecha_captura": "2024-06-02T10:00:00",
+                "ruta_original": str(photo),
+                "ruta_destino":  str(photo),
+                "tags":          [],
+            })
+        repo.upsert_captures(captures)
+
+        first = cliente_api.get(
+            "/api/days/2024-06-02/photos?offset=0&limit=3"
+        ).json()
+        second = cliente_api.get(
+            f"/api/days/2024-06-02/photos?offset={first['next_offset']}&limit=3"
+        ).json()
+
+        assert first["count"] == 5
+        assert first["has_more"] is True
+        assert first["next_offset"] == 3
+        assert second["has_more"] is False
+        assert second["next_offset"] is None
+        names = [p["filename"] for p in first["photos"] + second["photos"]]
+        assert names == expected_names
+        assert len(names) == len(set(names))
+
     def test_capture_with_no_date_grouped_as_undated(
         self, cliente_api, cwd_temporal,
     ):
