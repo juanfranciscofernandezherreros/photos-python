@@ -1,0 +1,85 @@
+logging {
+  level  = "info"
+  format = "json"
+}
+
+discovery.docker "photos" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "5s"
+}
+
+discovery.relabel "photos" {
+  targets = discovery.docker.photos.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(photos_.*)"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service_name"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "compose_project"
+  }
+}
+
+loki.source.docker "photos" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.photos.output
+  labels     = { stack = "photos-sync" }
+  forward_to = [loki.process.photos.receiver]
+}
+
+loki.process "photos" {
+  stage.docker {}
+
+  stage.json {
+    expressions = {
+      event        = "event",
+      level        = "level",
+      method       = "method",
+      route        = "route",
+      status       = "status",
+      status_class = "status_class",
+      request_id   = "request_id",
+      duration_ms  = "duration_ms",
+    }
+  }
+
+  stage.labels {
+    values = {
+      event = "",
+      level = "",
+    }
+  }
+
+  stage.structured_metadata {
+    values = {
+      method       = "",
+      route        = "",
+      status       = "",
+      status_class = "",
+      request_id   = "",
+      duration_ms  = "",
+    }
+  }
+
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

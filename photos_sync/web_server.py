@@ -14,14 +14,17 @@ import asyncio
 import io
 import sys
 import threading
+import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
+from datetime import datetime as _dt
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import uvicorn
-from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -34,6 +37,16 @@ from . import repository as repo
 from .auth import require_admin, require_login
 from .db import init_db
 from .keep_awake import prevent_sleep
+from .observability import (
+    PIPELINE_DURATION,
+    PIPELINE_RUNNING,
+    PIPELINE_RUNS,
+    PIPELINE_STEP_DURATION,
+    configure_observability,
+    log_event,
+    start_metrics_endpoint,
+    stop_metrics_endpoint,
+)
 from .pipeline import classify, compress, download, organize, summary, upload_ssh
 from .storage import connection
 from .storage.folders import (
@@ -43,11 +56,7 @@ from .storage.folders import (
     save_folders,
     save_ssh_destination,
 )
-from datetime import datetime as _dt
-from pathlib import Path
-from urllib.parse import quote
 
-from fastapi import Depends, Query
 # ──────────────────────────── Pipeline steps ────────────────────────────────
 
 PASOS: list[tuple[str, Any]] = [
@@ -161,16 +170,51 @@ class PipelineManager:
 
         def _run_thread() -> None:
             orig_out, orig_err = sys.stdout, sys.stderr
-            sys.stdout = sys.stderr = _BroadcastIO(self._broadcaster)
+            sys.stdout = _BroadcastIO(self._broadcaster, orig_out)
+            sys.stderr = _BroadcastIO(self._broadcaster, orig_err)
+            run_started = time.perf_counter()
+            run_status = "success"
+            PIPELINE_RUNNING.set(1)
+            log_event("pipeline_started", steps=[name for name, _ in selected])
             try:
                 with prevent_sleep():
                     for name, fn in selected:
+                        step_started = time.perf_counter()
+                        step_status = "success"
                         self._broadcaster.emit(f"\n{'='*55}\n⏳ STARTING: {name}\n{'='*55}\n")
-                        fn()
+                        log_event("pipeline_step_started", step=name)
+                        try:
+                            fn()
+                        except Exception:
+                            step_status = "error"
+                            raise
+                        finally:
+                            step_duration = time.perf_counter() - step_started
+                            PIPELINE_STEP_DURATION.labels(step=name, status=step_status).observe(
+                                step_duration
+                            )
+                            log_event(
+                                "pipeline_step_finished",
+                                level="error" if step_status == "error" else "info",
+                                step=name,
+                                status=step_status,
+                                duration_seconds=round(step_duration, 3),
+                            )
                 self._broadcaster.emit("\n✅ Pipeline finished successfully.\n")
             except Exception:
+                run_status = "error"
                 self._broadcaster.emit("\n❌ ERROR:\n" + traceback.format_exc())
             finally:
+                run_duration = time.perf_counter() - run_started
+                PIPELINE_RUNS.labels(status=run_status).inc()
+                PIPELINE_DURATION.labels(status=run_status).observe(run_duration)
+                PIPELINE_RUNNING.set(0)
+                log_event(
+                    "pipeline_finished",
+                    level="error" if run_status == "error" else "info",
+                    status=run_status,
+                    duration_seconds=round(run_duration, 3),
+                )
                 sys.stdout = orig_out
                 sys.stderr = orig_err
                 self._running = False
@@ -182,17 +226,21 @@ class PipelineManager:
 # ──────────────────────────── I/O redirect ──────────────────────────────────
 
 class _BroadcastIO(io.TextIOBase):
-    """Thin TextIO shim that forwards all writes to a LogBroadcaster."""
-    def __init__(self, broadcaster: LogBroadcaster) -> None:
+    """Forward pipeline output both to the UI and the container log."""
+    def __init__(self, broadcaster: LogBroadcaster, mirror: io.TextIOBase | None = None) -> None:
         self._broadcaster = broadcaster
+        self._mirror = mirror
 
     def write(self, s: str) -> int:
         if s:
             self._broadcaster.emit(s)
+            if self._mirror is not None:
+                self._mirror.write(s)
         return len(s)
 
     def flush(self) -> None:
-        pass
+        if self._mirror is not None:
+            self._mirror.flush()
 
 
 # ──────────────────────────── Singletons ────────────────────────────────────
@@ -206,9 +254,14 @@ _net_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="net-use")
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     init_db()  # create tables if they don't exist
-    yield
+    metrics_server = start_metrics_endpoint()
+    try:
+        yield
+    finally:
+        stop_metrics_endpoint(metrics_server)
 
 app = FastAPI(title="Photos Sync Web", lifespan=_lifespan)
+configure_observability(app)
 
 # ── Rate limiter ─────────────────────────────────────────────────────────────
 # Uses in-memory storage by default (resets on restart, good enough for a
@@ -669,7 +722,9 @@ def iniciar_servidor_web(host: str = "127.0.0.1", port: int = WEB_PORT) -> None:
     global _server_thread
     if _server_thread and _server_thread.is_alive():
         return
-    cfg = uvicorn.Config(app, host=host, port=port, log_level="warning", loop="asyncio")
+    cfg = uvicorn.Config(
+        app, host=host, port=port, log_level="warning", loop="asyncio", access_log=False
+    )
     server = uvicorn.Server(cfg)
 
     def _run():

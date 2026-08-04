@@ -4,6 +4,11 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from .. import web_server as _shared
+from ..observability import (
+    WEBSOCKET_CONNECTIONS,
+    WEBSOCKET_CONNECTIONS_TOTAL,
+    log_event,
+)
 
 # Endpoint implementations retain access to the application's shared services,
 # models and state without duplicating business infrastructure.
@@ -18,6 +23,9 @@ router = APIRouter()
 @router.websocket("/ws/log")
 async def ws_log(ws: WebSocket):
     await ws.accept()
+    WEBSOCKET_CONNECTIONS.labels(route="/ws/log").inc()
+    WEBSOCKET_CONNECTIONS_TOTAL.labels(route="/ws/log").inc()
+    log_event("websocket_connected", route="/ws/log")
     q: asyncio.Queue = asyncio.Queue()
     broadcaster.subscribe(q)
     try:
@@ -33,3 +41,5 @@ async def ws_log(ws: WebSocket):
         pass
     finally:
         broadcaster.unsubscribe(q)
+        WEBSOCKET_CONNECTIONS.labels(route="/ws/log").dec()
+        log_event("websocket_disconnected", route="/ws/log")

@@ -4,6 +4,12 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from .. import web_server as _shared
+from ..observability import (
+    WEBDAV_JOB_DURATION,
+    WEBDAV_JOBS,
+    WEBDAV_JOBS_RUNNING,
+    log_event,
+)
 
 # Endpoint implementations retain access to the application's shared services,
 # models and state without duplicating business infrastructure.
@@ -54,6 +60,10 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
     broadcaster.emit(f"🔍 Scanning {req.ip}:{req.port} for photos…\n")
 
     def _worker():
+        job_status = "success"
+        job_started = _t.perf_counter()
+        WEBDAV_JOBS_RUNNING.inc()
+        log_event("webdav_job_started", destination=str(dest))
         try:
             import requests as _requests
             # 1) List all photos across the default folders
@@ -132,11 +142,26 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
                 f"registered={_webdav_job['registered']} skipped={_webdav_job['skipped']}\n"
             )
         except Exception as e:
+            job_status = "error"
             import traceback
             traceback.print_exc()
             _webdav_job["error"] = str(e)
             broadcaster.emit(f"❌ Download failed: {e}\n")
         finally:
+            job_duration = _t.perf_counter() - job_started
+            WEBDAV_JOBS_RUNNING.dec()
+            WEBDAV_JOBS.labels(status=job_status).inc()
+            WEBDAV_JOB_DURATION.labels(status=job_status).observe(job_duration)
+            log_event(
+                "webdav_job_finished",
+                level="error" if job_status == "error" else "info",
+                status=job_status,
+                duration_seconds=round(job_duration, 3),
+                total=_webdav_job["total"],
+                downloaded=_webdav_job["downloaded"],
+                registered=_webdav_job["registered"],
+                skipped=_webdav_job["skipped"],
+            )
             _webdav_job["running"] = False
             _webdav_job["done"] = True
             _webdav_job["finished_at"] = _t.time()

@@ -71,6 +71,61 @@ salida.
 | `PHOTOS_DIR` | `./photos` | Carpeta del host con las fotos |
 | `APP_PORT` | `8765` | Puerto del dashboard web |
 
+## Observabilidad: Grafana, Prometheus y Loki
+
+Arranca la aplicación y el stack completo con:
+
+```bash
+docker compose --profile monitoring up -d --build
+```
+
+- Aplicación: <http://localhost:8765>
+- Grafana: <http://localhost:3000>
+- Prometheus: <http://localhost:9090>
+
+Grafana se aprovisiona automáticamente con las fuentes **Prometheus** y
+**Loki** y con el dashboard `Photos Sync · Observabilidad`, dentro de la
+carpeta `Photos Sync`. El panel **Registro de peticiones web** muestra método,
+endpoint, código HTTP, duración y `request_id` para cada petición.
+
+La primera instalación usa `GRAFANA_ADMIN_USER` y
+`GRAFANA_ADMIN_PASSWORD` del `.env`. Cambiar esas variables no modifica una
+contraseña que ya esté guardada en el volumen. Para restablecerla:
+
+```bash
+docker exec photos_grafana grafana cli admin reset-admin-password NuevaClaveSegura
+```
+
+Consultas útiles en **Explore → Loki**:
+
+```logql
+# Todas las peticiones
+{service_name="app"} | json | event="http_request"
+
+# Solo errores HTTP
+{service_name="app"} | json | event="http_request" | status >= 400
+```
+
+Para contar las peticiones del intervalo seleccionado en Grafana, usa
+Prometheus:
+
+```promql
+sum(increase(photos_http_requests_total[$__range]))
+```
+
+Las métricas usan la plantilla de la ruta (`/api/days/{date}/photos`) para
+evitar una serie distinta por fecha. Los logs de acceso no registran cuerpos,
+cookies, cabeceras de autenticación ni parámetros de consulta. Loki conserva
+14 días de logs y Prometheus 15 días de métricas por defecto; ambas retenciones
+se pueden ajustar desde `.env`/los archivos de `monitoring/`.
+
+Comprobar el estado o detener el stack:
+
+```bash
+docker compose --profile monitoring ps
+docker compose --profile monitoring down
+```
+
 ## pgAdmin (opcional)
 
 ```bash

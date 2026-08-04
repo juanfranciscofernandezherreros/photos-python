@@ -1,0 +1,18 @@
+groups:
+  - name: photos-sync-logs
+    rules:
+      - alert: PhotosSyncErrorsInLogs
+        expr: sum(count_over_time({service_name="app"} | json | level="error" [5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Se repiten errores en los logs de Photos Sync"
+          description: "Loki ha detectado más de cinco eventos de error en cinco minutos."
+
+      - alert: PhotosSyncPipelineErrorInLogs
+        expr: sum(count_over_time({service_name="app"} | json | event="pipeline_finished" | status="error" [15m])) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "El pipeline ha registrado un error"
