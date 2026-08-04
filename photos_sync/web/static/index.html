@@ -1716,7 +1716,27 @@ function _renderTlSection(day,photos,tv){
 }
 
 let _gpPhotos=[],_gpFilter='all',_gpTagFilter='',_gpDate='',_gpAlbumId=null;
+const GP_BATCH_SIZE=24,GP_THUMB_SIZE=220;
+let _gpImgObserver=null,_gpBatchObserver=null,_gpRenderToken=0;
+function _resetGpObservers(){
+  if(_gpImgObserver){_gpImgObserver.disconnect();_gpImgObserver=null;}
+  if(_gpBatchObserver){_gpBatchObserver.disconnect();_gpBatchObserver=null;}
+}
+function _ensureGpImgObserver(){
+  if(_gpImgObserver)return _gpImgObserver;
+  const root=$('gp-grid');
+  _gpImgObserver=new IntersectionObserver((entries,obs)=>{
+    entries.forEach(entry=>{
+      if(!entry.isIntersecting)return;
+      const img=entry.target,real=img.dataset.src;
+      if(real){img.src=real;img.removeAttribute('data-src');}
+      obs.unobserve(img);
+    });
+  },{root,rootMargin:'300px 0px',threshold:.01});
+  return _gpImgObserver;
+}
 async function openDayGallery(day){
+  _resetGpObservers();
   _gpDate=day.fecha;_gpAlbumId=null;_gpFilter='all';_gpTagFilter='';
   document.querySelectorAll('.gpfb').forEach(b=>b.classList.remove('on'));document.querySelector('.gpfb').classList.add('on');
   $('gp-title').textContent=`${MN[parseInt(day.mes,10)]} ${parseInt(day.dia,10)}, ${day.anio}`;$('gp-sub').textContent='Loading…';
@@ -1725,10 +1745,9 @@ async function openDayGallery(day){
   $('gallery-panel').classList.add('open');
   $('bc-sep2').style.display='';$('bc-page').style.display='';$('bc-page').textContent=`${MN[parseInt(day.mes,10)]} ${parseInt(day.dia,10)}`;
   try{
-    const d=await api(`/api/days/${day.fecha}/photos`);_gpPhotos=d.photos;
-    $('gp-sub').textContent=d.count>0?`${d.count} photos · ${day.tamano_total_mb} MB`:(d.exists?'No images':'Folder not found');
-    if(!d.exists){$('gp-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--amber);font-size:12px"><b>Folder not found.</b><br>Run Organize in Pipeline.</div>`;return;}
-    _buildGpTags(d.photos);
+    const d=await api(`/api/days/${encodeURIComponent(day.fecha)}/photos`);_gpPhotos=d.photos||[];
+    $('gp-sub').textContent=d.count>0?`${d.count} photos · ${day.tamano_total_mb} MB`:'No images';
+    _buildGpTags(_gpPhotos);
     renderGpGrid();
   }catch(e){$('gp-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red);font-size:12px">${e.message}</div>`;}
 }
@@ -1893,6 +1912,7 @@ function _buildGpTags(photos){
   if(allTags.length){gt.style.display='flex';allTags.forEach(t=>{const b=document.createElement('button');b.className='gpfb';b.textContent=t;b.style.fontSize='10px';b.onclick=()=>{if(b.classList.contains('on')){b.classList.remove('on');_gpTagFilter='';}else{document.querySelectorAll('#gp-tag-btns-inner2 .gpfb').forEach(x=>x.classList.remove('on'));b.classList.add('on');_gpTagFilter=t;}renderGpGrid();};tb.appendChild(b);});}else{gt.style.display='none';}
 }
 function closeGallery(){
+  _resetGpObservers();
   $('gallery-panel').classList.remove('open');
   _gpPhotos=[];_gpDate=null;_gpAlbumId=null;
   $('gp-add-btn').classList.remove('visible');
@@ -1901,58 +1921,72 @@ function closeGallery(){
 }
 function setFilter(f,btn){_gpFilter=f;_gpTagFilter='';document.querySelectorAll('.gpfb').forEach(b=>b.classList.remove('on'));document.querySelectorAll('#gp-tag-btns-inner2 .gpfb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderGpGrid();}
 function renderGpGrid(){
-  const g=$('gp-grid');g.innerHTML='';const obs=_ensureObserver();
+  const g=$('gp-grid');
+  _resetGpObservers();
+  const token=++_gpRenderToken;
+  g.innerHTML='';g.scrollTop=0;
   let photos=_gpFilter==='favourites'?_gpPhotos.filter(p=>p.favourite):_gpPhotos;
   if(_gpTagFilter)photos=photos.filter(p=>(p.tags||[]).includes(_gpTagFilter));
   $('gp-count').textContent=photos.length+' photos';
   if(!photos.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--ink4);font-size:12px">${_gpFilter==='favourites'?'No favourites yet':'No photos'}</div>`;return;}
-  photos.forEach(p=>{
-    const div=document.createElement('div');div.className='gp-photo';div.dataset.photoId=p.id;
-    const img=document.createElement('img');img.className='loading';img.alt=p.filename;img.onload=()=>img.classList.replace('loading','loaded');img.dataset.src=`/api/thumb?path=${encodeURIComponent(p.id)}&size=400`;obs.observe(img);
-    const favBtn=document.createElement('button');favBtn.className='gp-photo-fav'+(p.favourite?' fav':'');favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
-    favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(p);favBtn.classList.toggle('fav',p.favourite)};
-    // Delete/Remove button — top-right corner
-    // In album view: removes from album. In gallery view: moves to trash.
-    const delBtn=document.createElement('button');delBtn.className='gp-photo-del';
-    delBtn.title=_gpAlbumId?'Remove from album':'Move to trash';
-    delBtn.innerHTML=_gpAlbumId
-      ? `<svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>`
-      : `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/></svg>`;
-    delBtn.onclick=async(e)=>{
-      e.stopPropagation();
-      if(_gpAlbumId){
-        // Remove from album (no confirm needed for single photo)
-        try{
-          await api(`/api/albums/${_gpAlbumId}/photos`,{method:'POST',body:{paths:[p.id],action:'remove'}});
-          div.style.transition='all .2s';div.style.opacity='0';div.style.transform='scale(.85)';
-          setTimeout(()=>div.remove(),200);
-          _gpPhotos=_gpPhotos.filter(x=>x.id!==p.id);
-          $('gp-sub').textContent=`${_gpPhotos.length} photos in album`;
-          loadAlbums();
-        }catch(err){alert('Remove failed: '+err.message);}
-      } else {
-        await _deletePhoto(p.id,'panel',div);
-      }
-    };
-    const chk=document.createElement('div');chk.className='sel-check';
-    // Add-to-album button — bottom-left, shown only in gallery (not album) view
-    const albBtn=document.createElement('button');albBtn.className='gp-photo-alb';albBtn.title='Add to album';
-    albBtn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 5a2 2 0 012-2h9l3 3M4 5v14a2 2 0 002 2h12a2 2 0 002-2V8M4 5h11"/><line x1="12" y1="13" x2="12" y2="19"/><line x1="9" y1="16" x2="15" y2="16"/></svg>`;
-    albBtn.onclick=async(e)=>{e.stopPropagation();await _addPhotoToAlbum(p.id);};
-    div.appendChild(img);div.appendChild(favBtn);div.appendChild(delBtn);
-    if(!_gpAlbumId)div.appendChild(albBtn);
-    div.appendChild(chk);
-    div.onclick=(e)=>{
-      if(e.target===favBtn||favBtn.contains(e.target))return;
-      // In album view OR already in selection mode: single click selects
-      if(_gpAlbumId||_selMode){if(_selThumb(div,p,e))return;}
-      else if(e.shiftKey){if(_selThumb(div,p,e))return;}
-      const idx=_gpFilter==='favourites'?_gpPhotos.filter(x=>x.favourite).indexOf(p):_gpPhotos.indexOf(p);
-      openLightbox(idx);
-    };
-    div.oncontextmenu=(e)=>{e.preventDefault();_selMode=true;_selThumb(div,p,{shiftKey:false});};
-    g.appendChild(div);
-  });
+
+  const imgObs=_ensureGpImgObserver();
+  let rendered=0;
+
+  function appendBatch(){
+    if(token!==_gpRenderToken)return;
+    const end=Math.min(rendered+GP_BATCH_SIZE,photos.length);
+    for(;rendered<end;rendered++){
+      const p=photos[rendered];
+      const div=document.createElement('div');div.className='gp-photo';div.dataset.photoId=p.id;
+      const img=document.createElement('img');img.className='loading';img.alt=p.filename;
+      img.onload=()=>img.classList.replace('loading','loaded');
+      img.onerror=()=>{img.classList.replace('loading','loaded');img.alt='Photo unavailable';};
+      img.dataset.src=`/api/thumb?path=${encodeURIComponent(p.id)}&size=${GP_THUMB_SIZE}`;imgObs.observe(img);
+      const favBtn=document.createElement('button');favBtn.className='gp-photo-fav'+(p.favourite?' fav':'');favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
+      favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(p);favBtn.classList.toggle('fav',p.favourite)};
+      const delBtn=document.createElement('button');delBtn.className='gp-photo-del';
+      delBtn.title=_gpAlbumId?'Remove from album':'Move to trash';
+      delBtn.innerHTML=_gpAlbumId
+        ? `<svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>`
+        : `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/></svg>`;
+      delBtn.onclick=async(e)=>{
+        e.stopPropagation();
+        if(_gpAlbumId){
+          try{
+            await api(`/api/albums/${_gpAlbumId}/photos`,{method:'POST',body:{paths:[p.id],action:'remove'}});
+            div.style.transition='all .2s';div.style.opacity='0';div.style.transform='scale(.85)';
+            setTimeout(()=>div.remove(),200);_gpPhotos=_gpPhotos.filter(x=>x.id!==p.id);
+            $('gp-sub').textContent=`${_gpPhotos.length} photos in album`;loadAlbums();
+          }catch(err){alert('Remove failed: '+err.message);}
+        }else await _deletePhoto(p.id,'panel',div);
+      };
+      const chk=document.createElement('div');chk.className='sel-check';
+      const albBtn=document.createElement('button');albBtn.className='gp-photo-alb';albBtn.title='Add to album';
+      albBtn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 5a2 2 0 012-2h9l3 3M4 5v14a2 2 0 002 2h12a2 2 0 002-2V8M4 5h11"/><line x1="12" y1="13" x2="12" y2="19"/><line x1="9" y1="16" x2="15" y2="16"/></svg>`;
+      albBtn.onclick=async(e)=>{e.stopPropagation();await _addPhotoToAlbum(p.id);};
+      div.appendChild(img);div.appendChild(favBtn);div.appendChild(delBtn);if(!_gpAlbumId)div.appendChild(albBtn);div.appendChild(chk);
+      div.onclick=(e)=>{
+        if(e.target===favBtn||favBtn.contains(e.target))return;
+        if(_gpAlbumId||_selMode){if(_selThumb(div,p,e))return;}else if(e.shiftKey){if(_selThumb(div,p,e))return;}
+        const idx=_gpFilter==='favourites'?_gpPhotos.filter(x=>x.favourite).indexOf(p):_gpPhotos.indexOf(p);openLightbox(idx);
+      };
+      div.oncontextmenu=(e)=>{e.preventDefault();_selMode=true;_selThumb(div,p,{shiftKey:false});};
+      g.appendChild(div);
+    }
+
+    if(rendered<photos.length){
+      const sentinel=document.createElement('div');sentinel.style.cssText='grid-column:1/-1;height:2px';g.appendChild(sentinel);
+      _gpBatchObserver=new IntersectionObserver((entries,obs)=>{
+        if(entries.some(entry=>entry.isIntersecting)){
+          obs.disconnect();_gpBatchObserver=null;sentinel.remove();appendBatch();
+        }
+      },{root:g,rootMargin:'500px 0px',threshold:0});
+      _gpBatchObserver.observe(sentinel);
+    }
+  }
+
+  appendBatch();
 }
 async function toggleFav(photo){photo.favourite=!photo.favourite;await api('/api/favourites',{method:'POST',body:{path:photo.id,favourite:photo.favourite}});const n=_gpPhotos.filter(p=>p.favourite).length||_tlPhotos.filter(p=>p.favourite).length;$('stat-favs').textContent=n;$('stat-favs-sub').textContent=n+' saved';}
 

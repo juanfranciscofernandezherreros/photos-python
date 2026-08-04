@@ -43,7 +43,11 @@ from .storage.folders import (
     save_folders,
     save_ssh_destination,
 )
+from datetime import datetime as _dt
+from pathlib import Path
+from urllib.parse import quote
 
+from fastapi import Depends, Query
 # ──────────────────────────── Pipeline steps ────────────────────────────────
 
 PASOS: list[tuple[str, Any]] = [
@@ -552,59 +556,122 @@ def get_days(_auth: dict = Depends(require_login)):
 
 
 @app.get("/api/days/{date}/photos")
-def get_day_photos(date: str, _auth: dict = Depends(require_login)):
-    """Return all photos for a specific day (YYYY-MM-DD or 'undated').
-
-    Reads from the captures table — same source as /api/days.
+def get_day_photos(
+    date: str,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=24, ge=1, le=100),
+    _auth: dict = Depends(require_login),
+):
     """
-    from datetime import datetime as _dt
-    from urllib.parse import quote
+    Return a paginated list of photos for a day.
 
-    favs: set[str] = repo.favourites_set()
-    photos = []
+    Accepted dates:
+    - YYYY-MM-DD
+    - undated
+    """
 
-    for c in repo.load_captures():
-        fpath = c.get("ruta_destino") or c.get("ruta_original") or ""
-        if not fpath:
+    favourites: set[str] = repo.favourites_set()
+    candidates: list[dict] = []
+
+    for capture in repo.load_captures():
+        file_path = (
+            capture.get("ruta_destino")
+            or capture.get("ruta_original")
+            or ""
+        )
+
+        if not file_path:
             continue
 
-        # Same date-picking logic as /api/days
-        cap_date = (c.get("fecha_captura") or "").strip()
-        this_date = ""
-        if cap_date and len(cap_date) >= 10:
-            this_date = cap_date[:10]
-        elif c.get("mtime"):
+        capture_date = str(capture.get("fecha_captura") or "").strip()
+        photo_date = ""
+
+        if len(capture_date) >= 10:
+            photo_date = capture_date[:10]
+
+        elif capture.get("mtime") is not None:
             try:
-                this_date = _dt.fromtimestamp(float(c["mtime"])).strftime("%Y-%m-%d")
-            except Exception:
-                pass
-        if not this_date:
-            this_date = "undated"
+                photo_date = _dt.fromtimestamp(
+                    float(capture["mtime"])
+                ).strftime("%Y-%m-%d")
+            except (TypeError, ValueError, OSError, OverflowError):
+                photo_date = ""
 
-        if this_date != date:
+        if not photo_date:
+            photo_date = "undated"
+
+        if photo_date != date:
             continue
 
-        p = Path(fpath)
-        exists = p.is_file()
-        photos.append({
-            "id":           fpath,
-            "filename":     p.name,
-            "size_mb":      round(p.stat().st_size / 1048576, 2) if exists else (c.get("tamano_mb") or 0),
-            "capture_date": cap_date,
-            "tags":         c.get("tags", []),
-            "city":         c.get("city", ""),
-            "gps_lat":      c.get("gps_lat"),
-            "gps_lon":      c.get("gps_lon"),
-            "favourite":    fpath in favs,
-            "exists":       exists,
-            "url":          f"/api/photo?path={quote(fpath)}",
+        path = Path(file_path)
+
+        # No se consulta todavía el disco.
+        candidates.append({
+            "id": file_path,
+            "filename": path.name,
+            "capture_date": capture_date,
+            "tags": capture.get("tags") or [],
+            "city": capture.get("city") or "",
+            "gps_lat": capture.get("gps_lat"),
+            "gps_lon": capture.get("gps_lon"),
+            "favourite": file_path in favourites,
+            "stored_size_mb": capture.get("tamano_mb") or 0,
         })
 
-    photos.sort(key=lambda x: x["filename"])
+    candidates.sort(
+        key=lambda photo: photo["filename"].casefold()
+    )
+
+    total = len(candidates)
+    selected = candidates[offset:offset + limit]
+
+    photos: list[dict] = []
+
+    # El acceso al disco se limita a las fotos de esta página.
+    for candidate in selected:
+        file_path = candidate["id"]
+        path = Path(file_path)
+
+        try:
+            stat_result = path.stat()
+            exists = path.is_file()
+            size_mb = (
+                round(stat_result.st_size / 1_048_576, 2)
+                if exists
+                else candidate["stored_size_mb"]
+            )
+        except OSError:
+            exists = False
+            size_mb = candidate["stored_size_mb"]
+
+        photos.append({
+            "id": file_path,
+            "filename": candidate["filename"],
+            "size_mb": size_mb,
+            "capture_date": candidate["capture_date"],
+            "tags": candidate["tags"],
+            "city": candidate["city"],
+            "gps_lat": candidate["gps_lat"],
+            "gps_lon": candidate["gps_lon"],
+            "favourite": candidate["favourite"],
+            "exists": exists,
+            "url": (
+                f"/api/photo?"
+                f"path={quote(file_path, safe='')}"
+            ),
+        })
+
+    next_offset = offset + len(photos)
+    has_more = next_offset < total
+
     return {
-        "date":   date,
+        "date": date,
         "photos": photos,
-        "count":  len(photos),
+        "count": total,
+        "offset": offset,
+        "limit": limit,
+        "has_more": has_more,
+        "next_offset": next_offset if has_more else None,
     }
 
 
@@ -1020,10 +1087,6 @@ def toggle_favourite(req: FavouriteToggleIn, _auth: dict = Depends(require_login
         }])
     repo.set_favourite(req.path, req.favourite)
     return {"ok": True}
-
-
-
-
 
 @app.get("/api/tags")
 def get_tags(_auth: dict = Depends(require_login)):
