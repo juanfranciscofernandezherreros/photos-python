@@ -6,10 +6,10 @@ from pathlib import Path
 
 from rich.progress import track
 
-from ..storage.folders import load_saved_destination
-from ..config import ORGANIZED_DIR, ZIPS_DIR
 from .. import repository as repo
+from ..config import ORGANIZED_DIR, ZIPS_DIR
 from ..models import Capture
+from ..storage.folders import load_saved_destination
 
 DELETE_ORIGINALS_AFTER_COMPRESS: bool = False  # set True to remove day folders after zipping
 

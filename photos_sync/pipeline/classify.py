@@ -25,15 +25,14 @@ Tags assigned (non-exclusive):
 from __future__ import annotations
 
 import re
-from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import Optional
+from pathlib import Path
 
 from .. import repository as repo
 from ..models import Capture
 
 # EXIF support (optional — gracefully degraded if Pillow is missing)
 try:
-    from PIL import Image, ExifTags
+    from PIL import ExifTags, Image
     _PIL_OK = True
 except ImportError:
     _PIL_OK = False
@@ -101,7 +100,9 @@ def _gps_decimal(coord, ref: str) -> float | None:
     try:
         d, m, s = coord
         # IFDRational or plain numbers
-        d = float(d); m = float(m); s = float(s)
+        d = float(d)
+        m = float(m)
+        s = float(s)
         decimal = d + m / 60 + s / 3600
         if ref in ("S", "W"):
             decimal = -decimal
@@ -139,7 +140,6 @@ def _reverse_geocode(lat: float, lon: float) -> str:
         return _geocode_cache[key]
     try:
         from geopy.geocoders import Nominatim  # type: ignore[import]
-        from geopy.exc import GeocoderTimedOut  # type: ignore[import]
         gc = Nominatim(user_agent="photos_sync/0.2")
         location = gc.reverse((lat, lon), exactly_one=True, language="en", timeout=5)
         if location and location.raw:
@@ -160,7 +160,7 @@ def _reverse_geocode(lat: float, lon: float) -> str:
     return ""
 
 
-def _dimensions(path: Path) -> Optional[tuple[int, int]]:
+def _dimensions(path: Path) -> tuple[int, int] | None:
     if not _PIL_OK:
         return None
     try:
@@ -202,7 +202,7 @@ def classify_one(cap: Capture) -> list[str]:
         tags.add("web_image")
 
     # 4. EXIF + dimensions (local files only, requires Pillow)
-    local: Optional[Path] = None
+    local: Path | None = None
     if cap.dest_path:
         local = Path(cap.dest_path)
     elif not cap.source_path.startswith("ssh://"):
@@ -249,14 +249,14 @@ def classify_one(cap: Capture) -> list[str]:
 
 def classify_captures() -> None:
     """Load captures from DB, apply rule-based tags, save back to DB."""
-    print(f"Reading captures from database...\n")
+    print("Reading captures from database...\n")
 
     raw = repo.load_captures()
     if raw is None:
-        print(f"❌ No captures in database. Run step 1 (download) first.")
+        print("❌ No captures in database. Run step 1 (download) first.")
         return
     if not isinstance(raw, list):
-        print(f"❌ Database error. Run step 1 (download) again.")
+        print("❌ Database error. Run step 1 (download) again.")
         return
     if not raw:
         print("❌ No captures to classify.")

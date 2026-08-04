@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import contextlib
 import sys
-from typing import Iterator
+from collections.abc import Iterator
 
 # Flags de la API de Windows (kernel32.SetThreadExecutionState)
 _ES_CONTINUOUS = 0x80000000

@@ -1,6 +1,6 @@
 """SSH connection CRUD — delegates to repository (PostgreSQL)."""
 from __future__ import annotations
-from typing import Optional
+
 from .. import repository as repo
 from ..ssh.validation import SSHConnection
 
@@ -29,7 +29,7 @@ def remove_ssh_connection(alias: str) -> list[SSHConnection]:
     return repo.remove_ssh(alias)
 
 
-def get_connection(alias: str) -> Optional[SSHConnection]:
+def get_connection(alias: str) -> SSHConnection | None:
     return repo.get_ssh(alias)
 
 

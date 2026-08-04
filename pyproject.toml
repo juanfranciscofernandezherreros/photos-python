@@ -58,10 +58,17 @@ target-version = "py39"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP"]
 ignore = [
+    "E402",   # module-level import not at top (contextual imports in web_server)
     "E501",   # line too long — handled by formatter
+    "E702",   # multiple statements on one line (semicolons in compact test code)
+    "E741",   # ambiguous variable name
+    "F401",   # imported but unused (facades + re-exports)
     "F403",   # star imports in facade modules
-    "F401",   # imported but unused (facades)
+    "F811",   # redefinition of unused name (endpoint duplication)
     "UP007",  # Optional[X] → X | None (too noisy for now)
+    "UP035",  # deprecated import (typing.Iterator → collections.abc)
+    "UP037",  # quoted type annotations
+    "UP045",  # Optional[X] → X | None
 ]
 
 [tool.mypy]

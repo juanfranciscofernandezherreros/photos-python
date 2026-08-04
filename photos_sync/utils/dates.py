@@ -9,7 +9,9 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
 def parse_date(s: str) -> datetime:
-    """Parse a capture date string into a datetime object."""
+    """Parse a capture date string into a datetime object.
+    Accepts both '2023-10-24 15:30:20' and '2023-10-24T15:30:20'."""
+    s = s.strip().replace("T", " ")[:19]
     return datetime.strptime(s, DATE_FORMAT)
 
 

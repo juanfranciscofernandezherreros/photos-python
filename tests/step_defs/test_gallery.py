@@ -1,6 +1,8 @@
 """Step definitions for gallery.feature."""
 from __future__ import annotations
+
 from pathlib import Path
+
 from pytest_bdd import scenarios, then
 
 scenarios("../features/gallery.feature")

@@ -19,10 +19,8 @@ import socket
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from pathlib import Path
 
 import pytest
-
 
 # ── Real WebDAV-ish HTTP server ────────────────────────────────────────────
 
@@ -103,9 +101,10 @@ class TestWebDAVEndToEnd:
     def test_full_download_persists_to_captures(
         self, cliente_api, cwd_temporal, webdav_server,
     ):
+        import time
+
         from photos_sync import repository as repo
         from photos_sync.storage import webdav_downloader as wd
-        import time
 
         host, port = webdav_server
         dest = cwd_temporal / "incoming"
@@ -147,9 +146,10 @@ class TestWebDAVEndToEnd:
     def test_second_call_is_idempotent(
         self, cliente_api, cwd_temporal, webdav_server,
     ):
+        import time
+
         from photos_sync import repository as repo
         from photos_sync.storage import webdav_downloader as wd
-        import time
 
         host, port = webdav_server
         dest = cwd_temporal / "incoming"
@@ -186,8 +186,9 @@ class TestWebDAVEndToEnd:
         self, cliente_api, cwd_temporal, webdav_server,
     ):
         """The /api/diag counts must reflect the downloaded photos."""
-        from photos_sync.storage import webdav_downloader as wd
         import time
+
+        from photos_sync.storage import webdav_downloader as wd
 
         host, port = webdav_server
         dest = cwd_temporal / "incoming"

@@ -13,8 +13,7 @@ Benefits:
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
-from typing import Optional
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -45,14 +44,14 @@ class Capture:
     mtime: float
     capture_date: str
     source_path: str
-    ssh_alias: Optional[str] = None
-    ssh_remote_path: Optional[str] = None
-    dest_path: Optional[str] = None
-    zip_path: Optional[str] = None
+    ssh_alias: str | None = None
+    ssh_remote_path: str | None = None
+    dest_path: str | None = None
+    zip_path: str | None = None
     tags: list[str] = field(default_factory=list)
-    gps_lat: Optional[float] = None
-    gps_lon: Optional[float] = None
-    city: Optional[str] = None
+    gps_lat: float | None = None
+    gps_lon: float | None = None
+    city: str | None = None
 
     # ── serialization ─────────────────────────────────────────────────────
 
@@ -88,7 +87,7 @@ class Capture:
         return d
 
     @classmethod
-    def from_dict(cls, d: dict) -> "Capture":
+    def from_dict(cls, d: dict) -> Capture:
         """Deserialize from a dict (as returned by repository.load_captures)."""
         return cls(
             id=d.get("id", ""),
@@ -121,8 +120,8 @@ class DaySummary:
     day: str
     photo_count: int
     total_mb: float
-    dest_folder: Optional[str] = None   # local folder for that day
-    zip_path: Optional[str] = None      # path to the day's .zip
+    dest_folder: str | None = None   # local folder for that day
+    zip_path: str | None = None      # path to the day's .zip
     capture_ids: list[str] = field(default_factory=list)
     filenames: list[str] = field(default_factory=list)
 
@@ -145,7 +144,7 @@ class DaySummary:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> "DaySummary":
+    def from_dict(cls, d: dict) -> DaySummary:
         """Deserialize from a dict (as returned by repository.load_summaries)."""
         return cls(
             date=d.get("fecha", ""),

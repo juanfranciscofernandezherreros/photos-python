@@ -3,10 +3,12 @@ WebDAV connection management — delegates to repository (PostgreSQL).
 Preserves all public functions used by the rest of the project.
 """
 from __future__ import annotations
+
 import platform
 import subprocess
 from pathlib import Path
 from typing import TypedDict
+
 from .. import repository as repo
 
 AVAILABLE_DRIVE_LETTERS: list[str] = [
@@ -27,8 +29,9 @@ def load_connections() -> list[Connection]:
 
 def save_connections(conexiones: list[Connection]) -> None:
     # Full replace via repo
-    from ..db import get_engine, t_webdav
     from sqlalchemy import delete
+
+    from ..db import get_engine, t_webdav
     with get_engine().begin() as conn:
         conn.execute(delete(t_webdav))
     for c in conexiones:

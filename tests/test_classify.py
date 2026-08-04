@@ -8,12 +8,9 @@ step that reads/writes captures via the database.
 EXIF rules are not unit-tested here (they require real image files with
 embedded metadata); classify_one still works without Pillow.
 """
-import json
-import pytest
-from pathlib import Path
 
 from photos_sync.models import Capture
-from photos_sync.pipeline.classify import classify_one, classify_captures
+from photos_sync.pipeline.classify import classify_captures, classify_one
 
 
 def _cap(filename="x.jpg", source_path="/x.jpg", extension="jpg", ssh_remote_path=None):

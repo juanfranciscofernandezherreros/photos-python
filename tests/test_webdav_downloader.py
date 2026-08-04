@@ -7,13 +7,9 @@ and dedup), and the high-level sync helper.
 """
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from photos_sync.storage import webdav_downloader as wd
-
 
 # ── PROPFIND XML fixtures ─────────────────────────────────────────────────────
 
@@ -168,7 +164,7 @@ class TestDownloadToLocal:
 
         with patch.object(wd, "_requests") as mock_req:
             mock_req.get.side_effect = fake_get
-            out = wd.download_to_local("1.2.3.4", 8080, files, tmp_path)
+            wd.download_to_local("1.2.3.4", 8080, files, tmp_path)
         # good.jpg downloaded, bad.jpg skipped
         assert (tmp_path / "good.jpg").exists()
         assert not (tmp_path / "bad.jpg").exists()

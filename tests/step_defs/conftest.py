@@ -1,11 +1,10 @@
 """Shared BDD fixtures and step definitions reused across all feature files."""
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
-from pytest_bdd import given, when, then, parsers
+from pytest_bdd import given, parsers, then, when
 from starlette.testclient import TestClient
+
 from photos_sync.web_server import app
 
 

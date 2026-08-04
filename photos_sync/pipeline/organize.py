@@ -1,32 +1,31 @@
 from __future__ import annotations
 
-import shutil
 import os
-from datetime import datetime
-from ..utils.dates import parse_date, DATE_FORMAT
+import shutil
 from pathlib import Path
 
 from rich.progress import track
 
-from ..storage.folders import load_saved_destination
-from ..config import ORGANIZED_DIR
 from .. import repository as repo
-from ..models import Capture
 from .. import ssh_connection
+from ..config import ORGANIZED_DIR
+from ..models import Capture
+from ..storage.folders import load_saved_destination
+from ..utils.dates import parse_date
 
 
 def organize_captures_by_date() -> None:
     """Copy each capture from the database to dest/YYYY/MM/DD based on
     its capture_date, fix the file's filesystem timestamp, and write back the
     dest_path into the metadata so compress.py and summary.py can use it."""
-    print(f"Reading captures from database...\n")
+    print("Reading captures from database...\n")
 
     raw = repo.load_captures()
     if raw is None:
-        print(f"❌ No captures in database. Run step 1 (download) first.")
+        print("❌ No captures in database. Run step 1 (download) first.")
         return
     if not isinstance(raw, list):
-        print(f"❌ Database error. Run step 1 (download) again.")
+        print("❌ Database error. Run step 1 (download) again.")
         return
     if not raw:
         print("❌ No captures in the metadata file to organize.")

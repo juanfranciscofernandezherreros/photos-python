@@ -8,8 +8,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 
 def _make_photo(tmp_path: Path, name: str = "IMG_001.jpg") -> str:
     f = tmp_path / "organizado" / "2024" / "05" / "20" / name
@@ -118,10 +116,11 @@ class TestPurgeOld:
         p = _make_photo(cwd_temporal)
         _delete_photo(cliente_api, p)
         # Backdate the entry to 40 days ago
-        from photos_sync import repository as repo
-        from photos_sync.db import get_engine, t_trash
-        from sqlalchemy import update
         from datetime import datetime, timedelta
+
+        from sqlalchemy import update
+
+        from photos_sync.db import get_engine, t_trash
         old_date = (datetime.now() - timedelta(days=40)).isoformat(timespec="seconds")
         with get_engine().begin() as conn:
             conn.execute(update(t_trash).values(deleted_at=old_date))

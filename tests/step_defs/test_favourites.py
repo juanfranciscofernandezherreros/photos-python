@@ -1,7 +1,9 @@
 """Step definitions for favourites.feature."""
 from __future__ import annotations
+
 from pathlib import Path
-from pytest_bdd import scenarios, when, then, parsers
+
+from pytest_bdd import parsers, scenarios, then, when
 
 scenarios("../features/favourites.feature")
 

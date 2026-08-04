@@ -1,6 +1,7 @@
 """Step definitions for folders.feature."""
 from __future__ import annotations
-from pytest_bdd import scenarios, when, then, parsers
+
+from pytest_bdd import parsers, scenarios, then, when
 
 scenarios("../features/folders.feature")
 

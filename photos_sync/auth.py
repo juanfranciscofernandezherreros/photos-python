@@ -7,16 +7,15 @@ identify the current user and provides dependencies to gate endpoints.
 """
 from __future__ import annotations
 
-from fastapi import HTTPException, Request
-
-from . import repository as repo
-
 # ── Password hashing ──────────────────────────────────────────────────────────
 # We use the bcrypt library directly (not passlib) because passlib's
 # version-detection breaks with bcrypt >= 4.x. bcrypt has a 72-byte input
 # limit, so we pre-hash long passwords with SHA-256 before bcrypt.
-
 import hashlib
+
+from fastapi import HTTPException, Request
+
+from . import repository as repo
 
 try:
     import bcrypt as _bcrypt

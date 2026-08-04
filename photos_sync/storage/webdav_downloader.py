@@ -15,12 +15,9 @@ Public API
 """
 from __future__ import annotations
 
-import hashlib
-import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
-from urllib.parse import quote, urljoin
 from xml.etree import ElementTree as ET
 
 # requests is already available (FastAPI pulls it in via httpx/starlette)
@@ -93,7 +90,10 @@ def list_remote_files(
 
     base_url = f"http://{ip}:{port}"
     results: list[RemoteFile] = []
-    _collect_files(base_url, remote_path, extensions, results, depth=0, max_depth=5, timeout=timeout)
+    _collect_files(
+        base_url, remote_path, extensions, results,
+        depth=0, max_depth=5, timeout=timeout,
+    )
     return results
 
 

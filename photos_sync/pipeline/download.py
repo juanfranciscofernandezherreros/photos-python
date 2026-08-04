@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-import uuid
 import re
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path, PurePosixPath
 
-from ..storage.folders import load_saved_folders
-from ..config import VALID_EXTENSIONS
 from .. import repository as repo
-from ..models import Capture
-from ..utils.progress import progress_bar
-from ..utils.dates import format_date, DATE_FORMAT
-from ..storage import connection
 from .. import ssh_connection
+from ..config import VALID_EXTENSIONS
+from ..models import Capture
+from ..storage import connection
+from ..storage.folders import load_saved_folders
+from ..utils.progress import progress_bar
 
 # Maximum parallel SFTP connections when scanning multiple SSH sources.
 # Each connection opens one SSH session + one SFTP channel, so keep this
@@ -112,8 +111,11 @@ def sync_captures() -> None:
     saved_connections = connection.load_connections()
     if saved_connections:
         for c in saved_connections:
-            status = "✅ mounted" if connection.is_mounted(c["letra"]) else "⚠️ NOT mounted right now"
-            print(f"  {c['letra']} ({c.get('alias', c['letra'])} — {c.get('ip')}:{c.get('puerto')}): {status}")
+            mounted = connection.is_mounted(c["letra"])
+            status = "✅ mounted" if mounted else "⚠️ NOT mounted right now"
+            alias = c.get("alias", c["letra"])
+            ip_port = f"{c.get('ip')}:{c.get('puerto')}"
+            print(f"  {c['letra']} ({alias} — {ip_port}): {status}")
         print()
 
     local_files: list[Path] = []
@@ -231,7 +233,7 @@ def sync_captures() -> None:
     if captures_list:
         repo.upsert_captures([c.to_dict() for c in captures_list])
         print("-" * 50)
-        print(f"✅ Success! Metadata extracted and dates corrected.")
+        print("✅ Success! Metadata extracted and dates corrected.")
     else:
         print("❌ No screenshots found to export.")
 

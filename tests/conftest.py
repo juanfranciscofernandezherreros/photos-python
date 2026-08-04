@@ -9,12 +9,11 @@ Filesystem: ORGANIZED_DIR and THUMBS_DIR are redirected to tmp_path.
 """
 from __future__ import annotations
 
-import json
 import os
-import pytest
-from pathlib import Path
-
 import os as _os
+
+import pytest
+
 _os.environ.setdefault("TESTING", "1")   # disables slowapi IP rate limiting in tests
 
 from sqlalchemy import create_engine
@@ -26,8 +25,9 @@ from sqlalchemy.pool import StaticPool
 # crawl. Replace it with a plain (still-salted) sha256 for tests only.
 @pytest.fixture(autouse=True, scope="session")
 def _fast_password_hashing():
+    import hashlib
+
     import photos_sync.auth as _auth
-    import hashlib, os
 
     def _fast_hash(plain: str) -> str:
         salt = os.urandom(8).hex()
@@ -84,8 +84,8 @@ def cwd_temporal(tmp_path, monkeypatch, db_engine):
     (tmp_path / "thumbs").mkdir(parents=True, exist_ok=True)
 
     # Patch ORGANIZED_DIR in pipeline modules that import it directly
-    import photos_sync.pipeline.organize as organize_mod
     import photos_sync.pipeline.compress as compress_mod
+    import photos_sync.pipeline.organize as organize_mod
     monkeypatch.setattr(organize_mod, "ORGANIZED_DIR", tmp_path / "organizado")
     if hasattr(compress_mod, "ORGANIZED_DIR"):
         monkeypatch.setattr(compress_mod, "ORGANIZED_DIR", tmp_path / "organizado")
@@ -153,6 +153,7 @@ def cliente_api(tmp_path):
     the TestClient across requests.
     """
     from fastapi.testclient import TestClient
+
     from photos_sync.web_server import app
     with TestClient(app, raise_server_exceptions=True) as c:
         # Bootstrap + auto-login the admin
@@ -165,6 +166,7 @@ def cliente_api(tmp_path):
 def cliente_anon(tmp_path):
     """Unauthenticated client — for testing 401 responses."""
     from fastapi.testclient import TestClient
+
     from photos_sync.web_server import app
     with TestClient(app, raise_server_exceptions=True) as c:
         yield c
@@ -174,6 +176,7 @@ def cliente_anon(tmp_path):
 def cliente_user(tmp_path):
     """Client logged in as a normal (non-admin) user — for testing 403."""
     from fastapi.testclient import TestClient
+
     from photos_sync.web_server import app
     with TestClient(app, raise_server_exceptions=True) as c:
         # First create the admin (needed to create other users)

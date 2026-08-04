@@ -10,9 +10,6 @@ import io
 import zipfile
 from pathlib import Path
 
-import pytest
-
-
 # ── Helper ────────────────────────────────────────────────────────────────────
 
 def _make_photo(tmp_path: Path, name: str = "IMG_001.jpg",

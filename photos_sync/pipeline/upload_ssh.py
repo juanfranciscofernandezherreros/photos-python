@@ -13,12 +13,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..storage.folders import load_saved_destination, load_destination_config
-from ..config import ORGANIZED_DIR, VALID_EXTENSIONS
-from ..utils.retry import retry
-from .. import ssh_connection
-
 from rich.progress import track
+
+from .. import ssh_connection
+from ..config import ORGANIZED_DIR, VALID_EXTENSIONS
+from ..storage.folders import load_destination_config, load_saved_destination
 
 
 def _local_organized_folder() -> Path:
@@ -68,7 +67,7 @@ def _upload_with_retry(
                         # SSHClient.upload already has per-file retry via @retry
                         cliente.upload(archivo_local, ruta_remota)
                         subidas += 1
-                    except Exception as e:
+                    except Exception:
                         errores.append(ruta_relativa)
                         session_errors += 1
             # Session completed without a connection-level crash — done

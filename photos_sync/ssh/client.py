@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import stat
 from pathlib import Path, PurePosixPath
-from typing import Any, Optional
+from typing import Any
 
-from .validation import SSHConnection, DEFAULT_SSH_PORT
 from ..utils.retry import retry
+from .validation import DEFAULT_SSH_PORT, SSHConnection
 
 try:
     import paramiko
@@ -36,7 +36,7 @@ class SSHClient:
         self._ssh: Any = None
         self._sftp: Any = None
 
-    def __enter__(self) -> "SSHClient":
+    def __enter__(self) -> SSHClient:
         self.connect()
         return self
 
@@ -72,18 +72,24 @@ class SSHClient:
                 self._ssh.close()
 
     def test_connection(self) -> tuple[bool, str]:
-        label = f"{self.conexion['usuario']}@{self.conexion['host']}:{self.conexion.get('puerto', 22)}"
+        user = self.conexion["usuario"]
+        host = self.conexion["host"]
+        port = self.conexion.get("puerto", 22)
+        label = f"{user}@{host}:{port}"
         try:
             self.connect()
             path = self.conexion["ruta_remota"]
             self._sftp.listdir(path)
             return True, f"Connection successful to {label} — '{path}' is accessible."
         except Exception as e:
-            return False, f"Could not connect to {label} or read '{self.conexion['ruta_remota']}': {e}"
+            rpath = self.conexion["ruta_remota"]
+            return False, f"Could not connect to {label} or read '{rpath}': {e}"
         finally:
             self.close()
 
-    def list_files_recursive(self, remote_path: str, valid_extensions: list[str]) -> list[dict[str, Any]]:
+    def list_files_recursive(
+        self, remote_path: str, valid_extensions: list[str],
+    ) -> list[dict[str, Any]]:
         found: list[dict[str, Any]] = []
         try:
             entries = self._sftp.listdir_attr(remote_path)
@@ -107,7 +113,7 @@ class SSHClient:
         self._create_remote_directories(str(PurePosixPath(remote_path).parent))
         self._sftp.put(str(local_path), remote_path)
 
-    def remote_exists(self, remote_path: str) -> Optional[int]:
+    def remote_exists(self, remote_path: str) -> int | None:
         try:
             return self._sftp.stat(remote_path).st_size
         except FileNotFoundError:

@@ -5,11 +5,17 @@ import logging
 import sys
 from typing import Callable
 
+from . import ssh_connection
 from .config import ORCHESTRATOR_LOG
 from .keep_awake import prevent_sleep
-from . import ssh_connection
-from .pipeline import (sync_captures, organize_captures_by_date,
-    classify_captures, compress_folders_by_day, generate_daily_summary, upload_organized_to_ssh)
+from .pipeline import (
+    classify_captures,
+    compress_folders_by_day,
+    generate_daily_summary,
+    organize_captures_by_date,
+    sync_captures,
+    upload_organized_to_ssh,
+)
 
 PasoPipeline = tuple[str, Callable[[], None]]
 
@@ -28,7 +34,8 @@ def configurar_logging() -> logging.Logger:
     logger.setLevel(logging.INFO)
     logger.handlers.clear()
 
-    formato = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    fmt = "%(asctime)s [%(levelname)s] %(message)s"
+    formato = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
 
     manejador_consola = logging.StreamHandler(sys.stdout)
     manejador_consola.setFormatter(formato)
@@ -142,7 +149,8 @@ def modo_gestion_ssh(args: argparse.Namespace) -> bool:
             print("No SSH connections saved.")
         else:
             for c in connections:
-                extra_destino = f"  dest='{c['ruta_remota_destino']}'" if c.get("ruta_remota_destino") else ""
+                rd = c.get("ruta_remota_destino")
+                extra_destino = f"  dest='{rd}'" if rd else ""
                 print(f"  {c['alias']}  ({c['usuario']}@{c['host']}:{c['puerto']})  "
                       f"source='{c['ruta_remota']}'{extra_destino}  role={c['rol']}"
                       f"{'  key=' + c['clave_privada'] if c['clave_privada'] else ''}")

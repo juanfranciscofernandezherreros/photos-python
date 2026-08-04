@@ -8,12 +8,7 @@ carry the real photo date; we extract it to correct the grouping.
 """
 from __future__ import annotations
 
-from pathlib import Path
-
-import pytest
-
 from photos_sync.utils.dates import extract_date_from_filename
-
 
 # ── Filename parser ──────────────────────────────────────────────────────
 
@@ -120,14 +115,14 @@ class TestFixDatesEndpoint:
     def test_fixes_screenshot_filename(self, cliente_api, cwd_temporal):
         from photos_sync import repository as repo
         path = self._make(cwd_temporal, "Screenshot_20250629-133659.png",
-                          "2026-08-03T15:34:12")   # wrong date (download time)
-        r = cliente_api.post("/api/photos/fix-dates")
-        assert r.status_code == 200
-        body = r.json()
-        assert body["updated"] == 1
-        # Row now has the real date
+                          "2026-08-03T15:34:12")   # wrong date passed in
+        # upsert_captures auto-corrected it at insert time
         row = repo.get_capture_by_dest(path)
         assert row["fecha_captura"] == "2025-06-29T13:36:59"
+        # fix-dates finds nothing to fix
+        r = cliente_api.post("/api/photos/fix-dates")
+        assert r.status_code == 200
+        assert r.json()["skipped_already_good"] == 1
 
     def test_leaves_correct_dates_alone(self, cliente_api, cwd_temporal):
         # Already-correct date must not be counted as updated
@@ -144,45 +139,41 @@ class TestFixDatesEndpoint:
         assert r.json()["skipped_no_pattern"] == 1
 
     def test_mixed_batch(self, cliente_api, cwd_temporal):
-        # 3 need updating, 1 already good, 1 no pattern
+        # 3 with date patterns — auto-corrected at insert time
         self._make(cwd_temporal, "Screenshot_20250101-090000.png",
                    "2026-08-03T00:00:00")
         self._make(cwd_temporal, "Screenshot_20250102-090000.png",
                    "2026-08-03T00:00:00")
         self._make(cwd_temporal, "Screenshot_20250103-090000.png",
                    "2026-08-03T00:00:00")
+        # 1 already matching its pattern
         self._make(cwd_temporal, "IMG_20240115_101530.jpg",
                    "2024-01-15T10:15:30")
+        # 1 no pattern at all
         self._make(cwd_temporal, "no-date-here.jpg",
                    "2026-08-03T00:00:00")
 
         r = cliente_api.post("/api/photos/fix-dates")
         body = r.json()
         assert body["total"] == 5
-        assert body["updated"] == 3
-        assert body["skipped_already_good"] == 1
+        # All 4 pattern files are already correct (set at insert time)
+        assert body["skipped_already_good"] == 4
+        assert body["updated"] == 0
         assert body["skipped_no_pattern"] == 1
 
     def test_regroups_gallery_by_real_date(self, cliente_api, cwd_temporal):
-        """After fix, /api/days must show the real photo dates, not the
-        download date."""
+        """Dates are derived at insert time, so the gallery is grouped
+        correctly from the start — no fix-dates needed."""
         self._make(cwd_temporal, "Screenshot_20250629-133659.png",
                    "2026-08-03T15:34:12")
         self._make(cwd_temporal, "Screenshot_20250630-090000.png",
                    "2026-08-03T15:34:13")
 
-        # Before: both photos on the same (wrong) day
-        r_before = cliente_api.get("/api/days").json()
-        assert r_before["total_photos"] == 2
-        assert len(r_before["days"]) == 1  # all on 2026-08-03
-
-        cliente_api.post("/api/photos/fix-dates")
-
-        # After: two different real days
-        r_after = cliente_api.get("/api/days").json()
-        assert r_after["total_photos"] == 2
-        assert len(r_after["days"]) == 2   # 2025-06-29 and 2025-06-30
-        dates = {d["fecha"] for d in r_after["days"]}
+        # Already two different real days at insert time
+        r = cliente_api.get("/api/days").json()
+        assert r["total_photos"] == 2
+        assert len(r["days"]) == 2
+        dates = {d["fecha"] for d in r["days"]}
         assert "2025-06-29" in dates
         assert "2025-06-30" in dates
 

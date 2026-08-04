@@ -7,9 +7,9 @@ Usage:
 """
 from __future__ import annotations
 
-import time
 import functools
-from typing import Callable, Optional, TypeVar, Any
+import time
+from typing import Any, Callable, TypeVar
 
 F = TypeVar("F", bound=Callable[..., Any])
 

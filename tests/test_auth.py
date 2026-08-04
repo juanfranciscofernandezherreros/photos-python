@@ -7,10 +7,6 @@ change-password, user CRUD, and authorization (401/403).
 from __future__ import annotations
 
 import pytest
-from fastapi.testclient import TestClient
-
-from photos_sync.web_server import app
-
 
 # ── Bootstrapping the admin ───────────────────────────────────────────────────
 
@@ -267,6 +263,7 @@ class TestRateLimit:
         _login_failures["alice"]["failures"] = _MAX_FAILURES
 
         import time
+
         from photos_sync.web_server import _LOCKOUT_SECONDS
         _login_failures["alice"]["locked_until"] = time.time() + _LOCKOUT_SECONDS
 
@@ -292,9 +289,9 @@ class TestRateLimit:
         assert r.status_code == 429
 
     def test_admin_can_see_lockouts(self, cliente_api):
-        from photos_sync.web_server import _login_failures
         import time
-        from photos_sync.web_server import _LOCKOUT_SECONDS
+
+        from photos_sync.web_server import _LOCKOUT_SECONDS, _login_failures
         _login_failures["victim"]["failures"] = 10
         _login_failures["victim"]["locked_until"] = time.time() + _LOCKOUT_SECONDS
 
@@ -307,9 +304,9 @@ class TestRateLimit:
         self._setup(cliente_anon)
         cliente_anon.post("/api/auth/logout")
 
-        from photos_sync.web_server import _MAX_FAILURES, _login_failures
         import time
-        from photos_sync.web_server import _LOCKOUT_SECONDS
+
+        from photos_sync.web_server import _LOCKOUT_SECONDS, _MAX_FAILURES, _login_failures
         _login_failures["alice"]["failures"] = _MAX_FAILURES
         _login_failures["alice"]["locked_until"] = time.time() + _LOCKOUT_SECONDS
 

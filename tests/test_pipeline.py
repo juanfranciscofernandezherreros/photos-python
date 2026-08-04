@@ -6,22 +6,18 @@ external hardware). Tests all logic that operates on local files: date
 extraction from filename, organization by YYYY/MM/DD, ZIP compression,
 and JSON summary generation.
 """
-import json
-import shutil
 import zipfile
-from pathlib import Path
 from datetime import datetime
 
 import pytest
 
-from photos_sync.pipeline.download import get_actual_date, load_existing_metadata
-from photos_sync.pipeline.summary import group_by_day, generate_daily_summary
-from photos_sync.pipeline.compress import zip_is_valid, compress_folders_by_day
-from photos_sync.pipeline.organize import organize_captures_by_date
 from photos_sync.config import (
     VALID_EXTENSIONS,
 )
-
+from photos_sync.pipeline.compress import compress_folders_by_day, zip_is_valid
+from photos_sync.pipeline.download import get_actual_date, load_existing_metadata
+from photos_sync.pipeline.organize import organize_captures_by_date
+from photos_sync.pipeline.summary import generate_daily_summary, group_by_day
 
 # ═══════════════════════════════ get_actual_date ══════════════════════════
 

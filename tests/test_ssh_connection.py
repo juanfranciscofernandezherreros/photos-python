@@ -5,8 +5,8 @@ Covers: save, update, delete, get, connections_by_role,
 effective_destination_path, and all "ambos" role validations.
 """
 import pytest
-from photos_sync import ssh_connection
 
+from photos_sync import ssh_connection
 
 # ─────────────────────────────── helpers ────────────────────────────────────
 

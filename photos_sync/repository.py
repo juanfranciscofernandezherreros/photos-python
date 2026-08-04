@@ -63,18 +63,25 @@ Public surface (grouped by entity):
 """
 from __future__ import annotations
 
-import json
 from pathlib import Path
-from typing import Optional
 
-from sqlalchemy import delete, insert, select, text, update
+from sqlalchemy import delete, insert, select, update
 
 from .db import (
-    decode_tags, encode_tags, get_engine,
-    t_album_photos, t_albums, t_captures,
-    t_destination, t_folders, t_ssh, t_summaries, t_trash, t_users, t_webdav,
+    decode_tags,
+    encode_tags,
+    get_engine,
+    t_album_photos,
+    t_albums,
+    t_captures,
+    t_destination,
+    t_folders,
+    t_ssh,
+    t_summaries,
+    t_trash,
+    t_users,
+    t_webdav,
 )
-
 
 # ── Internal helper ───────────────────────────────────────────────────────────
 
@@ -128,7 +135,7 @@ def add_or_update_ssh(
     ruta_remota: str, clave_privada: str = "",
     rol: str = "origen", ruta_remota_destino: str = "",
 ) -> list[dict]:
-    from .ssh.validation import VALID_ROLES, DEFAULT_SSH_PORT, validate_ambos_role
+    from .ssh.validation import DEFAULT_SSH_PORT, VALID_ROLES, validate_ambos_role
     if rol not in VALID_ROLES:
         rol = "origen"
     ruta_remota = ruta_remota.rstrip("/") or ruta_remota
@@ -151,7 +158,7 @@ def remove_ssh(alias: str) -> list[dict]:
     return load_ssh_connections()
 
 
-def get_ssh(alias: str) -> Optional[dict]:
+def get_ssh(alias: str) -> dict | None:
     for c in load_ssh_connections():
         if c["alias"] == alias:
             return c
@@ -252,7 +259,7 @@ def clear_destination() -> None:
         conn.execute(delete(t_destination))
 
 
-def load_saved_destination() -> Optional[str]:
+def load_saved_destination() -> str | None:
     cfg = load_destination_config()
     if cfg.get("tipo") == "local":
         return cfg.get("ruta")
@@ -290,22 +297,58 @@ def load_captures() -> list[dict]:
 
 
 def upsert_captures(caps: list[dict]) -> None:
-    """Bulk upsert captures from their to_dict() representation."""
+    """Bulk upsert captures from their to_dict() representation.
+
+    capture_date is ALWAYS derived from the filename if possible.
+    id is a proper UUID (cap_XXXX) — never a file path.
+    """
     if not caps:
         return
-    # Use delete-then-insert per capture for cross-DB compatibility
+    import uuid as _uuid
+
+    from .utils.dates import extract_date_from_filename
+
     with _conn() as conn:
         for c in caps:
-            conn.execute(delete(t_captures).where(t_captures.c.id == c.get("id", "")))
+            # Derive real date from filename — this is the source of truth
+            filename = c.get("archivo", "")
+            filename_date = extract_date_from_filename(filename)
+            cap_date = filename_date or c.get("fecha_captura", "")
+
+            # Generate a stable id: if an existing row has this dest_path,
+            # reuse its id (update). Otherwise generate a new UUID.
+            dest = c.get("ruta_destino") or c.get("dest_path") or ""
+            capture_id = c.get("id", "")
+
+            # If id looks like a file path, replace it with a proper UUID
+            if capture_id.startswith("/") or capture_id.startswith("C:") or \
+               capture_id.startswith("\\"):
+                # Check if a row already exists for this dest_path
+                existing = conn.execute(
+                    select(t_captures.c.id).where(t_captures.c.dest_path == dest)
+                ).first()
+                if existing:
+                    capture_id = existing[0]
+                else:
+                    capture_id = f"cap_{_uuid.uuid4().hex[:12]}"
+            elif not capture_id:
+                capture_id = f"cap_{_uuid.uuid4().hex[:12]}"
+
+            if dest:
+                conn.execute(delete(t_captures).where(
+                    (t_captures.c.id == capture_id) | (t_captures.c.dest_path == dest)
+                ))
+            else:
+                conn.execute(delete(t_captures).where(t_captures.c.id == capture_id))
             conn.execute(insert(t_captures).values(
-                id=c.get("id", ""),
-                filename=c.get("archivo", ""),
+                id=capture_id,
+                filename=filename,
                 extension=c.get("formato", ""),
                 size_mb=float(c.get("tamano_mb", 0)),
                 mtime=float(c.get("mtime", 0)),
-                capture_date=c.get("fecha_captura", ""),
+                capture_date=cap_date,
                 source_path=c.get("ruta_original", ""),
-                dest_path=c.get("ruta_destino"),
+                dest_path=dest,
                 zip_path=c.get("ruta_zip"),
                 ssh_alias=c.get("ssh_alias"),
                 ssh_remote_path=c.get("ssh_ruta_remota"),
@@ -317,7 +360,7 @@ def upsert_captures(caps: list[dict]) -> None:
             ))
 
 
-def get_capture_by_dest(dest_path: str) -> Optional[dict]:
+def get_capture_by_dest(dest_path: str) -> dict | None:
     with get_engine().connect() as conn:
         row = conn.execute(
             select(t_captures).where(t_captures.c.dest_path == dest_path)
@@ -448,7 +491,7 @@ def load_albums() -> list[dict]:
     return result
 
 
-def get_album(album_id: str) -> Optional[dict]:
+def get_album(album_id: str) -> dict | None:
     for a in load_albums():
         if a["id"] == album_id:
             return a
@@ -471,7 +514,7 @@ def update_album_name(album_id: str, name: str) -> None:
         )
 
 
-def update_album_cover(album_id: str, cover: Optional[str]) -> None:
+def update_album_cover(album_id: str, cover: str | None) -> None:
     with _conn() as conn:
         conn.execute(
             update(t_albums).where(t_albums.c.id == album_id).values(cover=cover)
@@ -694,7 +737,7 @@ def user_count() -> int:
         return len(conn.execute(select(t_users.c.id)).all())
 
 
-def get_user_by_username(username: str) -> Optional[dict]:
+def get_user_by_username(username: str) -> dict | None:
     """Full row INCLUDING password_hash — for login verification only."""
     with get_engine().connect() as conn:
         row = conn.execute(
@@ -707,7 +750,7 @@ def get_user_by_username(username: str) -> Optional[dict]:
     return d
 
 
-def get_user(user_id: str) -> Optional[dict]:
+def get_user(user_id: str) -> dict | None:
     with get_engine().connect() as conn:
         row = conn.execute(
             select(t_users).where(t_users.c.id == user_id)
@@ -823,7 +866,7 @@ def list_trash() -> list[dict]:
     ]
 
 
-def get_trash_entry(entry_id: str) -> Optional[dict]:
+def get_trash_entry(entry_id: str) -> dict | None:
     with get_engine().connect() as conn:
         r = conn.execute(
             select(t_trash).where(t_trash.c.id == entry_id)

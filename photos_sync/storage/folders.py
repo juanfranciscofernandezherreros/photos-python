@@ -3,7 +3,9 @@ Source-folder and destination config — delegates to repository (PostgreSQL).
 Preserves the same public API consumed by the pipeline and the GUI.
 """
 from __future__ import annotations
+
 from pathlib import Path
+
 from .. import repository as repo
 from . import connection as connection_mod
 

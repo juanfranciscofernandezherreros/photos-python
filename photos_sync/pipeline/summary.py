@@ -6,12 +6,11 @@ DaySummary per day, sorted from most to fewest photos.
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime
-from ..utils.dates import parse_date, DATE_FORMAT
 from pathlib import Path
 
 from .. import repository as repo
 from ..models import Capture, DaySummary
+from ..utils.dates import parse_date
 
 
 def load_captures() -> list[Capture]:
@@ -62,7 +61,7 @@ def group_by_day(captures: list[Capture]) -> list[DaySummary]:
 
 
 def generate_daily_summary() -> None:
-    print(f"Reading captures from database...\n")
+    print("Reading captures from database...\n")
 
     captures = load_captures()
     if not captures:

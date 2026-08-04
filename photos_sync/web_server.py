@@ -18,27 +18,31 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Request
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-from . import repository as repo
-from . import auth
-from .auth import require_login, require_admin
-from .db import init_db
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
-from starlette.middleware.sessions import SessionMiddleware
 from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+from starlette.middleware.sessions import SessionMiddleware
 
-from .storage import connection
-from .pipeline import download, organize, classify, compress, summary, upload_ssh
-from . import ssh_connection
-from .storage.folders import (load_saved_folders, save_folders,
-                       load_destination_config, save_destination, save_ssh_destination)
+from . import auth, ssh_connection
+from . import repository as repo
+from .auth import require_admin, require_login
+from .db import init_db
 from .keep_awake import prevent_sleep
+from .pipeline import classify, compress, download, organize, summary, upload_ssh
+from .storage import connection
+from .storage.folders import (
+    load_destination_config,
+    load_saved_folders,
+    save_destination,
+    save_folders,
+    save_ssh_destination,
+)
 
 # ──────────────────────────── Pipeline steps ────────────────────────────────
 
@@ -207,6 +211,7 @@ app = FastAPI(title="Photos Sync Web", lifespan=_lifespan)
 # single-instance deployment). Key function: client IP address.
 # Disabled automatically during testing (TESTING env var = "1").
 import os as _os_rl
+
 _TESTING = _os_rl.environ.get("TESTING", "0") == "1"
 
 limiter = Limiter(
@@ -221,6 +226,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # restarts in production (set it in .env); otherwise sessions are dropped
 # on every restart.
 import os as _os
+
 _SECRET = _os.environ.get("SECRET_KEY")
 if not _SECRET:
     import secrets as _secrets
@@ -551,8 +557,8 @@ def get_day_photos(date: str, _auth: dict = Depends(require_login)):
 
     Reads from the captures table — same source as /api/days.
     """
-    from urllib.parse import quote
     from datetime import datetime as _dt
+    from urllib.parse import quote
 
     favs: set[str] = repo.favourites_set()
     photos = []
@@ -603,16 +609,54 @@ def get_day_photos(date: str, _auth: dict = Depends(require_login)):
 
 
 def _allowed_bases() -> list[Path]:
-    """All directories from which photos may be served."""
+    """All directories from which photos may be served.
+
+    Includes: ORGANIZED_DIR, the configured destination, any registered
+    source folders, and the incoming download directory. Resolves symlinks
+    so Docker volume mounts (e.g. /data → host) work correctly.
+    """
+    import os
+
     from .config import ORGANIZED_DIR
-    from .storage.folders import load_saved_destination, load_destination_config
+    from .storage.folders import load_destination_config, load_saved_destination
+
     bases = [Path(ORGANIZED_DIR).resolve()]
+
+    # User-configured destination
     dc = load_destination_config()
     if dc.get("tipo") == "local" and dc.get("ruta"):
         bases.append(Path(dc["ruta"]).resolve())
     ds = load_saved_destination()
     if ds:
         bases.append(Path(ds).resolve())
+
+    # Registered source folders
+    for sf in repo.load_source_folders():
+        bases.append(Path(sf).resolve())
+
+    # Incoming folder (WebDAV downloads land here)
+    incoming = Path(ORGANIZED_DIR) / "incoming"
+    if incoming.exists():
+        bases.append(incoming.resolve())
+
+    # PHOTOS_DIR env var (Docker volume mount root, e.g. /data)
+    photos_dir = os.environ.get("PHOTOS_DIR", "")
+    if photos_dir:
+        bases.append(Path(photos_dir).resolve())
+
+    # /data explicitly (Docker default mount point)
+    if Path("/data").exists():
+        bases.append(Path("/data").resolve())
+
+    # Deduplicate
+    seen = set()
+    unique = []
+    for b in bases:
+        s = str(b)
+        if s not in seen:
+            seen.add(s)
+            unique.append(b)
+    return unique
     return bases
 
 
@@ -625,8 +669,9 @@ def _is_allowed(p: Path) -> bool:
 def serve_photo(path: str, _auth: dict = Depends(require_login)):
     """Serve a full-resolution photo file by its absolute path.
     Allows files inside ORGANIZED_DIR or the user-configured destination."""
-    from fastapi.responses import FileResponse
     import mimetypes
+
+    from fastapi.responses import FileResponse
 
     p = Path(path)
     if not _is_allowed(p):
@@ -642,9 +687,11 @@ def serve_thumbnail(path: str, size: int = 300, _auth: dict = Depends(require_lo
     """Serve a cached JPEG thumbnail of a photo. Generates and caches it
     on first request under THUMBS_DIR/<hash>.jpg. Falls back to the full
     image if Pillow is unavailable."""
-    from .config import THUMBS_DIR
-    from fastapi.responses import FileResponse
     import hashlib
+
+    from fastapi.responses import FileResponse
+
+    from .config import THUMBS_DIR
 
     p = Path(path)
     if not _is_allowed(p):
@@ -864,16 +911,12 @@ def purge_old_trash(days: int = 30, _admin: dict = Depends(require_admin)):
 
 @app.post("/api/photos/fix-dates")
 def fix_capture_dates(_auth: dict = Depends(require_admin)):
-    """Recompute capture_date for every photo from its filename (Screenshot_
-    20250629-133659.png → 2025-06-29T13:36:59) so the gallery groups them
-    by their real photo date instead of the download date.
+    """Re-derive capture_date for every photo from its filename.
 
-    Only touches rows whose current capture_date looks like a download
-    timestamp (i.e. matches the file's mtime within a few seconds). Rows
-    with a good-looking date from EXIF or a previous run are left alone.
+    Safe to run multiple times. upsert_captures always extracts the date
+    from the filename, so re-upserting every row corrects any bad dates.
     """
     from .utils.dates import extract_date_from_filename
-    from datetime import datetime as _dt
 
     caps = repo.load_captures()
     updated = 0
@@ -888,13 +931,11 @@ def fix_capture_dates(_auth: dict = Depends(require_admin)):
             continue
 
         current = (c.get("fecha_captura") or "").strip()
-        # If the current date is already the real one, skip
         if current and current[:19] == real_date[:19]:
             skipped_already_good += 1
             continue
 
-        # Preserve everything else in the row; overwrite only capture_date
-        c["fecha_captura"] = real_date
+        # Re-upsert — the repo will set the correct date from filename
         repo.upsert_captures([c])
         updated += 1
 
@@ -920,6 +961,7 @@ def download_zip(
     """
     import io
     import zipfile
+
     from fastapi.responses import StreamingResponse
 
     raw_paths = [p.strip() for p in paths.split(",") if p.strip()]
@@ -1148,10 +1190,6 @@ def get_album(album_id: str, _auth: dict = Depends(require_login)):
     }
 
 
-def pipeline_estado():
-    return {"corriendo": pipeline.is_running()}
-
-
 @app.get("/api/pipeline/estado")
 def pipeline_estado(_auth: dict = Depends(require_admin)):
     return {"corriendo": pipeline.is_running()}
@@ -1257,7 +1295,7 @@ def letras_disponibles(_auth: dict = Depends(require_admin)):
     usadas = {c["letra"] for c in connection.load_connections()}
     return {
         "todas": connection.AVAILABLE_DRIVE_LETTERS,
-        "libres": [l for l in connection.AVAILABLE_DRIVE_LETTERS if l not in usadas],
+        "libres": [d for d in connection.AVAILABLE_DRIVE_LETTERS if d not in usadas],
     }
 
 
@@ -1297,7 +1335,7 @@ class WebDAVScanIn(BaseModel):
 def webdav_scan(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
     """List all photos available on a phone WebDAV server (no download yet).
     Works on any OS — uses direct HTTP, no 'net use' needed."""
-    from .storage.webdav_downloader import list_remote_files, DEFAULT_REMOTE_PATHS
+    from .storage.webdav_downloader import DEFAULT_REMOTE_PATHS, list_remote_files
     all_files = []
     seen: set[str] = set()
     for rpath in DEFAULT_REMOTE_PATHS:
@@ -1321,13 +1359,14 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
     Pipeline uses. The response returns immediately with job info so the
     UI can start polling /api/webdav/download-status.
     """
-    from .storage.webdav_downloader import (
-        list_remote_files, DEFAULT_REMOTE_PATHS,
-    )
-    from .config import ORGANIZED_DIR
-    from datetime import datetime
     import threading
     import time as _t
+
+    from .config import ORGANIZED_DIR
+    from .storage.webdav_downloader import (
+        DEFAULT_REMOTE_PATHS,
+        list_remote_files,
+    )
 
     dest = Path(req.dest_folder) if req.dest_folder else ORGANIZED_DIR / "incoming"
     dest.mkdir(parents=True, exist_ok=True)
@@ -1398,22 +1437,13 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
                     path_str = str(local)
                     if not repo.get_capture_by_dest(path_str):
                         stat = local.stat()
-                        # Best capture_date: from filename (real photo date)
-                        # → fall back to WebDAV Last-Modified header (best remote
-                        #   timestamp we have) → fall back to local mtime (worst,
-                        #   equals when the download happened).
-                        from .utils.dates import extract_date_from_filename
-                        cap_date = extract_date_from_filename(f.name)
-                        if not cap_date:
-                            cap_date = _parse_webdav_modified(f.modified) \
-                                       or datetime.fromtimestamp(stat.st_mtime).isoformat(timespec="seconds")
                         repo.upsert_captures([{
                             "id":            path_str,
                             "archivo":       f.name,
                             "formato":       Path(f.name).suffix.lstrip(".").lower(),
                             "tamano_mb":     round(stat.st_size / 1048576, 2),
                             "mtime":         stat.st_mtime,
-                            "fecha_captura": cap_date,
+                            "fecha_captura": "",  # upsert_captures derives it from filename
                             "ruta_original": path_str,
                             "ruta_destino":  path_str,
                             "tags":          [],
@@ -1493,52 +1523,6 @@ def _parse_webdav_modified(raw: str) -> str:
 def webdav_download_status(_auth: dict = Depends(require_admin)):
     """Poll this to know how the background download is going."""
     return dict(_webdav_job)
-
-
-@app.post("/api/captures/fix-dates")
-def fix_capture_dates(_admin: dict = Depends(require_admin)):
-    """Back-fill capture_date on existing captures by extracting the real
-    photo date from the filename (Screenshot_YYYYMMDD-HHMMSS.png,
-    IMG_YYYYMMDD_HHMMSS.jpg, etc.).
-
-    Only touches rows whose current fecha_captura is empty OR was set to
-    today (which happens when WebDAV download used mtime — a bad signal).
-    Returns how many rows were updated.
-    """
-    from .utils.dates import extract_date_from_filename
-    from datetime import datetime, timedelta
-
-    caps = repo.load_captures()
-    today = datetime.now().date()
-    yesterday = today - timedelta(days=1)
-
-    updated = []
-    for c in caps:
-        current = (c.get("fecha_captura") or "").strip()
-        # Skip if the row already has a plausibly-real date (not today's).
-        # We consider "today" or "yesterday" as bogus because that's what
-        # mtime produces during download.
-        if current and len(current) >= 10:
-            try:
-                d = datetime.fromisoformat(current[:19]).date()
-                if d != today and d != yesterday:
-                    continue  # already has a real date, don't touch
-            except Exception:
-                pass
-
-        # Extract the real date from the filename
-        real_date = extract_date_from_filename(c.get("archivo", ""))
-        if not real_date:
-            continue
-        if real_date == current:
-            continue
-
-        updated.append({**c, "fecha_captura": real_date})
-
-    if updated:
-        repo.upsert_captures(updated)
-
-    return {"ok": True, "updated": len(updated), "total_scanned": len(caps)}
 
 
 # ═══════════════════════════════════════════ Carpetas ═══════════════════════
@@ -1649,9 +1633,9 @@ def diagnostic(_admin: dict = Depends(require_admin)):
 def setup_status():
     """Returns which essential configuration steps are complete.
     Used by the first-run wizard in the frontend."""
-    from .storage.folders import load_destination_config
-    from .storage.connection import load_connections
     from .storage import ssh_repo
+    from .storage.connection import load_connections
+    from .storage.folders import load_destination_config
 
     dest   = load_destination_config()
     webdav = load_connections()
@@ -1681,7 +1665,7 @@ def ui():
 
 # ──────────────────────────── lanzador de fondo ─────────────────────────────
 
-_server_thread: Optional[threading.Thread] = None
+_server_thread: threading.Thread | None = None
 WEB_PORT = 8765
 
 

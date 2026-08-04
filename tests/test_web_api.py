@@ -5,10 +5,6 @@ Uses httpx with ASGITransport: no real server, tests are instant.
 Covers all endpoints: steps, pipeline, SSH, WebDAV, source and
 destination folders.
 """
-import json
-import pytest
-from photos_sync import ssh_connection
-from photos_sync.storage.folders import save_destination
 
 
 # ═══════════════════════════════════════ /api/pasos ══════════════════════════

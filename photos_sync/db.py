@@ -9,10 +9,15 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 
 from sqlalchemy import (
-    Boolean, Column, Float, Integer, MetaData, Table, Text,
+    Boolean,
+    Column,
+    Float,
+    Integer,
+    MetaData,
+    Table,
+    Text,
     create_engine,
 )
 from sqlalchemy.pool import StaticPool
