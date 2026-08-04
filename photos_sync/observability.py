@@ -75,6 +75,14 @@ PIPELINE_STEP_DURATION = Histogram(
     ("step", "status"),
     buckets=(0.1, 0.5, 1, 2.5, 5, 15, 30, 60, 120, 300, 900),
 )
+PIPELINE_LAST_RUN_SUCCESS = Gauge(
+    "photos_pipeline_last_run_success",
+    "Whether the last completed pipeline execution succeeded (1 or 0).",
+)
+PIPELINE_LAST_RUN_TIMESTAMP = Gauge(
+    "photos_pipeline_last_run_timestamp_seconds",
+    "Unix timestamp of the last completed pipeline execution.",
+)
 
 WEBDAV_JOBS_RUNNING = Gauge(
     "photos_webdav_jobs_running",
@@ -90,6 +98,19 @@ WEBDAV_JOB_DURATION = Histogram(
     "WebDAV download job duration.",
     ("status",),
     buckets=(1, 5, 15, 30, 60, 120, 300, 600, 1800, 3600),
+)
+WEBDAV_PHOTOS = Counter(
+    "photos_webdav_photos_total",
+    "Photos handled by WebDAV download jobs.",
+    ("outcome",),
+)
+WEBDAV_LAST_JOB_SUCCESS = Gauge(
+    "photos_webdav_last_job_success",
+    "Whether the last completed WebDAV job succeeded (1 or 0).",
+)
+WEBDAV_LAST_JOB_TIMESTAMP = Gauge(
+    "photos_webdav_last_job_timestamp_seconds",
+    "Unix timestamp of the last completed WebDAV job.",
 )
 
 

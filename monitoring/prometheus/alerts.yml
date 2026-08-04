@@ -43,6 +43,14 @@ groups:
           summary: "Ha fallado una ejecución del pipeline"
           description: "Revisa los eventos pipeline_finished en Loki."
 
+      - alert: PhotosSyncWebDAVFailed
+        expr: increase(photos_webdav_jobs_total{status="error"}[15m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ha fallado una descarga WebDAV"
+          description: "Revisa los eventos webdav_job_finished en Loki."
+
   - name: photos-sync-resources
     rules:
       - alert: PhotosSyncHighProcessMemory

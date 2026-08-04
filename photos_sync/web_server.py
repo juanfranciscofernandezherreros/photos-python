@@ -39,6 +39,8 @@ from .db import init_db
 from .keep_awake import prevent_sleep
 from .observability import (
     PIPELINE_DURATION,
+    PIPELINE_LAST_RUN_SUCCESS,
+    PIPELINE_LAST_RUN_TIMESTAMP,
     PIPELINE_RUNNING,
     PIPELINE_RUNS,
     PIPELINE_STEP_DURATION,
@@ -208,6 +210,8 @@ class PipelineManager:
                 run_duration = time.perf_counter() - run_started
                 PIPELINE_RUNS.labels(status=run_status).inc()
                 PIPELINE_DURATION.labels(status=run_status).observe(run_duration)
+                PIPELINE_LAST_RUN_SUCCESS.set(1 if run_status == "success" else 0)
+                PIPELINE_LAST_RUN_TIMESTAMP.set(time.time())
                 PIPELINE_RUNNING.set(0)
                 log_event(
                     "pipeline_finished",

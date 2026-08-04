@@ -8,6 +8,9 @@ from ..observability import (
     WEBDAV_JOB_DURATION,
     WEBDAV_JOBS,
     WEBDAV_JOBS_RUNNING,
+    WEBDAV_LAST_JOB_SUCCESS,
+    WEBDAV_LAST_JOB_TIMESTAMP,
+    WEBDAV_PHOTOS,
     log_event,
 )
 
@@ -53,7 +56,7 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
     # Reset job state
     _webdav_job.update({
         "running": True, "done": False, "error": None,
-        "total": 0, "downloaded": 0, "registered": 0, "skipped": 0,
+        "total": 0, "downloaded": 0, "registered": 0, "skipped": 0, "failed": 0,
         "started_at": _t.time(), "finished_at": None,
         "dest": str(dest), "current_file": "",
     })
@@ -106,6 +109,7 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
                         tmp.replace(local)
                         _webdav_job["downloaded"] += 1
                     except Exception as e:
+                        _webdav_job["failed"] += 1
                         broadcaster.emit(f"   ⚠️  Skip {f.name}: {e}\n")
                         continue
 
@@ -152,6 +156,10 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
             WEBDAV_JOBS_RUNNING.dec()
             WEBDAV_JOBS.labels(status=job_status).inc()
             WEBDAV_JOB_DURATION.labels(status=job_status).observe(job_duration)
+            WEBDAV_LAST_JOB_SUCCESS.set(1 if job_status == "success" else 0)
+            WEBDAV_LAST_JOB_TIMESTAMP.set(_t.time())
+            for outcome in ("downloaded", "registered", "skipped", "failed"):
+                WEBDAV_PHOTOS.labels(outcome=outcome).inc(_webdav_job[outcome])
             log_event(
                 "webdav_job_finished",
                 level="error" if job_status == "error" else "info",
@@ -161,6 +169,7 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
                 downloaded=_webdav_job["downloaded"],
                 registered=_webdav_job["registered"],
                 skipped=_webdav_job["skipped"],
+                failed=_webdav_job["failed"],
             )
             _webdav_job["running"] = False
             _webdav_job["done"] = True

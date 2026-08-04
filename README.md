@@ -84,9 +84,14 @@ docker compose --profile monitoring up -d --build
 - Prometheus: <http://localhost:9090>
 
 Grafana se aprovisiona automáticamente con las fuentes **Prometheus** y
-**Loki** y con el dashboard `Photos Sync · Observabilidad`, dentro de la
-carpeta `Photos Sync`. El panel **Registro de peticiones web** muestra método,
-endpoint, código HTTP, duración y `request_id` para cada petición.
+**Loki** y con dos dashboards dentro de la carpeta `Photos Sync`:
+
+- `Photos Sync · Administración`: resumen sencillo de uso, endpoints más
+  utilizados y lentos, errores, pipeline, WebDAV, recursos, PostgreSQL y alertas.
+- `Photos Sync · Observabilidad`: vista técnica detallada para diagnóstico.
+
+El panel **Registro de peticiones** muestra método, endpoint, código HTTP,
+duración, IP y `request_id` para cada petición.
 
 La primera instalación usa `GRAFANA_ADMIN_USER` y
 `GRAFANA_ADMIN_PASSWORD` del `.env`. Cambiar esas variables no modifica una
