@@ -41,6 +41,9 @@ secrets/
 .pytest_tmp*/
 photos/
 .coverage
+coverage.json
+reports/
+serenity/target/
 -e 
 # Backup dumps
 backups/

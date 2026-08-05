@@ -186,9 +186,33 @@ python -m photos_sync
 ## Tests
 
 ```bash
-pytest tests/
-# 223 passed
+python -m pytest tests -q
 ```
+
+La cobertura incluye ramas y tiene una barrera mínima del 80 %. El comando
+genera un informe navegable en `reports/coverage/index.html` y otro en XML:
+
+```bash
+python -m pytest tests -q --cov=photos_sync --cov-branch \
+  --cov-report=term-missing --cov-report=html --cov-report=xml \
+  --cov-fail-under=80
+```
+
+La suite de contratos Cucumber ejecuta todos los endpoints HTTP y WebSocket
+contra una API y una base SQLite temporales. Maven no necesita estar instalado:
+
+```bash
+cd serenity
+./mvnw verify       # Linux/macOS
+mvnw.cmd verify     # Windows
+```
+
+El reporte queda en `serenity/target/site/serenity/index.html`. Cada escenario
+muestra la request y la response reales (URL, método, cuerpo, estado y tipo de
+contenido); contraseñas y cookies se enmascaran. Una prueba de catálogo compara
+el feature con los decoradores de FastAPI, por lo que CI falla si se añade una
+ruta sin su escenario Serenity. Los dos reportes se publican también como
+artefactos de GitHub Actions durante 14 días.
 
 ## Usuarios y login
 
