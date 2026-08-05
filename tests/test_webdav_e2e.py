@@ -36,6 +36,7 @@ class _WebDAVHandler(BaseHTTPRequestHandler):
     activity_lock = threading.Lock()
     active_gets = 0
     max_active_gets = 0
+    fail_paths: set[str] = set()
 
     def log_message(self, *a, **kw):
         pass  # silence stderr spam in tests
@@ -75,6 +76,11 @@ class _WebDAVHandler(BaseHTTPRequestHandler):
         content = self.files.get(self.path)
         if content is None:
             self.send_response(404); self.end_headers(); return
+        if self.path in self.fail_paths:
+            self.send_response(503)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         with self.activity_lock:
             type(self).active_gets += 1
             type(self).max_active_gets = max(
@@ -100,6 +106,7 @@ def webdav_server():
     sock = socket.socket(); sock.bind(("127.0.0.1", 0)); port = sock.getsockname()[1]; sock.close()
     _WebDAVHandler.active_gets = 0
     _WebDAVHandler.max_active_gets = 0
+    _WebDAVHandler.fail_paths = set()
     srv = ThreadingHTTPServer(("127.0.0.1", port), _WebDAVHandler)
     t = threading.Thread(target=srv.serve_forever, daemon=True); t.start()
     # Wait briefly for the socket to be ready
@@ -153,6 +160,9 @@ class TestWebDAVEndToEnd:
         assert s["registered"] == 3
         assert s["workers"] >= 2
         assert _WebDAVHandler.max_active_gets >= 2
+        assert s["active_files"] == {}
+        assert s["failed_files"] == []
+        assert len(s["recent_files"]) == 3
 
         # Files on disk
         assert (dest / "IMG_1000.jpg").is_file()
@@ -230,3 +240,53 @@ class TestWebDAVEndToEnd:
 
         diag = cliente_api.get("/api/diag").json()
         assert diag["counts"]["captures"] == 3
+
+    def test_failed_photo_is_visible_and_can_be_retried_alone(
+        self, cliente_api, cwd_temporal, webdav_server,
+    ):
+        from photos_sync import repository as repo
+        from photos_sync.storage import webdav_downloader as wd
+
+        host, port = webdav_server
+        dest = cwd_temporal / "incoming"
+        repo.save_destination_local(str(cwd_temporal))
+        failed_path = "/DCIM/Camera/IMG_1001.jpg"
+        _WebDAVHandler.fail_paths = {failed_path}
+        original_paths = wd.DEFAULT_REMOTE_PATHS[:]
+        wd.DEFAULT_REMOTE_PATHS = ["/DCIM/Camera"]
+        try:
+            response = cliente_api.post("/api/webdav/download", json={
+                "ip": host, "port": str(port), "dest_folder": str(dest),
+            })
+            assert response.status_code == 200
+            for _ in range(200):
+                status = cliente_api.get("/api/webdav/download-status").json()
+                if status["done"]:
+                    break
+                time.sleep(0.1)
+
+            assert status["failed"] == 1
+            assert status["retry_available"] is True
+            assert status["failed_files"][0]["href"] == failed_path
+            assert status["failed_files"][0]["name"] == "IMG_1001.jpg"
+            assert "503" in status["failed_files"][0]["error"]
+
+            _WebDAVHandler.fail_paths.clear()
+            retry = cliente_api.post("/api/webdav/download/retry-failed")
+            assert retry.status_code == 200
+            assert retry.json()["retrying"] is True
+            for _ in range(200):
+                status = cliente_api.get("/api/webdav/download-status").json()
+                if status["done"]:
+                    break
+                time.sleep(0.1)
+        finally:
+            wd.DEFAULT_REMOTE_PATHS = original_paths
+            _WebDAVHandler.fail_paths.clear()
+
+        assert status["total"] == 1
+        assert status["failed"] == 0
+        assert status["downloaded"] == 1
+        assert status["retry_available"] is False
+        assert (dest / "IMG_1001.jpg").is_file()
+        assert len(repo.load_captures()) == 3

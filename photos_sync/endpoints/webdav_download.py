@@ -1,6 +1,7 @@
 """Concurrent WebDAV ingestion endpoint."""
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -28,6 +29,30 @@ router = APIRouter()
 
 @router.post("/api/webdav/download")
 def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
+    return _start_webdav_download(req)
+
+
+@router.post("/api/webdav/download/retry-failed")
+def webdav_retry_failed(_auth: dict = Depends(require_admin)):
+    """Retry only files that failed in the latest WebDAV job."""
+    with _webdav_job_lock:
+        if _webdav_job.get("running"):
+            raise HTTPException(409, "A WebDAV download is already in progress")
+        failed_files = deepcopy(_webdav_job.get("failed_files", []))
+        source = dict(_webdav_job.get("source", {}))
+
+    if not failed_files or not source:
+        raise HTTPException(409, "There are no failed WebDAV photos to retry")
+
+    req = WebDAVScanIn(
+        ip=source["ip"],
+        port=str(source["port"]),
+        dest_folder=source.get("dest_folder", ""),
+    )
+    return _start_webdav_download(req, retry_files=failed_files)
+
+
+def _start_webdav_download(req: WebDAVScanIn, retry_files: list[dict] | None = None):
     """Scan and download WebDAV photos with bounded parallelism.
 
     Network transfers run concurrently while all job-state and database writes
@@ -45,7 +70,11 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
     from urllib3.util.retry import Retry
 
     from ..config import ORGANIZED_DIR
-    from ..storage.webdav_downloader import DEFAULT_REMOTE_PATHS, list_remote_files
+    from ..storage.webdav_downloader import (
+        DEFAULT_REMOTE_PATHS,
+        RemoteFile,
+        list_remote_files,
+    )
 
     dest = Path(req.dest_folder) if req.dest_folder else ORGANIZED_DIR / "incoming"
     if not _shared._is_allowed(dest):
@@ -54,22 +83,29 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
     workers = max(1, min(int(os.getenv("WEBDAV_DOWNLOAD_WORKERS", "6")), 16))
     batch_size = max(1, min(int(os.getenv("WEBDAV_DB_BATCH_SIZE", "100")), 1000))
 
+    is_retry = retry_files is not None
     global _webdav_job
     with _webdav_job_lock:
         if _webdav_job.get("running"):
             raise HTTPException(409, "A WebDAV download is already in progress")
+        attempt = int(_webdav_job.get("attempt", 0)) + 1
         _webdav_job.update({
             "running": True, "done": False, "error": None,
             "total": 0, "downloaded": 0, "registered": 0,
             "skipped": 0, "failed": 0, "completed": 0,
+            "queued": 0,
             "workers": workers, "batch_size": batch_size,
             "started_at": _t.time(), "finished_at": None,
             "dest": str(dest), "current_file": "",
+            "source": {"ip": req.ip, "port": str(req.port), "dest_folder": str(dest)},
+            "active_files": {}, "recent_files": [], "failed_files": [],
+            "retry_available": False, "retrying": is_retry, "attempt": attempt,
         })
 
     broadcaster.emit(
-        f"Scanning {req.ip}:{req.port} for photos "
-        f"({workers} download workers)...\n"
+        (f"Retrying {len(retry_files or [])} failed WebDAV photos " if is_retry else
+         f"Scanning {req.ip}:{req.port} for photos ")
+        + f"({workers} download workers)...\n"
     )
 
     def _worker():
@@ -108,32 +144,46 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
             if not pending_records:
                 return
             repo.upsert_captures(pending_records)
-            _webdav_job["registered"] += len(pending_records)
+            with _webdav_job_lock:
+                _webdav_job["registered"] += len(pending_records)
             pending_records.clear()
 
         try:
-            # Independent roots are scanned concurrently. Results are sorted
-            # before naming so duplicate-name handling stays deterministic.
-            scan_workers = min(4, len(DEFAULT_REMOTE_PATHS))
-            scan_results = []
-            with ThreadPoolExecutor(
-                max_workers=scan_workers,
-                thread_name_prefix="webdav-scan",
-            ) as scan_pool:
-                future_to_path = {
-                    scan_pool.submit(list_remote_files, req.ip, req.port, path): path
-                    for path in DEFAULT_REMOTE_PATHS
-                }
-                for future in as_completed(future_to_path):
-                    remote_path = future_to_path[future]
-                    found = future.result()
-                    scan_results.extend(found)
-                    if found:
-                        broadcaster.emit(f"   {remote_path}: {len(found)} photos\n")
+            if retry_files is None:
+                # Independent roots are scanned concurrently. Results are sorted
+                # before naming so duplicate-name handling stays deterministic.
+                scan_workers = min(4, len(DEFAULT_REMOTE_PATHS))
+                scan_results = []
+                with ThreadPoolExecutor(
+                    max_workers=scan_workers,
+                    thread_name_prefix="webdav-scan",
+                ) as scan_pool:
+                    future_to_path = {
+                        scan_pool.submit(list_remote_files, req.ip, req.port, path): path
+                        for path in DEFAULT_REMOTE_PATHS
+                    }
+                    for future in as_completed(future_to_path):
+                        remote_path = future_to_path[future]
+                        found = future.result()
+                        scan_results.extend(found)
+                        if found:
+                            broadcaster.emit(f"   {remote_path}: {len(found)} photos\n")
 
-            by_href = {remote.href: remote for remote in scan_results if remote.href}
-            all_files = sorted(by_href.values(), key=lambda remote: remote.href.casefold())
-            _webdav_job["total"] = len(all_files)
+                by_href = {remote.href: remote for remote in scan_results if remote.href}
+                all_files = sorted(by_href.values(), key=lambda remote: remote.href.casefold())
+            else:
+                all_files = [
+                    RemoteFile(
+                        href=item["href"],
+                        name=item["name"],
+                        size=int(item.get("size", 0)),
+                        modified=item.get("modified", ""),
+                    )
+                    for item in retry_files
+                ]
+            with _webdav_job_lock:
+                _webdav_job["total"] = len(all_files)
+                _webdav_job["queued"] = len(all_files)
             if not all_files:
                 broadcaster.emit("No photos found on WebDAV server.\n")
                 return
@@ -167,6 +217,18 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
 
             def transfer(remote):
                 local = local_by_href[remote.href]
+                item = {
+                    "href": remote.href,
+                    "name": remote.name,
+                    "size": remote.size,
+                    "modified": remote.modified,
+                    "transferred": 0,
+                    "status": "downloading",
+                    "error": None,
+                }
+                with _webdav_job_lock:
+                    _webdav_job["active_files"][remote.href] = item
+                    _webdav_job["queued"] = max(0, _webdav_job["queued"] - 1)
                 try:
                     if local.exists() and remote.size > 0 and local.stat().st_size == remote.size:
                         return remote, local, "skipped", None
@@ -181,6 +243,10 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
                                 for chunk in response.iter_content(chunk_size=262_144):
                                     if chunk:
                                         file_handle.write(chunk)
+                                        with _webdav_job_lock:
+                                            active = _webdav_job["active_files"].get(remote.href)
+                                            if active is not None:
+                                                active["transferred"] += len(chunk)
                         temporary.replace(local)
                     except Exception:
                         temporary.unlink(missing_ok=True)
@@ -196,9 +262,25 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
                 futures = [download_pool.submit(transfer, remote) for remote in all_files]
                 for future in as_completed(futures):
                     remote, local, outcome, error = future.result()
-                    _webdav_job["current_file"] = remote.name
-                    _webdav_job["completed"] += 1
-                    _webdav_job[outcome] += 1
+                    with _webdav_job_lock:
+                        active = _webdav_job["active_files"].pop(remote.href, {})
+                        item = {
+                            "href": remote.href,
+                            "name": remote.name,
+                            "size": remote.size,
+                            "modified": remote.modified,
+                            "transferred": active.get("transferred", 0),
+                            "status": outcome,
+                            "error": error,
+                        }
+                        _webdav_job["current_file"] = remote.name
+                        _webdav_job["completed"] += 1
+                        _webdav_job[outcome] += 1
+                        if error:
+                            _webdav_job["failed_files"].append(item)
+                        else:
+                            _webdav_job["recent_files"].insert(0, item)
+                            del _webdav_job["recent_files"][20:]
 
                     if error:
                         broadcaster.emit(f"   Skip {remote.name}: {error}\n")
@@ -231,7 +313,9 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
                         )
 
             flush_records()
-            if _webdav_job["failed"]:
+            with _webdav_job_lock:
+                failed_count = _webdav_job["failed"]
+            if failed_count:
                 job_status = "partial"
             broadcaster.emit(
                 f"Done. downloaded={_webdav_job['downloaded']} "
@@ -252,8 +336,10 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
             WEBDAV_JOB_DURATION.labels(status=job_status).observe(job_duration)
             WEBDAV_LAST_JOB_SUCCESS.set(1 if job_status == "success" else 0)
             WEBDAV_LAST_JOB_TIMESTAMP.set(_t.time())
+            with _webdav_job_lock:
+                final_state = deepcopy(_webdav_job)
             for outcome in ("downloaded", "registered", "skipped", "failed"):
-                WEBDAV_PHOTOS.labels(outcome=outcome).inc(_webdav_job[outcome])
+                WEBDAV_PHOTOS.labels(outcome=outcome).inc(final_state[outcome])
             log_event(
                 "webdav_job_finished",
                 level="error" if job_status == "error" else "info",
@@ -270,12 +356,19 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
                 _webdav_job["running"] = False
                 _webdav_job["done"] = True
                 _webdav_job["finished_at"] = _t.time()
+                _webdav_job["active_files"] = {}
+                _webdav_job["queued"] = 0
+                _webdav_job["retry_available"] = bool(_webdav_job["failed_files"])
 
     threading.Thread(target=_worker, daemon=True, name="webdav-job").start()
     return {
         "ok": True,
         "started": True,
-        "message": "Concurrent WebDAV download started.",
+        "message": (
+            "Retry of failed WebDAV photos started."
+            if is_retry else "Concurrent WebDAV download started."
+        ),
+        "retrying": is_retry,
         "dest_folder": str(dest),
         "workers": workers,
         "db_batch_size": batch_size,

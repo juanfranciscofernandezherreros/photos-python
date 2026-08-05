@@ -595,6 +595,17 @@ select.inp{cursor:pointer}
 .step-card span{font-size:12.5px;font-weight:500;color:var(--ink3)}
 .fg2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.wd-transfer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.wd-state{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;background:var(--bg3);color:var(--ink4);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.wd-state.live{background:rgba(99,102,241,.12);color:var(--b2)}
+.wd-state.error{background:var(--red-bg);color:var(--red)}
+.wd-pulse{width:7px;height:7px;border-radius:50%;background:currentColor}.wd-state.live .wd-pulse{animation:pulse 1.2s infinite}
+.wd-progress{height:7px;background:var(--bg3);border-radius:999px;overflow:hidden}.wd-progress>div{height:100%;width:0;background:linear-gradient(90deg,var(--b),#8b5cf6);border-radius:inherit;transition:width .3s ease}
+.wd-metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:12px 0}.wd-metric{padding:9px 10px;background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r3)}
+.wd-metric b{display:block;font-size:16px;color:var(--ink);line-height:1.1}.wd-metric span{font-size:9px;color:var(--ink5);text-transform:uppercase;letter-spacing:.05em}
+.wd-columns{display:grid;grid-template-columns:1.25fr .75fr;gap:10px}.wd-pane{border:1px solid var(--brd2);border-radius:var(--r3);overflow:hidden}.wd-pane-title{padding:8px 10px;background:var(--bg3);font-size:9px;font-weight:700;color:var(--ink5);text-transform:uppercase;letter-spacing:.06em}
+.wd-file{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:9px;align-items:center;padding:9px 10px;border-top:1px solid var(--brd2)}.wd-file:first-child{border-top:0}.wd-file-icon{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:rgba(99,102,241,.1);color:var(--b2);font-size:11px;font-weight:700}.wd-file-name{font-size:11px;font-weight:600;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wd-file-sub{font-size:9px;color:var(--ink5);margin-top:2px}.wd-file-pct{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink4)}
+.wd-empty{padding:16px 10px;text-align:center;color:var(--ink5);font-size:10px}.wd-failures{margin-top:10px;border:1px solid rgba(248,113,113,.2);border-radius:var(--r3);overflow:hidden}.wd-failure-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;background:var(--red-bg);color:var(--red);font-size:11px;font-weight:700}.wd-error-text{font-size:9px;color:var(--red);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
 
 /* ── Responsive ─────────────────────────────────────────── */
 @media(min-width:1400px){
@@ -621,6 +632,7 @@ select.inp{cursor:pointer}
   #gallery-panel{top:0;right:0;bottom:0;border-radius:0;width:100%!important}
   .lb-nav.prev{left:-4px}.lb-nav.next{right:-4px}
   .fg2,.fg3{grid-template-columns:1fr}
+  .wd-columns{grid-template-columns:1fr}.wd-metrics{grid-template-columns:repeat(2,1fr)}
 }
 </style>
 </head>
@@ -952,6 +964,32 @@ select.inp{cursor:pointer}
           </div>
           <div id="wd-dl-scan-result" style="margin-top:10px;font-size:12px;color:var(--ink3)"></div>
           <div id="wd-dl-msg" class="msg"></div>
+        </div>
+        <div class="card" id="wd-transfer-card" style="display:none;margin-bottom:12px">
+          <div class="wd-transfer-head">
+            <div>
+              <div class="card-title" style="margin-bottom:2px">Transfer activity</div>
+              <div id="wd-transfer-subtitle" style="font-size:10px;color:var(--ink5)">Waiting for a WebDAV job</div>
+            </div>
+            <span class="wd-state" id="wd-transfer-state"><span class="wd-pulse"></span><span>Idle</span></span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:10px;font-size:10px;color:var(--ink4);margin-bottom:6px"><span id="wd-progress-label">0 of 0 photos</span><b id="wd-progress-pct" style="color:var(--ink2)">0%</b></div>
+          <div class="wd-progress"><div id="wd-progress-bar"></div></div>
+          <div class="wd-metrics">
+            <div class="wd-metric"><b id="wd-metric-downloaded">0</b><span>Downloaded</span></div>
+            <div class="wd-metric"><b id="wd-metric-active">0</b><span>Active</span></div>
+            <div class="wd-metric"><b id="wd-metric-queued">0</b><span>Queued</span></div>
+            <div class="wd-metric"><b id="wd-metric-skipped">0</b><span>Already done</span></div>
+            <div class="wd-metric"><b id="wd-metric-failed">0</b><span>Failed</span></div>
+          </div>
+          <div class="wd-columns">
+            <div class="wd-pane"><div class="wd-pane-title">Transferring now</div><div id="wd-active-files" class="wd-empty">No active transfers</div></div>
+            <div class="wd-pane"><div class="wd-pane-title">Recently completed</div><div id="wd-recent-files" class="wd-empty">Nothing completed yet</div></div>
+          </div>
+          <div class="wd-failures" id="wd-failures" style="display:none">
+            <div class="wd-failure-head"><span id="wd-failure-title">Failed photos</span><button class="bd" id="btn-wd-retry" onclick="wdRetryFailed()" style="padding:5px 9px">Retry failed only</button></div>
+            <div id="wd-failed-files"></div>
+          </div>
         </div>
       </div>
 
@@ -2234,6 +2272,9 @@ async function initWebDAV(){
     const libres=r.libres||[];
     const s=$('wd-letra');if(s){s.innerHTML='';(libres.length?libres:['Z:']).forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;s.appendChild(o)});}
     await renderWD();
+    const status=await api('/api/webdav/download-status');
+    renderWebDavTransfer(status);
+    if(status.running)wdWatchStatus(false,status.dest||'');
     // If no free drive letters (Linux/Docker), switch to direct mode automatically
     if(!libres.length)wdMode('direct');
   }catch(e){}
@@ -2311,6 +2352,58 @@ async function _flushWebDavGalleryRefresh(){
   if(_wdGalleryRefreshPending)await _runWebDavGalleryRefresh();
 }
 
+function wdEsc(value){const el=document.createElement('span');el.textContent=String(value??'');return el.innerHTML;}
+function wdBytes(value){const n=Number(value)||0;if(n<1024)return n+' B';if(n<1048576)return (n/1024).toFixed(1)+' KB';return (n/1048576).toFixed(1)+' MB';}
+function wdFileRow(item,active=false){
+  const size=Number(item.size)||0,transferred=Number(item.transferred)||0;
+  const pct=size?Math.min(100,Math.round(transferred/size*100)):(active?'…':100);
+  const extension=(String(item.name||'').split('.').pop()||'IMG').slice(0,4).toUpperCase();
+  const sub=active?`${wdBytes(transferred)} of ${wdBytes(size)}`:(item.status==='skipped'?'Already downloaded':wdBytes(size));
+  return `<div class="wd-file"><span class="wd-file-icon">${wdEsc(extension)}</span><div style="min-width:0"><div class="wd-file-name" title="${wdEsc(item.name)}">${wdEsc(item.name)}</div><div class="wd-file-sub">${wdEsc(sub)}</div></div><span class="wd-file-pct">${pct}${typeof pct==='number'?'%':''}</span></div>`;
+}
+
+function renderWebDavTransfer(s){
+  if(!s||(!s.started_at&&!s.running&&!s.done))return;
+  const card=$('wd-transfer-card');if(!card)return;card.style.display='block';
+  const active=Object.values(s.active_files||{}),recent=s.recent_files||[],failed=s.failed_files||[];
+  const total=Number(s.total)||0,completed=Number(s.completed)||0,pct=total?Math.round(completed/total*100):0;
+  $('wd-progress-label').textContent=`${completed} of ${total} photos`;
+  $('wd-progress-pct').textContent=pct+'%';$('wd-progress-bar').style.width=pct+'%';
+  $('wd-metric-downloaded').textContent=s.downloaded||0;$('wd-metric-active').textContent=active.length;
+  $('wd-metric-queued').textContent=s.queued||0;$('wd-metric-skipped').textContent=s.skipped||0;$('wd-metric-failed').textContent=s.failed||0;
+  $('wd-transfer-subtitle').textContent=s.retrying?`Retry attempt ${s.attempt} · failed files only`:`Attempt ${s.attempt||1} · ${s.workers||0} parallel workers`;
+  const state=$('wd-transfer-state');state.className='wd-state'+(s.running?' live':failed.length?' error':'');
+  state.lastElementChild.textContent=s.running?(s.retrying?'Retrying':'Downloading'):failed.length?'Needs attention':'Complete';
+  const activeBox=$('wd-active-files');activeBox.className=active.length?'':'wd-empty';activeBox.innerHTML=active.length?active.map(x=>wdFileRow(x,true)).join(''):'No active transfers';
+  const recentBox=$('wd-recent-files');recentBox.className=recent.length?'':'wd-empty';recentBox.innerHTML=recent.length?recent.slice(0,5).map(x=>wdFileRow(x)).join(''):'Nothing completed yet';
+  const failureBox=$('wd-failures');failureBox.style.display=failed.length?'':'none';
+  $('wd-failure-title').textContent=`${failed.length} photo${failed.length===1?'':'s'} failed`;
+  $('btn-wd-retry').disabled=!!s.running||!s.retry_available;
+  $('wd-failed-files').innerHTML=failed.map(item=>`<div class="wd-file"><span class="wd-file-icon" style="background:var(--red-bg);color:var(--red)">!</span><div style="min-width:0"><div class="wd-file-name">${wdEsc(item.name)}</div><div class="wd-error-text" title="${wdEsc(item.error)}">${wdEsc(item.error||'Connection interrupted')}</div></div><span class="wd-file-pct" style="color:var(--red)">Failed</span></div>`).join('');
+}
+
+let _wdStatusTimer=null,_wdStatusNotify=false,_wdStatusDest='',_wdStatusLastRegistered=0;
+function wdWatchStatus(notify=true,dest=''){
+  if(_wdStatusTimer)clearTimeout(_wdStatusTimer);
+  _wdStatusNotify=notify;_wdStatusDest=dest;void wdPollStatus();
+}
+async function wdPollStatus(){
+  try{
+    const s=await api('/api/webdav/download-status');renderWebDavTransfer(s);
+    const btn=$('btn-wd-download');if(btn){btn.disabled=!!s.running;btn.textContent=s.running?(s.retrying?'Retrying failed…':'Downloading…'):'Download all photos';}
+    if(s.registered!==_wdStatusLastRegistered){_wdStatusLastRegistered=s.registered;if(s.registered>0)_scheduleWebDavGalleryRefresh();}
+    if(s.running){_wdStatusTimer=setTimeout(wdPollStatus,1000);return;}
+    _wdStatusTimer=null;
+    if(_wdStatusNotify){
+      if(s.error)showMsg('wd-dl-msg',`❌ ${s.error}`,false);
+      else if(s.failed)showMsg('wd-dl-msg',`⚠️ ${s.failed} photo${s.failed===1?'':'s'} failed. Use "Retry failed only" to continue.`,false);
+      else showMsg('wd-dl-msg',`✅ Done. ${s.registered} new photos in gallery, ${s.skipped} already on disk.`,true);
+      if(_wdStatusDest){try{await api('/api/carpetas/origen/anadir',{method:'POST',body:{carpeta:_wdStatusDest}});}catch(_){}}
+      await _flushWebDavGalleryRefresh();_wdStatusNotify=false;
+    }
+  }catch(_){_wdStatusTimer=setTimeout(wdPollStatus,3000);}
+}
+
 async function wdDownload(){
   const ip=($('wd-dl-ip')||{}).value||'';
   const port=($('wd-dl-port')||{}).value||'8080';
@@ -2321,46 +2414,19 @@ async function wdDownload(){
   const res=$('wd-dl-scan-result');
   if(res)res.textContent='Connecting to phone…';
   try{
-    // Kick off the background download (returns immediately)
     await api('/api/webdav/download',{method:'POST',body:{ip:ip.trim(),port:port.trim(),dest_folder:dest.trim()}});
-
-    // Poll status every 2s until done
-    if(btn)btn.textContent='Downloading…';
-    let lastRegistered=0;
-    const poll=async()=>{
-      try{
-        const s=await api('/api/webdav/download-status');
-        if(res){
-          const pct=s.total?Math.round(((s.downloaded+s.skipped)/s.total)*100):0;
-          res.innerHTML=`<b>${s.downloaded+s.skipped}/${s.total}</b> (${pct}%) — Downloaded: ${s.downloaded} · In DB: ${s.registered} · Skipped (already on disk): ${s.skipped}<br><span style="color:var(--ink5);font-family:'JetBrains Mono',monospace;font-size:10px">${s.current_file||''}</span>`;
-        }
-        // Refresh gallery when new photos are registered
-        if(s.registered!==lastRegistered){
-          lastRegistered=s.registered;
-          if(s.registered>0)_scheduleWebDavGalleryRefresh();
-        }
-
-        if(s.done){
-          if(s.error){showMsg('wd-dl-msg',`❌ ${s.error}`,false);}
-          else{showMsg('wd-dl-msg',`✅ Done. ${s.registered} new photos in gallery, ${s.skipped} already on disk.`,true);}
-          if(btn){btn.disabled=false;btn.textContent='Download all photos';}
-          // Add incoming folder as source folder
-          if(dest.trim()){try{await api('/api/carpetas/origen/anadir',{method:'POST',body:{carpeta:dest.trim()}});}catch(_){}}
-          await _flushWebDavGalleryRefresh();
-          return;
-        }
-        setTimeout(poll, 2000);
-      }catch(e){
-        // Poll error — just retry
-        setTimeout(poll, 3000);
-      }
-    };
-    poll();
+    if(res)res.textContent='Transfer started. Live details are shown below.';
+    wdWatchStatus(true,dest.trim());
   }catch(e){
     showMsg('wd-dl-msg',e.message,false);
     if(res)res.textContent='';
     if(btn){btn.disabled=false;btn.textContent='Download all photos';}
   }
+}
+async function wdRetryFailed(){
+  const btn=$('btn-wd-retry');if(btn){btn.disabled=true;btn.textContent='Starting…';}
+  try{await api('/api/webdav/download/retry-failed',{method:'POST'});wdWatchStatus(true,'');}
+  catch(e){showMsg('wd-dl-msg',e.message,false);if(btn){btn.disabled=false;btn.textContent='Retry failed only';}}
 }
 async function renderWD(){const l=await api('/api/webdav');const tb=document.querySelector('#wd-table tbody');tb.innerHTML='';if(!l.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink4);font-size:12px">No WebDAV drives</td></tr>';return}l.forEach(c=>{const ok=c.montada;const tr=document.createElement('tr');tr.innerHTML=`<td style="font-weight:600">${c.letra}</td><td>${c.alias||''}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px">${c.ip}</td><td>${c.puerto}</td><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:${ok?'#12b76a':'#f04438'}${ok?';box-shadow:0 0 5px #12b76a60':''}"></span>${ok?'Connected':'Disconnected'}</span></td><td>${ok?`<button onclick="disconnectWD('${c.letra}')" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;font-weight:600">Disconnect</button>`:'—'}</td>`;tb.appendChild(tr)})}
 async function conectarWD(){const b=$('btn-wd-conectar');b.disabled=true;b.textContent='Connecting…';try{const r=await api('/api/webdav/connect',{method:'POST',body:{letra:$('wd-letra').value,ip:$('wd-ip').value.trim(),puerto:$('wd-puerto').value.trim()||'8080',alias:$('wd-alias').value.trim()}});showMsg('wd-msg',r.mensaje,r.ok);await initWebDAV()}catch(e){showMsg('wd-msg',e.message,false)}finally{b.disabled=false;b.textContent='Connect drive'}}

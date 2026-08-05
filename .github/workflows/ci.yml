@@ -220,7 +220,7 @@ jobs:
 
   ci-gate:
     name: CI gate
-    runs-on: [self-hosted, linux, x64]
+    runs-on: ubuntu-latest
     if: always()
     needs: [static-analysis, test, coverage, serenity, postgres-integration, build]
     steps:

@@ -56,6 +56,7 @@ Feature: Complete Photos Sync API contract
       | POST      | /api/webdav/disconnect/{letra}    |
       | POST      | /api/webdav/scan                  |
       | POST      | /api/webdav/download              |
+      | POST      | /api/webdav/download/retry-failed |
       | GET       | /api/webdav/download-status       |
       | GET       | /api/carpetas                     |
       | POST      | /api/carpetas/origen/anadir       |

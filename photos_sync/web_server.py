@@ -687,8 +687,11 @@ class WebDAVScanIn(BaseModel):
 # Job state (single global; only one WebDAV download at a time)
 _webdav_job: dict = {"running": False, "done": False, "error": None,
                      "total": 0, "downloaded": 0, "registered": 0, "skipped": 0,
+                     "failed": 0, "completed": 0, "queued": 0,
                      "started_at": None, "finished_at": None,
-                     "dest": "", "current_file": ""}
+                     "dest": "", "current_file": "", "source": {},
+                     "active_files": {}, "recent_files": [], "failed_files": [],
+                     "retry_available": False, "retrying": False, "attempt": 0}
 _webdav_job_lock = threading.Lock()
 
 

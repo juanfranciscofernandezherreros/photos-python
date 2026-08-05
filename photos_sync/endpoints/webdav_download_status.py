@@ -1,6 +1,8 @@
 """Endpoint implemented in its own router module."""
 from __future__ import annotations
 
+from copy import deepcopy
+
 from fastapi import APIRouter, Depends
 
 from .. import web_server as _shared
@@ -17,4 +19,4 @@ router = APIRouter()
 def webdav_download_status(_auth: dict = Depends(require_admin)):
     """Poll this to know how the background download is going."""
     with _webdav_job_lock:
-        return dict(_webdav_job)
+        return deepcopy(_webdav_job)
