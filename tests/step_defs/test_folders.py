@@ -1,6 +1,8 @@
 """Step definitions for folders.feature."""
 from __future__ import annotations
 
+from pathlib import Path
+
 from pytest_bdd import parsers, scenarios, then, when
 
 scenarios("../features/folders.feature")
@@ -33,7 +35,7 @@ def rm_dest(ctx):
 
 @then(parsers.parse('"origen" contains "{val}"'))
 def origen_has(ctx, val):
-    assert val in ctx["resp"].json()["origen"]
+    assert str(Path(val)) in ctx["resp"].json()["origen"]
 
 
 @then('the response is a list of steps with "id" and "nombre"')

@@ -1,22 +1,23 @@
 """Endpoint implemented in its own router module."""
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import APIRouter
 
-from .. import web_server as _shared
-
-# Endpoint implementations retain access to the application's shared services,
-# models and state without duplicating business infrastructure.
-globals().update({
-    name: value
-    for name, value in vars(_shared).items()
-    if not name.startswith("__")
-})
+from ..web_server import (
+    Depends,
+    QuitarCarpetaIn,
+    load_saved_folders,
+    require_admin,
+    save_folders,
+)
 
 router = APIRouter()
 
 @router.post("/api/carpetas/origen/quitar")
 def quitar_carpeta(datos: QuitarCarpetaIn, _auth: dict = Depends(require_admin)):
-    actuales = [c for c in load_saved_folders() if str(c) != datos.carpeta]
+    target = Path(datos.carpeta)
+    actuales = [c for c in load_saved_folders() if c != target]
     save_folders(actuales)
     return {"ok": True, "origen": [str(c) for c in actuales]}

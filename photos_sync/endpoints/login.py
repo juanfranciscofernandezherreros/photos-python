@@ -3,15 +3,17 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from .. import web_server as _shared
-
-# Endpoint implementations retain access to the application's shared services,
-# models and state without duplicating business infrastructure.
-globals().update({
-    name: value
-    for name, value in vars(_shared).items()
-    if not name.startswith("__")
-})
+from ..web_server import (
+    HTTPException,
+    LoginIn,
+    Request,
+    _check_lockout,
+    _clear_failures,
+    _record_failure,
+    auth,
+    limiter,
+    repo,
+)
 
 router = APIRouter()
 

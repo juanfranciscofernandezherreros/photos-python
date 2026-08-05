@@ -61,6 +61,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import case, delete, false, func, insert, select, update
 
@@ -551,10 +552,15 @@ def upsert_captures(caps: list[dict]) -> None:
         chunk_size = 500 if dialect == "postgresql" else 50
         for start in range(0, len(records), chunk_size):
             chunk = records[start:start + chunk_size]
+            statement: Any
             if dialect == "postgresql":
-                from sqlalchemy.dialects.postgresql import insert as dialect_insert
+                from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+
+                statement = postgresql_insert(t_captures).values(chunk)
             elif dialect == "sqlite":
-                from sqlalchemy.dialects.sqlite import insert as dialect_insert
+                from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+                statement = sqlite_insert(t_captures)
             else:
                 # The application supports PostgreSQL and SQLite. Retain a
                 # portable fallback for diagnostics on another SQL dialect.
@@ -563,9 +569,6 @@ def upsert_captures(caps: list[dict]) -> None:
                 conn.execute(insert(t_captures), chunk)
                 continue
 
-            statement = dialect_insert(t_captures)
-            if dialect == "postgresql":
-                statement = statement.values(chunk)
             excluded = statement.excluded
             statement = statement.on_conflict_do_update(
                 index_elements=[t_captures.c.id],

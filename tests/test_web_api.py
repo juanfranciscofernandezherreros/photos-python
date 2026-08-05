@@ -6,6 +6,7 @@ Covers all endpoints: steps, pipeline, SSH, WebDAV, source and
 destination folders.
 """
 
+from pathlib import Path
 
 # ═══════════════════════════════════════ /api/pasos ══════════════════════════
 
@@ -153,7 +154,10 @@ class TestWebDAVApi:
         assert "Z:" not in data["libres"]
         assert "Z:" in data["todas"]
 
-    def test_connect_on_linux_returns_ok_false_with_message(self, cliente_api):
+    def test_connect_on_linux_returns_ok_false_with_message(self, cliente_api, monkeypatch):
+        from photos_sync.storage import connection as webdav_connection
+
+        monkeypatch.setattr(webdav_connection.platform, "system", lambda: "Linux")
         r = cliente_api.post("/api/webdav/connect", json={
             "letra": "Z:", "ip": "192.168.1.1", "puerto": "8080", "alias": "test",
         })
@@ -200,7 +204,7 @@ class TestCarpetasApi:
         r = cliente_api.post("/api/carpetas/origen/anadir",
                              json={"carpeta": "/mnt/fotos"})
         assert r.status_code == 200
-        assert "/mnt/fotos" in r.json()["origen"]
+        assert str(Path("/mnt/fotos")) in r.json()["origen"]
 
     def test_add_empty_folder_returns_400(self, cliente_api):
         r = cliente_api.post("/api/carpetas/origen/anadir", json={"carpeta": ""})
@@ -210,13 +214,13 @@ class TestCarpetasApi:
         cliente_api.post("/api/carpetas/origen/anadir", json={"carpeta": "/mnt/fotos"})
         cliente_api.post("/api/carpetas/origen/anadir", json={"carpeta": "/mnt/fotos"})
         origen = cliente_api.get("/api/carpetas").json()["origen"]
-        assert origen.count("/mnt/fotos") == 1
+        assert origen.count(str(Path("/mnt/fotos"))) == 1
 
     def test_remove_carpeta_origen(self, cliente_api):
         cliente_api.post("/api/carpetas/origen/anadir", json={"carpeta": "/mnt/fotos"})
         r = cliente_api.post("/api/carpetas/origen/quitar", json={"carpeta": "/mnt/fotos"})
         assert r.status_code == 200
-        assert "/mnt/fotos" not in r.json()["origen"]
+        assert str(Path("/mnt/fotos")) not in r.json()["origen"]
 
     def test_save_destination_local(self, cliente_api):
         r = cliente_api.post("/api/carpetas/destino",

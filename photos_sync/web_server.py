@@ -19,7 +19,7 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -230,7 +230,7 @@ class PipelineManager:
 
 class _BroadcastIO(io.TextIOBase):
     """Forward pipeline output both to the UI and the container log."""
-    def __init__(self, broadcaster: LogBroadcaster, mirror: io.TextIOBase | None = None) -> None:
+    def __init__(self, broadcaster: LogBroadcaster, mirror: TextIO | None = None) -> None:
         self._broadcaster = broadcaster
         self._mirror = mirror
 
