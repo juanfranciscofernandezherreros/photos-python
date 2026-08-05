@@ -86,8 +86,10 @@ docker compose --profile monitoring up -d --build
 Grafana se aprovisiona automáticamente con las fuentes **Prometheus** y
 **Loki** y con dos dashboards dentro de la carpeta `Photos Sync`:
 
-- `API REST · Observabilidad`: dashboard único con KPIs, tráfico, análisis por
+- `API REST · Observabilidad`: dashboard de API con KPIs, tráfico, análisis por
   endpoint/método/código HTTP, logs y trazabilidad por `correlation_id`.
+- `Hardware e Infraestructura`: dashboard independiente con salud de servicios,
+  CPU, RAM, red, disco, uptime de contenedores y estado de PostgreSQL.
 
 El panel **Logs de cada petición** muestra timestamp, método, endpoint, código
 HTTP, duración y `correlation_id` para cada petición.

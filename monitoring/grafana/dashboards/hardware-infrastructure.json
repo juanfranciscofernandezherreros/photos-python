@@ -1,0 +1,119 @@
+{
+  "annotations": {"list": [{"builtIn": 1, "datasource": {"type": "grafana", "uid": "-- Grafana --"}, "enable": true, "hide": true, "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard"}]},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [{"asDropdown": false, "icon": "external link", "includeVars": false, "keepTime": true, "tags": [], "targetBlank": false, "title": "Observabilidad API", "tooltip": "Abrir dashboard de la API", "type": "link", "url": "/d/api-rest-observability"}],
+  "liveNow": false,
+  "panels": [
+    {"collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}, "id": 1, "panels": [], "title": "Resumen de infraestructura", "type": "row"},
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Targets que Prometheus puede consultar correctamente.",
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "decimals": 0, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 7}]}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 1}, "id": 2,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showPercentChange": false, "textMode": "auto", "wideLayout": true},
+      "pluginVersion": "11.6.0", "targets": [{"editorMode": "code", "expr": "sum(up)", "instant": true, "legendFormat": "Targets activos", "range": false, "refId": "A"}], "title": "Servicios activos", "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Contenedores activos pertenecientes al proyecto photos-python.",
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}, "decimals": 0, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 1}, "id": 3,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showPercentChange": false, "textMode": "auto", "wideLayout": true},
+      "pluginVersion": "11.6.0", "targets": [{"editorMode": "code", "expr": "count(container_last_seen{container_label_com_docker_compose_project=\"photos-python\",name=~\"photos_.+\"})", "instant": true, "legendFormat": "Contenedores", "range": false, "refId": "A"}], "title": "Contenedores activos", "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "CPU consumida por los contenedores del stack respecto a los cores disponibles.",
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "decimals": 1, "max": 100, "min": 0, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 70}, {"color": "red", "value": 90}]}, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 1}, "id": 4,
+      "options": {"colorMode": "background", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showPercentChange": true, "textMode": "auto", "wideLayout": true},
+      "pluginVersion": "11.6.0", "targets": [{"editorMode": "code", "expr": "100 * sum(rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_project=\"photos-python\",name=~\"photos_.+\"}[5m])) / scalar(machine_cpu_cores{job=\"containers\"})", "instant": true, "legendFormat": "CPU", "range": false, "refId": "A"}], "title": "CPU total", "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Memoria de trabajo del stack respecto a la memoria disponible para Docker.",
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "decimals": 1, "max": 100, "min": 0, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 75}, {"color": "red", "value": 90}]}, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 1}, "id": 5,
+      "options": {"colorMode": "background", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showPercentChange": true, "textMode": "auto", "wideLayout": true},
+      "pluginVersion": "11.6.0", "targets": [{"editorMode": "code", "expr": "100 * sum(container_memory_working_set_bytes{container_label_com_docker_compose_project=\"photos-python\",name=~\"photos_.+\"}) / scalar(machine_memory_bytes{job=\"containers\"})", "instant": true, "legendFormat": "RAM", "range": false, "refId": "A"}], "title": "RAM total", "type": "stat"
+    },
+    {"collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5}, "id": 6, "panels": [], "title": "CPU y memoria", "type": "row"},
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "Uso de CPU por contenedor; 100% equivale a un core.",
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "CPU", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 18, "gradientMode": "opacity", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 4, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 6}, "id": 7, "options": {"legend": {"calcs": ["lastNotNull", "mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}}, "pluginVersion": "11.6.0",
+      "targets": [{"editorMode": "code", "expr": "100 * sum by (name) (rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_project=\"photos-python\",name=~\"${container:regex}\"}[$__rate_interval]))", "instant": false, "legendFormat": "{{name}}", "range": true, "refId": "A"}], "title": "CPU por contenedor", "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "Memoria de trabajo utilizada por cada contenedor.",
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "RAM", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 18, "gradientMode": "opacity", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 4, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "bytes"}, "overrides": []},
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 6}, "id": 8, "options": {"legend": {"calcs": ["lastNotNull", "mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}}, "pluginVersion": "11.6.0",
+      "targets": [{"editorMode": "code", "expr": "sum by (name) (container_memory_working_set_bytes{container_label_com_docker_compose_project=\"photos-python\",name=~\"${container:regex}\"})", "instant": false, "legendFormat": "{{name}}", "range": true, "refId": "A"}], "title": "RAM por contenedor", "type": "timeseries"
+    },
+    {"collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 15}, "id": 9, "panels": [], "title": "Red y almacenamiento", "type": "row"},
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "Tráfico de red recibido y transmitido por contenedor.",
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "Red", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 15, "gradientMode": "opacity", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 4, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "Bps"}, "overrides": []},
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 16}, "id": 10, "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}}, "pluginVersion": "11.6.0",
+      "targets": [{"editorMode": "code", "expr": "sum by (name) (rate(container_network_receive_bytes_total{container_label_com_docker_compose_project=\"photos-python\",name=~\"${container:regex}\"}[$__rate_interval]))", "instant": false, "legendFormat": "RX {{name}}", "range": true, "refId": "A"}, {"editorMode": "code", "expr": "sum by (name) (rate(container_network_transmit_bytes_total{container_label_com_docker_compose_project=\"photos-python\",name=~\"${container:regex}\"}[$__rate_interval]))", "instant": false, "legendFormat": "TX {{name}}", "range": true, "refId": "B"}], "title": "Red por contenedor", "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "Lecturas y escrituras de almacenamiento por contenedor.",
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "Disco", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 15, "gradientMode": "opacity", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 4, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "Bps"}, "overrides": []},
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 16}, "id": 11, "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}}, "pluginVersion": "11.6.0",
+      "targets": [{"editorMode": "code", "expr": "sum by (name) (rate(container_fs_reads_bytes_total{container_label_com_docker_compose_project=\"photos-python\",name=~\"${container:regex}\"}[$__rate_interval]))", "instant": false, "legendFormat": "Lectura {{name}}", "range": true, "refId": "A"}, {"editorMode": "code", "expr": "sum by (name) (rate(container_fs_writes_bytes_total{container_label_com_docker_compose_project=\"photos-python\",name=~\"${container:regex}\"}[$__rate_interval]))", "instant": false, "legendFormat": "Escritura {{name}}", "range": true, "refId": "B"}], "title": "I/O de disco", "type": "timeseries"
+    },
+    {"collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 25}, "id": 12, "panels": [], "title": "Estado actual", "type": "row"},
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "Consumo actual de memoria ordenado por contenedor.",
+      "fieldConfig": {"defaults": {"color": {"mode": "continuous-GrYlRd"}, "decimals": 1, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "bytes"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 26}, "id": 13, "options": {"displayMode": "gradient", "legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false}, "maxVizHeight": 300, "minVizHeight": 16, "minVizWidth": 8, "namePlacement": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": true}, "showUnfilled": true, "sizing": "auto", "valueMode": "color"}, "pluginVersion": "11.6.0",
+      "targets": [{"editorMode": "code", "expr": "sort_desc(sum by (name) (container_memory_working_set_bytes{container_label_com_docker_compose_project=\"photos-python\",name=~\"${container:regex}\"}))", "instant": true, "legendFormat": "{{name}}", "range": false, "refId": "A"}], "title": "RAM actual", "type": "bargauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "CPU media durante los últimos cinco minutos.",
+      "fieldConfig": {"defaults": {"color": {"mode": "continuous-GrYlRd"}, "decimals": 1, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 26}, "id": 14, "options": {"displayMode": "gradient", "legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false}, "maxVizHeight": 300, "minVizHeight": 16, "minVizWidth": 8, "namePlacement": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": true}, "showUnfilled": true, "sizing": "auto", "valueMode": "color"}, "pluginVersion": "11.6.0",
+      "targets": [{"editorMode": "code", "expr": "sort_desc(100 * sum by (name) (rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_project=\"photos-python\",name=~\"${container:regex}\"}[5m])))", "instant": true, "legendFormat": "{{name}}", "range": false, "refId": "A"}], "title": "CPU actual", "type": "bargauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "Tiempo transcurrido desde el inicio de cada contenedor.",
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}, "decimals": 1, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}, "unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 26}, "id": 15, "options": {"displayMode": "basic", "legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false}, "maxVizHeight": 300, "minVizHeight": 16, "minVizWidth": 8, "namePlacement": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": true}, "showUnfilled": true, "sizing": "auto", "valueMode": "text"}, "pluginVersion": "11.6.0",
+      "targets": [{"editorMode": "code", "expr": "time() - max by (name) (container_start_time_seconds{container_label_com_docker_compose_project=\"photos-python\",name=~\"${container:regex}\"})", "instant": true, "legendFormat": "{{name}}", "range": false, "refId": "A"}], "title": "Uptime de contenedores", "type": "bargauge"
+    },
+    {"collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 34}, "id": 16, "panels": [], "title": "Servicios y base de datos", "type": "row"},
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "Disponibilidad de cada target monitorizado por Prometheus.",
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "decimals": 0, "mappings": [{"options": {"0": {"color": "red", "index": 0, "text": "DOWN"}, "1": {"color": "green", "index": 1, "text": "UP"}}, "type": "value"}], "max": 1, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}, "unit": "none"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 16, "x": 0, "y": 35}, "id": 17, "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": true}, "showPercentChange": false, "textMode": "auto", "wideLayout": true}, "pluginVersion": "11.6.0",
+      "targets": [{"editorMode": "code", "expr": "up", "instant": true, "legendFormat": "{{job}} · {{instance}}", "range": false, "refId": "A"}], "title": "Estado de servicios", "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "Estado del exporter de PostgreSQL.",
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "decimals": 0, "mappings": [{"options": {"0": {"color": "red", "index": 0, "text": "DOWN"}, "1": {"color": "green", "index": 1, "text": "UP"}}, "type": "value"}], "max": 1, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}, "unit": "none"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 4, "x": 16, "y": 35}, "id": 18, "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showPercentChange": false, "textMode": "auto", "wideLayout": true}, "pluginVersion": "11.6.0",
+      "targets": [{"editorMode": "code", "expr": "pg_up", "instant": true, "legendFormat": "PostgreSQL", "range": false, "refId": "A"}], "title": "PostgreSQL", "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "Número actual de conexiones observadas por PostgreSQL Exporter.",
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "decimals": 0, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 50}, {"color": "red", "value": 90}]}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 4, "x": 20, "y": 35}, "id": 19, "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showPercentChange": true, "textMode": "auto", "wideLayout": true}, "pluginVersion": "11.6.0",
+      "targets": [{"editorMode": "code", "expr": "sum(pg_stat_activity_count)", "instant": true, "legendFormat": "Conexiones", "range": false, "refId": "A"}], "title": "Conexiones PostgreSQL", "type": "stat"
+    }
+  ],
+  "refresh": "15s",
+  "schemaVersion": 39,
+  "tags": ["hardware", "infrastructure", "docker", "cadvisor", "prometheus"],
+  "templating": {"list": [{"allValue": "photos_.+", "current": {"selected": true, "text": "All", "value": "$__all"}, "datasource": {"type": "prometheus", "uid": "prometheus"}, "definition": "label_values(container_last_seen{container_label_com_docker_compose_project=\"photos-python\",name=~\"photos_.+\"}, name)", "hide": 0, "includeAll": true, "label": "Contenedor", "multi": true, "name": "container", "options": [], "query": {"query": "label_values(container_last_seen{container_label_com_docker_compose_project=\"photos-python\",name=~\"photos_.+\"}, name)", "refId": "PrometheusVariableQueryEditor-container"}, "refresh": 1, "regex": "", "skipUrlSync": false, "sort": 1, "type": "query"}]},
+  "time": {"from": "now-3h", "to": "now"},
+  "timepicker": {"refresh_intervals": ["5s", "10s", "15s", "30s", "1m", "5m", "15m", "30m", "1h"]},
+  "timezone": "browser",
+  "title": "Hardware e Infraestructura",
+  "uid": "hardware-infrastructure",
+  "version": 1,
+  "weekStart": ""
+}

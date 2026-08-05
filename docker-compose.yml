@@ -36,6 +36,7 @@ services:
       METRICS_PORT: 9000
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       SERVICE_NAME: ${SERVICE_NAME:-mi-api}
+      LOG_RESPONSE_MAX_BYTES: ${LOG_RESPONSE_MAX_BYTES:-16384}
     volumes:
       - ${PHOTOS_DIR:-./photos}:/data
     ports:
@@ -97,7 +98,7 @@ services:
     restart: unless-stopped
     profiles: ["admin"]
     environment:
-      PGADMIN_DEFAULT_EMAIL:    ${PGADMIN_EMAIL:-admin@photos.local}
+      PGADMIN_DEFAULT_EMAIL:    ${PGADMIN_EMAIL:-admin@photos-app.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
     volumes:
       - pgadmin_data:/var/lib/pgadmin

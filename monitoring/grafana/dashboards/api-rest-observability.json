@@ -32,7 +32,7 @@
       "description": "Total de peticiones durante el rango temporal seleccionado.",
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "fixedColor", "fixedColor": "green"},
+          "color": {"mode": "fixed", "fixedColor": "green"},
           "decimals": 0,
           "mappings": [],
           "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
@@ -55,7 +55,7 @@
       "description": "Respuestas HTTP 4xx durante el rango seleccionado.",
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "fixedColor", "fixedColor": "orange"},
+          "color": {"mode": "fixed", "fixedColor": "orange"},
           "decimals": 0,
           "mappings": [],
           "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1}]},
@@ -78,7 +78,7 @@
       "description": "Respuestas HTTP 5xx durante el rango seleccionado.",
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "fixedColor", "fixedColor": "red"},
+          "color": {"mode": "fixed", "fixedColor": "red"},
           "decimals": 0,
           "mappings": [],
           "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]},
@@ -101,7 +101,7 @@
       "description": "Tasa actual de peticiones por segundo.",
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "fixedColor", "fixedColor": "blue"},
+          "color": {"mode": "fixed", "fixedColor": "blue"},
           "decimals": 2,
           "mappings": [],
           "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]},
@@ -192,10 +192,10 @@
       "fieldConfig": {
         "defaults": {"color": {"mode": "palette-classic"}, "decimals": 0, "mappings": [], "unit": "short"},
         "overrides": [
-          {"matcher": {"id": "byName", "options": "2xx"}, "properties": [{"id": "color", "value": {"fixedColor": "green", "mode": "fixedColor"}}]},
-          {"matcher": {"id": "byName", "options": "3xx"}, "properties": [{"id": "color", "value": {"fixedColor": "blue", "mode": "fixedColor"}}]},
-          {"matcher": {"id": "byName", "options": "4xx"}, "properties": [{"id": "color", "value": {"fixedColor": "orange", "mode": "fixedColor"}}]},
-          {"matcher": {"id": "byName", "options": "5xx"}, "properties": [{"id": "color", "value": {"fixedColor": "red", "mode": "fixedColor"}}]}
+          {"matcher": {"id": "byName", "options": "2xx"}, "properties": [{"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "3xx"}, "properties": [{"id": "color", "value": {"fixedColor": "blue", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "4xx"}, "properties": [{"id": "color", "value": {"fixedColor": "orange", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "5xx"}, "properties": [{"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}]}
         ]
       },
       "gridPos": {"h": 8, "w": 8, "x": 16, "y": 15},
@@ -243,16 +243,16 @@
     },
     {
       "datasource": {"type": "loki", "uid": "loki"},
-      "description": "Introduce un correlation_id para reconstruir todos los logs de una petición.",
+      "description": "Introduce un correlation_id para reconstruir la petición y consultar el body de su respuesta.",
       "fieldConfig": {"defaults": {}, "overrides": []},
       "gridPos": {"h": 10, "w": 24, "x": 0, "y": 35},
       "id": 15,
       "options": {"dedupStrategy": "none", "enableInfiniteScrolling": true, "enableLogDetails": true, "prettifyLogMessage": true, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Ascending", "wrapLogMessage": true},
       "pluginVersion": "11.0.0",
       "targets": [
-        {"datasource": {"type": "loki", "uid": "loki"}, "editorMode": "code", "expr": "{service=\"mi-api\"} | json | correlation_id=\"$correlation_id\" | service=~\"${service:regex}\" | route=~\"${route:regex}\" | method=~\"${method:regex}\" | status_code=~\"${status_code:regex}\"", "queryType": "range", "refId": "A"}
+        {"datasource": {"type": "loki", "uid": "loki"}, "editorMode": "code", "expr": "{service=\"mi-api\"} | json | correlation_id=\"$correlation_id\" | service=~\"${service:regex}\" | route=~\"${route:regex}\" | method=~\"${method:regex}\" | status_code=~\"${status_code:regex}\" | line_format \"{{.timestamp}}  {{.event}}  {{.method}}  {{.route}}  status={{.status_code}}  duration={{.duration_ms}} ms  response={{.response_body}}\"", "queryType": "range", "refId": "A"}
       ],
-      "title": "Trazabilidad por correlation_id",
+      "title": "Request y response por correlation_id",
       "type": "logs"
     }
   ],

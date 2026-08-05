@@ -61,14 +61,45 @@ def test_access_log_does_not_include_query_string() -> None:
 
     assert response.status_code == 200
     assert "do-not-log-this" not in output.getvalue()
-    event = json.loads(output.getvalue().strip())
-    assert event["event"] == "http_request"
+    events = [json.loads(line) for line in output.getvalue().splitlines()]
+    event = next(item for item in events if item["event"] == "http_response")
     assert event["route"] == "/search"
     assert event["path"] == "/search"
     assert event["message"] == "HTTP request completed"
     assert event["service"] == SERVICE_NAME
     assert event["status_code"] == 200
     assert event["correlation_id"]
+    assert event["response_body"] == '{"ok":true}'
+
+
+def test_response_body_is_logged_with_sensitive_fields_redacted() -> None:
+    app = FastAPI()
+    app.add_middleware(ObservabilityMiddleware)
+
+    @app.get("/session")
+    def session() -> dict[str, object]:
+        return {"user": "alice", "token": "private", "nested": {"password": "hidden"}}
+
+    output = io.StringIO()
+    handler = logging.StreamHandler(output)
+    handler.setFormatter(JsonFormatter())
+    EVENT_LOGGER.addHandler(handler)
+    try:
+        response = TestClient(app).get("/session", headers={"X-Correlation-ID": "corr-42"})
+    finally:
+        EVENT_LOGGER.removeHandler(handler)
+
+    assert response.status_code == 200
+    events = [json.loads(line) for line in output.getvalue().splitlines()]
+    request_event = next(item for item in events if item["event"] == "http_request_received")
+    response_event = next(item for item in events if item["event"] == "http_response")
+    assert request_event["correlation_id"] == "corr-42"
+    assert response_event["correlation_id"] == "corr-42"
+    assert json.loads(response_event["response_body"]) == {
+        "user": "alice",
+        "token": "[REDACTED]",
+        "nested": {"password": "[REDACTED]"},
+    }
 
 
 def test_invalid_request_id_is_replaced() -> None:

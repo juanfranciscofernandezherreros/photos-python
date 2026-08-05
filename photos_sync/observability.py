@@ -117,6 +117,10 @@ WEBDAV_LAST_JOB_TIMESTAMP = Gauge(
 
 
 _REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+_SENSITIVE_RESPONSE_KEYS = {
+    "access_token", "api_key", "authorization", "cookie", "password", "passwd",
+    "refresh_token", "secret", "set_cookie", "token",
+}
 _STANDARD_LOG_FIELDS = {
     "name", "msg", "args", "levelname", "levelno", "pathname", "filename",
     "module", "exc_info", "exc_text", "stack_info", "lineno", "funcName",
@@ -158,7 +162,7 @@ EVENT_LOGGER = _build_logger()
 
 
 def log_event(event: str, *, level: str = "info", message: str | None = None, **fields: Any) -> None:
-    """Write a structured event without serializing bodies or request headers."""
+    """Write a structured event without serializing request headers."""
 
     log_method = getattr(EVENT_LOGGER, level.lower(), EVENT_LOGGER.info)
     log_method(message or event, extra={"event": event, **fields})
@@ -209,6 +213,37 @@ def _route_template(scope: dict[str, Any]) -> str:
     return path if isinstance(path, str) and path else "unmatched"
 
 
+def _redact_response(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: "[REDACTED]" if str(key).lower() in _SENSITIVE_RESPONSE_KEYS else _redact_response(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_response(item) for item in value]
+    return value
+
+
+def _response_body_for_log(content_type: str, body: bytes) -> str | None:
+    normalized_type = content_type.partition(";")[0].strip().lower()
+    is_json = normalized_type == "application/json" or normalized_type.endswith("+json")
+    is_text = normalized_type.startswith("text/")
+    if not body or not (is_json or is_text):
+        return None
+
+    text = body.decode("utf-8", errors="replace")
+    if not is_json:
+        return text
+    try:
+        return json.dumps(
+            _redact_response(json.loads(text)),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+    except json.JSONDecodeError:
+        return text
+
+
 class ObservabilityMiddleware:
     """Low-overhead ASGI request metrics and access logs."""
 
@@ -230,18 +265,45 @@ class ObservabilityMiddleware:
         started = time.perf_counter()
         status = 500
         response_size = 0
+        response_content_type = ""
+        response_body = bytearray()
+        response_log_limit = max(0, int(os.getenv("LOG_RESPONSE_MAX_BYTES", "16384")))
+        response_body_truncated = False
         HTTP_REQUESTS_IN_PROGRESS.labels(method=method).inc()
 
+        client = scope.get("client")
+        client_ip = client[0] if client else None
+        log_event(
+            "http_request_received",
+            message="HTTP request received",
+            service=SERVICE_NAME,
+            correlation_id=correlation_id,
+            method=method,
+            route=str(scope.get("path", "")),
+            path=str(scope.get("path", "")),
+            client_ip=client_ip,
+        )
+
         async def observed_send(message: dict[str, Any]) -> None:
-            nonlocal status, response_size
+            nonlocal status, response_size, response_content_type, response_body_truncated
             if message["type"] == "http.response.start":
                 status = int(message["status"])
                 headers = list(message.get("headers", ()))
+                for name, value in headers:
+                    if name.lower() == b"content-type":
+                        response_content_type = value.decode("latin-1", errors="replace")
+                        break
                 headers.append((b"x-request-id", correlation_id.encode("ascii")))
                 headers.append((b"x-correlation-id", correlation_id.encode("ascii")))
                 message["headers"] = headers
             elif message["type"] == "http.response.body":
-                response_size += len(message.get("body", b""))
+                chunk = message.get("body", b"")
+                response_size += len(chunk)
+                remaining = response_log_limit - len(response_body)
+                if remaining > 0:
+                    response_body.extend(chunk[:remaining])
+                if len(chunk) > max(remaining, 0):
+                    response_body_truncated = True
             await send(message)
 
         exception: BaseException | None = None
@@ -270,11 +332,9 @@ class ObservabilityMiddleware:
                     exception_type=type(exception).__name__,
                 ).inc()
 
-            client = scope.get("client")
-            client_ip = client[0] if client else None
             level = "error" if status >= 500 else "warning" if status >= 400 else "info"
             log_event(
-                "http_request",
+                "http_response",
                 level=level,
                 message="HTTP request completed",
                 service=SERVICE_NAME,
@@ -286,6 +346,9 @@ class ObservabilityMiddleware:
                 status_class=f"{status // 100}xx",
                 duration_ms=round(duration * 1000, 3),
                 response_size=response_size,
+                response_content_type=response_content_type,
+                response_body=_response_body_for_log(response_content_type, bytes(response_body)),
+                response_body_truncated=response_body_truncated,
                 client_ip=client_ip,
                 exception_type=type(exception).__name__ if exception else None,
             )
