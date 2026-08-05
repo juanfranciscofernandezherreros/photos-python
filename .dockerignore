@@ -6,6 +6,8 @@ dist/
 build/
 .venv/
 .env
+secrets/
+.pytest_tmp*/
 
 # Tests
 tests/

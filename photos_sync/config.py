@@ -6,8 +6,9 @@ Set DATABASE_URL to override the default connection string.
 """
 from __future__ import annotations
 
-import os
 from pathlib import Path
+
+from .runtime_secrets import get_database_url
 
 BASE_DIR: Path     = Path.home() / "PhotosSync"
 ORGANIZED_DIR: Path = BASE_DIR / "screenshots_agrupados"
@@ -23,10 +24,7 @@ VALID_EXTENSIONS: set[str] = {
 }
 
 # ── Database ──────────────────────────────────────────────────────────────────
-DATABASE_URL: str = os.environ.get(
-    "DATABASE_URL",
-    "postgresql://localhost/photos_sync",
-)
+DATABASE_URL: str = get_database_url()
 
 # ── Bootstrap ─────────────────────────────────────────────────────────────────
 _DATA_DIR.mkdir(parents=True, exist_ok=True)

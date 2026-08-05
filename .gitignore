@@ -37,6 +37,8 @@ dist/
 
 # Docker
 .env
+secrets/
+.pytest_tmp*/
 photos/
 .coverage
 -e 

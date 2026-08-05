@@ -167,6 +167,23 @@ class TestWebDAVApi:
         assert r.status_code == 200
         assert r.json()["ok"] is False
 
+    def test_webdav_command_injection_inputs_are_rejected(self, cliente_api):
+        response = cliente_api.post("/api/webdav/connect", json={
+            "letra": "Z: & whoami",
+            "ip": "192.168.1.1",
+            "puerto": "8080 & calc",
+            "alias": "unsafe",
+        })
+        assert response.status_code == 422
+
+    def test_webdav_download_rejects_destination_outside_library(self, cliente_api):
+        response = cliente_api.post("/api/webdav/download", json={
+            "ip": "127.0.0.1",
+            "port": "8080",
+            "dest_folder": "C:/Windows/System32",
+        })
+        assert response.status_code == 403
+
 
 # ═══════════════════════════════════════ /api/carpetas ═══════════════════════
 

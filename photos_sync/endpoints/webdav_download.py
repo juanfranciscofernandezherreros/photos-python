@@ -48,6 +48,8 @@ def webdav_download(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
     from ..storage.webdav_downloader import DEFAULT_REMOTE_PATHS, list_remote_files
 
     dest = Path(req.dest_folder) if req.dest_folder else ORGANIZED_DIR / "incoming"
+    if not _shared._is_allowed(dest):
+        raise HTTPException(403, "Destination must be inside a configured photo library")
     dest.mkdir(parents=True, exist_ok=True)
     workers = max(1, min(int(os.getenv("WEBDAV_DOWNLOAD_WORKERS", "6")), 16))
     batch_size = max(1, min(int(os.getenv("WEBDAV_DB_BATCH_SIZE", "100")), 1000))

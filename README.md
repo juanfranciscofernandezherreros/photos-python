@@ -6,6 +6,7 @@ Sincroniza fotos desde el móvil (WebDAV / SSH), las organiza por fecha, clasifi
 
 ```bash
 cp .env.example .env
+python scripts/generate_secrets.py
 docker compose up -d
 ```
 
@@ -67,9 +68,11 @@ salida.
 
 | Variable | Por defecto | Descripción |
 |---|---|---|
-| `POSTGRES_PASSWORD` | `photos2024` | Contraseña PostgreSQL |
 | `PHOTOS_DIR` | `./photos` | Carpeta del host con las fotos |
 | `APP_PORT` | `8765` | Puerto del dashboard web |
+| `APP_BIND_IP` | `127.0.0.1` | Interfaz donde escucha el dashboard |
+| `DB_BIND_IP` | `127.0.0.1` | Interfaz donde se publica PostgreSQL |
+| `SECRETS_DIR` | `./secrets` | Directorio local de Docker Secrets |
 
 ## Observabilidad: Grafana, Prometheus y Loki
 
@@ -95,7 +98,7 @@ El panel **Logs de cada petición** muestra timestamp, método, endpoint, códig
 HTTP, duración y `correlation_id` para cada petición.
 
 La primera instalación usa `GRAFANA_ADMIN_USER` y
-`GRAFANA_ADMIN_PASSWORD` del `.env`. Cambiar esas variables no modifica una
+`secrets/grafana_admin_password.txt`. Cambiar ese archivo no modifica una
 contraseña que ya esté guardada en el volumen. Para restablecerla:
 
 ```bash
@@ -176,7 +179,7 @@ y deja como `NULL` los valores que no se pueden interpretar.
 
 ```bash
 pip install -e ".[dev,ssh,images]"
-export DATABASE_URL=postgresql://photos:photos2024@localhost/photos_sync
+export DATABASE_URL_FILE=/ruta/segura/database_url.txt
 python -m photos_sync
 ```
 
@@ -203,12 +206,14 @@ El admin registra nuevos usuarios desde la pestaña **Users**.
 Cada usuario puede cambiar su propia contraseña desde el menú de su avatar
 (arriba a la derecha) → Change password.
 
-**Importante:** define `SECRET_KEY` en el `.env` con una cadena larga y
-aleatoria. Si cambia, todas las sesiones se cierran. Generar una:
+Los secretos de sesión, PostgreSQL, Grafana y pgAdmin se generan localmente:
 
 ```bash
-python -c "import secrets; print(secrets.token_hex(32))"
+python scripts/generate_secrets.py
 ```
+
+El directorio `secrets/` está excluido de Git y del contexto de build. Si
+cambia `app_secret_key.txt`, todas las sesiones de la aplicación se cierran.
 
 ## Backups automáticos
 

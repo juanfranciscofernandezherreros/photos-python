@@ -8,7 +8,6 @@ to the DATABASE_URL environment variable (PostgreSQL).
 from __future__ import annotations
 
 import json
-import os
 
 from sqlalchemy import (
     Boolean,
@@ -25,6 +24,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.pool import StaticPool
 
+from .runtime_secrets import get_database_url
+
 # ── Singleton engine ──────────────────────────────────────────────────────────
 
 _ENGINE = None
@@ -34,12 +35,7 @@ def get_engine():
     """Return the process-wide SQLAlchemy engine, creating it on first call."""
     global _ENGINE
     if _ENGINE is None:
-        _ENGINE = _create_engine_from_url(
-            os.environ.get(
-                "DATABASE_URL",
-                "postgresql://localhost/photos_sync",
-            )
-        )
+        _ENGINE = _create_engine_from_url(get_database_url())
     return _ENGINE
 
 

@@ -4,6 +4,8 @@ Tests for photos_sync.storage.folders and photos_sync.storage.connection
 Covers: save/load source folders, local destination, SSH destination,
 backwards compatibility with legacy format, and WebDAV connection CRUD.
 """
+from types import SimpleNamespace
+
 from photos_sync.storage import connection, folders
 
 # ═══════════════════════════════════════ FOLDERS ════════════════════════════
@@ -131,3 +133,38 @@ class TestConnectionWebDAV:
     def test_is_mounted_ruta_inexistente(self, tmp_path):
         # On any OS this made-up path does not exist
         assert connection.is_mounted("Q:") is False
+
+    def test_net_use_uses_atomic_arguments_without_shell(self, monkeypatch):
+        captured = {}
+
+        def fake_run(args, **kwargs):
+            captured["args"] = args
+            captured["kwargs"] = kwargs
+            return SimpleNamespace(returncode=0, stdout="ok", stderr=None)
+
+        monkeypatch.setattr(connection.platform, "system", lambda: "Windows")
+        monkeypatch.setattr(connection.subprocess, "run", fake_run)
+
+        ok, _ = connection.mount("z:", "192.168.1.20", "8080")
+
+        assert ok is True
+        assert captured["args"][1:] == [
+            "use", "Z:", "http://192.168.1.20:8080",
+        ]
+        assert captured["kwargs"]["shell"] is False
+        assert isinstance(captured["args"], list)
+
+    def test_command_metacharacters_are_rejected_before_execution(self, monkeypatch):
+        called = False
+
+        def fake_run(*_args, **_kwargs):
+            nonlocal called
+            called = True
+
+        monkeypatch.setattr(connection.platform, "system", lambda: "Windows")
+        monkeypatch.setattr(connection.subprocess, "run", fake_run)
+
+        assert connection.mount("Z: & whoami", "192.168.1.20", "8080")[0] is False
+        assert connection.mount("Z:", "192.168.1.20", "8080 & calc")[0] is False
+        assert connection.unmount("Z: | whoami")[0] is False
+        assert called is False

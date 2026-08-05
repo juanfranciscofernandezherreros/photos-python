@@ -24,7 +24,7 @@ from typing import Any
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -48,6 +48,7 @@ from .observability import (
     stop_metrics_endpoint,
 )
 from .pipeline import classify, compress, download, organize, summary, upload_ssh
+from .runtime_secrets import get_app_secret_key
 from .storage import connection
 from .storage.folders import (
     load_destination_config,
@@ -281,23 +282,18 @@ limiter = Limiter(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
-# Session cookie for authentication. SECRET_KEY must be stable across
-# restarts in production (set it in .env); otherwise sessions are dropped
-# on every restart.
+# Session cookie for authentication. The key is loaded from SECRET_KEY_FILE
+# (or SECRET_KEY for non-Compose deployments) and must remain stable.
 import os as _os
 
-_SECRET = _os.environ.get("SECRET_KEY")
-if not _SECRET:
-    import secrets as _secrets
-    _SECRET = _secrets.token_hex(32)
-    print("⚠️  SECRET_KEY not set — generated a random one. "
-          "Sessions will reset on restart. Set SECRET_KEY in .env for production.")
+_SECRET = get_app_secret_key()
 app.add_middleware(
     SessionMiddleware,
     secret_key=_SECRET,
     session_cookie="photos_session",
     max_age=60 * 60 * 24 * 14,   # 14 days
     same_site="lax",
+    https_only=_os.environ.get("COOKIE_SECURE", "false").lower() == "true",
 )
 
 
@@ -638,6 +634,21 @@ class ConnectionWebDAVIn(BaseModel):
     puerto: str = "8080"
     alias: str = ""
 
+    @field_validator("letra")
+    @classmethod
+    def validate_drive(cls, value: str) -> str:
+        return connection.normalize_drive_letter(value)
+
+    @field_validator("ip")
+    @classmethod
+    def validate_ip(cls, value: str) -> str:
+        return connection.normalize_webdav_host(value)
+
+    @field_validator("puerto")
+    @classmethod
+    def validate_port(cls, value: str) -> str:
+        return connection.normalize_port(value)
+
 
 
 
@@ -655,6 +666,16 @@ class WebDAVScanIn(BaseModel):
     ip: str
     port: str = "8080"
     dest_folder: str = ""   # where to save downloads; defaults to ORGANIZED_DIR/incoming
+
+    @field_validator("ip")
+    @classmethod
+    def validate_ip(cls, value: str) -> str:
+        return connection.normalize_webdav_host(value)
+
+    @field_validator("port")
+    @classmethod
+    def validate_port(cls, value: str) -> str:
+        return connection.normalize_port(value)
 
 
 

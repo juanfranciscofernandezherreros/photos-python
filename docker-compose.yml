@@ -7,11 +7,13 @@ services:
     environment:
       POSTGRES_DB:       photos_sync
       POSTGRES_USER:     photos
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-photos2024}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "${DB_BIND_IP:-127.0.0.1}:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U photos -d photos_sync"]
       interval: 5s
@@ -29,8 +31,13 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://photos:${POSTGRES_PASSWORD:-photos2024}@db:5432/photos_sync
-      SECRET_KEY: ${SECRET_KEY:-change-me-in-env-file}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: photos_sync
+      POSTGRES_USER: photos
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      SECRET_KEY_FILE: /run/secrets/app_secret_key
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
       METRICS_ENABLED: "true"
       METRICS_ADDR: 0.0.0.0
       METRICS_PORT: 9000
@@ -39,10 +46,13 @@ services:
       LOG_RESPONSE_MAX_BYTES: ${LOG_RESPONSE_MAX_BYTES:-16384}
       WEBDAV_DOWNLOAD_WORKERS: ${WEBDAV_DOWNLOAD_WORKERS:-6}
       WEBDAV_DB_BATCH_SIZE: ${WEBDAV_DB_BATCH_SIZE:-100}
+    secrets:
+      - postgres_password
+      - app_secret_key
     volumes:
       - ${PHOTOS_DIR:-./photos}:/data
     ports:
-      - "${APP_PORT:-8765}:8765"
+      - "${APP_BIND_IP:-127.0.0.1}:${APP_PORT:-8765}:8765"
     expose:
       - "9000"
     healthcheck:
@@ -68,9 +78,10 @@ services:
       PGPORT:     5432
       PGDATABASE: photos_sync
       PGUSER:     photos
-      PGPASSWORD: ${POSTGRES_PASSWORD:-photos2024}
       # How many daily dumps to keep (older ones are deleted automatically)
       BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-7}
+    secrets:
+      - postgres_password
     volumes:
       - ${BACKUP_DIR:-./backups}:/backups
     # Infinite loop: dump → sleep 24 h → repeat.
@@ -81,14 +92,20 @@ services:
     #   4. Sleeps 24 h.
     entrypoint: >
       sh -c "
+        export PGPASSWORD=$$(cat /run/secrets/postgres_password) &&
+        set -o pipefail &&
         mkdir -p /backups &&
         while true; do
           FILE=/backups/photos_sync_$$(date +%Y%m%d_%H%M%S).sql.gz &&
           echo \"[backup] Starting dump → $$FILE\" &&
-          pg_dump --no-password | gzip > $$FILE &&
-          echo \"[backup] Done (size: $$(du -sh $$FILE | cut -f1))\" &&
-          find /backups -name '*.sql.gz' -mtime +$${BACKUP_KEEP_DAYS} -delete &&
-          echo \"[backup] Cleaned up dumps older than $${BACKUP_KEEP_DAYS} days\" &&
+          if pg_dump --no-password | gzip > $$FILE; then
+            echo \"[backup] Done (size: $$(du -sh $$FILE | cut -f1))\" &&
+            find /backups -name '*.sql.gz' -mtime +$${BACKUP_KEEP_DAYS} -delete &&
+            echo \"[backup] Cleaned up dumps older than $${BACKUP_KEEP_DAYS} days\";
+          else
+            echo \"[backup] Dump failed; removing incomplete file\" >&2 &&
+            rm -f $$FILE;
+          fi &&
           echo \"[backup] Next backup in 24 h\" &&
           sleep 86400;
         done
@@ -101,11 +118,13 @@ services:
     profiles: ["admin"]
     environment:
       PGADMIN_DEFAULT_EMAIL:    ${PGADMIN_EMAIL:-admin@photos-app.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_DEFAULT_PASSWORD_FILE: /run/secrets/pgadmin_password
+    secrets:
+      - pgadmin_password
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     ports:
-      - "5050:80"
+      - "${PGADMIN_BIND_IP:-127.0.0.1}:5050:80"
     depends_on:
       db:
         condition: service_healthy
@@ -141,7 +160,11 @@ services:
     restart: unless-stopped
     profiles: ["monitoring"]
     environment:
-      DATA_SOURCE_NAME: postgresql://photos:${POSTGRES_PASSWORD:-photos2024}@db:5432/photos_sync?sslmode=disable
+      DATA_SOURCE_URI: db:5432/photos_sync?sslmode=disable
+      DATA_SOURCE_USER: photos
+      DATA_SOURCE_PASS_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
     expose:
       - "9187"
     depends_on:
@@ -205,12 +228,14 @@ services:
     profiles: ["monitoring"]
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-this-grafana-password}
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_METRICS_ENABLED: "true"
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/api-rest-observability.json
       GF_DASHBOARDS_MIN_REFRESH_INTERVAL: 1s
+    secrets:
+      - grafana_admin_password
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -230,3 +255,13 @@ volumes:
   grafana_data:
   loki_data:
   alloy_data:
+
+secrets:
+  postgres_password:
+    file: ${SECRETS_DIR:-./secrets}/postgres_password.txt
+  app_secret_key:
+    file: ${SECRETS_DIR:-./secrets}/app_secret_key.txt
+  grafana_admin_password:
+    file: ${SECRETS_DIR:-./secrets}/grafana_admin_password.txt
+  pgadmin_password:
+    file: ${SECRETS_DIR:-./secrets}/pgadmin_password.txt

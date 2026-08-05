@@ -35,7 +35,6 @@ COPY --from=builder /app /app
 
 # Photos are stored under /data (mount your host folder here)
 ENV PHOTOS_DIR=/data
-ENV DATABASE_URL=postgresql://photos:photos@db:5432/photos_sync
 
 EXPOSE 8765
 

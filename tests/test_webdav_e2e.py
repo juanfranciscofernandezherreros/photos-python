@@ -124,6 +124,7 @@ class TestWebDAVEndToEnd:
 
         host, port = webdav_server
         dest = cwd_temporal / "incoming"
+        repo.save_destination_local(str(cwd_temporal))
 
         original_paths = wd.DEFAULT_REMOTE_PATHS[:]
         wd.DEFAULT_REMOTE_PATHS = ["/DCIM/Camera"]
@@ -171,6 +172,7 @@ class TestWebDAVEndToEnd:
 
         host, port = webdav_server
         dest = cwd_temporal / "incoming"
+        repo.save_destination_local(str(cwd_temporal))
 
         original_paths = wd.DEFAULT_REMOTE_PATHS[:]
         wd.DEFAULT_REMOTE_PATHS = ["/DCIM/Camera"]
@@ -206,10 +208,12 @@ class TestWebDAVEndToEnd:
         """The /api/diag counts must reflect the downloaded photos."""
         import time
 
+        from photos_sync import repository as repo
         from photos_sync.storage import webdav_downloader as wd
 
         host, port = webdav_server
         dest = cwd_temporal / "incoming"
+        repo.save_destination_local(str(cwd_temporal))
 
         original_paths = wd.DEFAULT_REMOTE_PATHS[:]
         wd.DEFAULT_REMOTE_PATHS = ["/DCIM/Camera"]
