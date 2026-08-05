@@ -17,7 +17,7 @@ concurrency:
 jobs:
   static-analysis:
     name: Static analysis (${{ matrix.name }})
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -44,7 +44,7 @@ jobs:
 
   test:
     name: Tests (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -67,7 +67,7 @@ jobs:
 
   coverage:
     name: Coverage (minimum 80%)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     timeout-minutes: 20
 
     steps:
@@ -99,7 +99,7 @@ jobs:
 
   serenity:
     name: Cucumber API contracts and Serenity report
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     timeout-minutes: 20
 
     steps:
@@ -136,7 +136,7 @@ jobs:
 
   postgres-integration:
     name: PostgreSQL 16 migrations and restore
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     timeout-minutes: 20
     services:
       postgres:
@@ -183,7 +183,7 @@ jobs:
 
   build:
     name: Build and smoke test
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     timeout-minutes: 15
     needs: [static-analysis, test, coverage, serenity, postgres-integration]
 
@@ -220,7 +220,7 @@ jobs:
 
   ci-gate:
     name: CI gate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     if: always()
     needs: [static-analysis, test, coverage, serenity, postgres-integration, build]
     steps:
