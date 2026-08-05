@@ -303,6 +303,29 @@ class TestUIHtml:
         for ep in endpoints_esperados:
             assert ep in html, f"El endpoint '{ep}' no aparece en el HTML/JS"
 
+    def test_html_has_no_wizard_or_cities_ui(self, cliente_api):
+        html = cliente_api.get("/").text.lower()
+        assert "setup wizard" not in html
+        assert 'data-s="cities"' not in html
+        assert "/api/cities" not in html
+        assert "/api/photos/by-city" not in html
+
+
+class TestRemovedWizardAndCitiesApi:
+    def test_health_endpoint_replaces_setup_status(self, cliente_anon):
+        response = cliente_anon.get("/health")
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
+
+    def test_removed_endpoints_return_404(self, cliente_anon):
+        endpoints = (
+            "/api/setup-status",
+            "/api/cities",
+            "/api/photos/by-city/Madrid",
+        )
+        for endpoint in endpoints:
+            assert cliente_anon.get(endpoint).status_code == 404
+
 
 # ═══════════════════════════════════════ /api/thumb ══════════════════════════
 

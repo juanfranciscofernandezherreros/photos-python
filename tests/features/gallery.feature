@@ -63,11 +63,11 @@ Feature: Photo Gallery
     Then the response status is 200
     And the JSON has key "tags" with a list
 
-  # ── Setup status ──────────────────────────────────────────
-  Scenario: Check setup status
-    When I request GET "/api/setup-status"
+  # ── Health check ──────────────────────────────────────────
+  Scenario: Check application health
+    When I request GET "/health"
     Then the response status is 200
-    And the JSON has key "done"
+    And the JSON has key "status"
 
   # ── Dashboard HTML ────────────────────────────────────────
   Scenario: Dashboard returns HTML

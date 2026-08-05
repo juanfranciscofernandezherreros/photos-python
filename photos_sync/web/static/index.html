@@ -134,16 +134,6 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 .sb-st-val{font-size:9px;font-weight:600;color:var(--ink3);font-family:'JetBrains Mono',monospace}
 .sb-st-track{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden}
 .sb-st-fill{height:100%;background:linear-gradient(90deg,var(--b),var(--b3));border-radius:2px;transition:width .6s ease}
-.sb-setup{
-  display:flex;align-items:center;gap:7px;
-  padding:7px 12px;margin:6px 6px 0;
-  border-radius:var(--r3);font-size:12px;font-weight:500;
-  color:var(--ink4);cursor:pointer;border:1px solid var(--brd);
-  background:none;width:calc(100% - 12px);transition:.15s;
-}
-.sb-setup:hover{background:var(--bg3);color:var(--ink3);border-color:rgba(255,255,255,.1)}
-.sb-setup svg{width:13px;height:13px;opacity:.5}
-
 /* ── Content column ─────────────────────────────────────── */
 .content{flex:1;min-width:0;display:flex;flex-direction:column;height:100%;overflow:hidden}
 
@@ -413,37 +403,6 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 .gp-photo-alb:hover{background:rgba(99,102,241,.8)!important}
 .gp-photo-alb svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2}
 
-/* City chips strip */
-#city-strip{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
-.city-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;
-  font-size:11px;font-weight:600;background:var(--bg3);border:1px solid var(--brd);
-  color:var(--ink3);cursor:pointer;transition:.14s;white-space:nowrap}
-.city-chip:hover{border-color:rgba(99,102,241,.4);color:var(--b2)}
-.city-chip.on{background:var(--b);color:#fff;border-color:var(--b)}
-.city-chip svg{width:10px;height:10px;flex-shrink:0}
-.city-count{font-size:9px;opacity:.7;font-family:'JetBrains Mono',monospace}
-
-/* City cards grid */
-#cities-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
-.ccard{
-  background:var(--surface);border:1px solid var(--brd);
-  border-radius:var(--r);overflow:hidden;cursor:pointer;
-  transition:all .2s;
-}
-.ccard:hover{border-color:rgba(99,102,241,.3);transform:translateY(-2px);box-shadow:var(--sh-md)}
-.ccard-cover{aspect-ratio:4/3;overflow:hidden;position:relative;background:var(--bg3);display:grid;place-items:center}
-.ccard-shimmer{position:absolute;inset:0;background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.8s infinite}
-.ccard-cover-img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .3s;position:relative;z-index:1}
-.ccard-cover-img.loaded{opacity:1}
-.ccard-cover-scrim{position:absolute;inset:0;z-index:2;background:linear-gradient(to top,rgba(0,0,0,.65),transparent 55%);pointer-events:none}
-.ccard-empty-cover{position:relative;z-index:1;color:var(--ink5);display:flex;flex-direction:column;align-items:center;gap:6px}
-.ccard-empty-cover svg{width:32px;height:32px;opacity:.4}
-.ccard-pin{position:absolute;top:8px;right:8px;z-index:3;font-size:9px;font-weight:700;color:#fff;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace}
-.ccard-name-overlay{position:absolute;bottom:0;left:0;right:0;z-index:3;padding:8px 12px}
-.ccard-name-overlay span{font-size:15px;font-weight:800;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.6);letter-spacing:-.01em}
-.ccard-info{padding:10px 13px;display:flex;align-items:center;justify-content:space-between}
-.ccard-meta{font-size:11px;color:var(--ink4);font-family:'JetBrains Mono',monospace}
-.ccard-coords{font-size:9px;color:var(--ink5);font-family:'JetBrains Mono',monospace}
 .gp-photo-del{
   position:absolute;top:4px;right:4px;width:22px;height:22px;
   border-radius:50%;background:#0009;border:none;cursor:pointer;
@@ -637,23 +596,6 @@ select.inp{cursor:pointer}
 .fg2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 
-/* ── Wizard ─────────────────────────────────────────────── */
-#wizard{display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);animation:fadeIn .2s ease}
-.wiz-card{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(500px,92vw);background:var(--bg2);border:1px solid var(--brd);border-radius:16px;box-shadow:0 32px 80px rgba(0,0,0,.6);overflow:hidden}
-.wiz-prog{height:2px;background:var(--bg4)}.wiz-bar{height:100%;background:linear-gradient(90deg,var(--b),var(--b3));transition:width .35s}
-.wiz-head{padding:20px 20px 0;display:flex;justify-content:space-between;align-items:start}
-.wiz-lbl{font-size:9px;font-weight:700;color:var(--b2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}
-.wiz-title{font-size:16px;font-weight:700;color:var(--ink)}
-.wiz-sub{font-size:12px;color:var(--ink4);margin-top:3px}
-.wiz-badge{background:var(--bg3);border:1px solid var(--brd);border-radius:var(--r3);padding:3px 9px;font-size:10px;font-weight:700;color:var(--ink4)}
-.wiz-body{padding:16px 20px 4px;min-height:180px}
-.wiz-foot{padding:12px 20px 18px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--brd);margin-top:8px}
-.wiz-skip{font-size:11px;color:var(--ink5);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.wiz-opt{border:1px solid var(--brd);border-radius:var(--r2);padding:12px;cursor:pointer;transition:.14s;display:flex;gap:10px;align-items:flex-start;margin-bottom:8px}
-.wiz-opt:hover{border-color:rgba(99,102,241,.3);background:rgba(99,102,241,.04)}
-.wiz-opt.on{border-color:var(--b);background:rgba(99,102,241,.08)}
-.wiz-opt-icon{width:32px;height:32px;border-radius:var(--r3);display:grid;place-items:center;flex-shrink:0}
-
 /* ── Responsive ─────────────────────────────────────────── */
 @media(min-width:1400px){
   .main{padding:24px 32px 48px}
@@ -730,11 +672,6 @@ select.inp{cursor:pointer}
       Albums
       <span class="nb-badge" id="albums-badge" style="display:none">0</span>
     </button>
-    <button class="nb" onclick="tab('cities',this)">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-      Cities
-      <span class="nb-badge" id="cities-badge" style="display:none">0</span>
-    </button>
     <button class="nb" onclick="tab('pipeline',this)">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>
       Pipeline
@@ -775,10 +712,6 @@ select.inp{cursor:pointer}
       </div>
       <div class="sb-st-track"><div class="sb-st-fill" id="storage-fill" style="width:4%"></div></div>
     </div>
-    <button class="sb-setup" onclick="wizOpen()">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
-      Setup wizard
-    </button>
   </div>
 </aside>
 
@@ -887,7 +820,6 @@ select.inp{cursor:pointer}
       </div>
 
       <div id="tag-cloud"></div>
-      <div id="city-strip"></div>
 
       <div class="filter-bar">
         <div class="ftabs">
@@ -919,30 +851,6 @@ select.inp{cursor:pointer}
       <div id="albums-grid">
         <div style="grid-column:1/-1;text-align:center;padding:56px;color:var(--ink5);font-size:13px">Loading…</div>
       </div>
-    </section>
-
-    <!-- CITIES -->
-    <section data-s="cities">
-      <div class="ph">
-        <div>
-          <div class="ph-title">Cities</div>
-          <div class="ph-sub">Photos grouped by location — populated automatically when photos have GPS data</div>
-        </div>
-      </div>
-      <!-- Empty state shown before pipeline is run -->
-      <div id="cities-empty" style="display:none;text-align:center;padding:56px 20px;color:var(--ink4)">
-        <svg width="52" height="52" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1" style="margin:0 auto 16px;display:block;color:var(--ink5)"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-        <div style="font-size:15px;font-weight:700;color:var(--ink3);margin-bottom:8px">No cities found yet</div>
-        <div style="font-size:12px;line-height:1.7;max-width:360px;margin:0 auto">
-          Cities are extracted automatically from the <b>GPS coordinates</b> embedded in photo EXIF metadata.<br><br>
-          Run the <b>Pipeline → Classify</b> step on photos taken with location enabled. Photos without GPS data will not appear here.
-        </div>
-        <button class="bp" style="margin-top:20px" onclick="tab('pipeline',document.querySelector('.nb:nth-child(2)'))">
-          <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          Go to Pipeline
-        </button>
-      </div>
-      <div id="cities-grid"></div>
     </section>
 
     <!-- PIPELINE -->
@@ -1237,32 +1145,13 @@ select.inp{cursor:pointer}
   </div>
 </div>
 
-<!-- ── Wizard ───────────────────────────────────────────── -->
-<div id="wizard">
-  <div class="wiz-card">
-    <div class="wiz-prog"><div class="wiz-bar" id="wiz-bar" style="width:0%"></div></div>
-    <div class="wiz-head">
-      <div><div class="wiz-lbl">Setup wizard</div><div class="wiz-title" id="wiz-title"></div><div class="wiz-sub" id="wiz-sub"></div></div>
-      <div class="wiz-badge" id="wiz-step-badge"></div>
-    </div>
-    <div class="wiz-body" id="wiz-body"></div>
-    <div class="wiz-foot">
-      <button class="wiz-skip" onclick="wizSkip()">Skip setup</button>
-      <div style="display:flex;gap:7px">
-        <button id="wiz-back" onclick="wizNav(-1)" class="bg" style="display:none">← Back</button>
-        <button id="wiz-next" onclick="wizNav(1)" class="bp">Next →</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script>
 
 const $=id=>document.getElementById(id);
 async function api(p,o={}){const r=await fetch(p,{headers:{'Content-Type':'application/json'},...o,body:o.body!==undefined?JSON.stringify(o.body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||`HTTP ${r.status}`);return d}
 function showMsg(id,t,ok){const e=$(id);e.className='msg '+(ok?'msg-ok':'msg-err');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',5000)}
-const SNAMES={gallery:'Gallery',albums:'Albums',cities:'Cities',pipeline:'Pipeline',ssh:'SSH Servers',webdav:'WebDAV',folders:'Folders',users:'Users',trash:'Trash'};
-function tab(id,b){document.querySelectorAll('[data-s]').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));document.querySelector(`[data-s="${id}"]`).classList.add('on');b.classList.add('on');$('bc-section').textContent=SNAMES[id]||id;$('bc-sep2').style.display='none';$('bc-page').style.display='none';_activeCity='';closeGallery();({gallery:loadDays,albums:loadAlbums,cities:loadCitiesTab,ssh:initSSH,webdav:initWebDAV,folders:initCarpetas,users:loadUsers,trash:loadTrash})[id]?.();}
+const SNAMES={gallery:'Gallery',albums:'Albums',pipeline:'Pipeline',ssh:'SSH Servers',webdav:'WebDAV',folders:'Folders',users:'Users',trash:'Trash'};
+function tab(id,b){document.querySelectorAll('[data-s]').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));document.querySelector(`[data-s="${id}"]`).classList.add('on');b.classList.add('on');$('bc-section').textContent=SNAMES[id]||id;$('bc-sep2').style.display='none';$('bc-page').style.display='none';closeGallery();({gallery:loadDays,albums:loadAlbums,ssh:initSSH,webdav:initWebDAV,folders:initCarpetas,users:loadUsers,trash:loadTrash})[id]?.();}
 
 const logBox=$('log-box');let ws;
 function conectarWS(){const p=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${p}://${location.host}/ws/log`);
@@ -1350,7 +1239,6 @@ async function loadDays(){
     $('storage-val').textContent=d.total_mb.toLocaleString()+' MB';
     $('day-filter').value='';$('view-count').textContent=d.total_days+' days';
     const g=$('days-grid');_resetDayCoverObserver();g.innerHTML='';
-    loadCities();
     if(!d.days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:72px 20px;color:var(--ink4)"><svg style="width:48px;height:48px;margin:0 auto 14px;color:var(--ink5)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><div style="font-weight:700;font-size:14px;color:var(--ink3);margin-bottom:4px">No photos organized yet</div><div style="font-size:12px">Run the Pipeline to scan and organize.</div></div>`;return;}
     renderDayCards(d.days,g);
     const cloud=$('tag-cloud');cloud.innerHTML='';(tg.tags||[]).slice(0,20).forEach(({tag,count})=>{const b=document.createElement('div');b.className='tc';b.textContent=`${tag} ${count}`;cloud.appendChild(b);});
@@ -2149,185 +2037,6 @@ async function _addPhotoToAlbum(photoId){
   $('modal-foot').innerHTML=`<button class="bg" onclick="_closeModal()">Cancel</button><button class="bp" onclick="_closeModal();openNewAlbum()">＋ New album</button>`;
 }
 
-/* ─── Cities tab ────────────────────────────────────────────────── */
-async function loadCitiesTab(){
-  const grid=$('cities-grid');
-  const empty=$('cities-empty');
-  if(grid)grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--ink5);font-size:13px">Loading…</div>';
-  if(empty)empty.style.display='none';
-  try{
-    const d=await api('/api/cities');
-    const cities=d.cities||[];
-    // Update badge
-    const badge=$('cities-badge');
-    if(badge){badge.textContent=d.total;badge.style.display=d.total?'':'none';}
-    if(!cities.length){
-      if(grid)grid.innerHTML='';
-      if(empty)empty.style.display='block';
-      return;
-    }
-    if(!grid)return;
-    grid.innerHTML='';
-    cities.forEach((c,i)=>{
-      const card=document.createElement('div');
-      card.className='ccard';
-      card.style.animation=`slideIn .2s ease ${Math.min(i,20)*18}ms both`;
-      const hasCover=!!c.cover;
-      const coordStr=(c.lat!=null&&c.lon!=null)?`${c.lat.toFixed(2)}, ${c.lon.toFixed(2)}`:'';
-      card.innerHTML=`
-        <div class="ccard-cover">
-          ${hasCover
-            ? `<div class="ccard-shimmer" id="cshim-${i}"></div>
-               <img class="ccard-cover-img" id="ccimg-${i}" alt="${c.city}">
-               <div class="ccard-cover-scrim"></div>`
-            : `<div class="ccard-empty-cover">
-                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                 <span style="font-size:10px;font-weight:600">No cover</span>
-               </div>`
-          }
-          <div class="ccard-pin">
-            <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
-            ${c.count}
-          </div>
-          ${hasCover?`<div class="ccard-name-overlay"><span>${c.city}</span></div>`:''}
-        </div>
-        <div class="ccard-info">
-          ${!hasCover?`<div style="font-size:13px;font-weight:700;color:var(--ink)">${c.city}</div>`:'<div></div>'}
-          <div>
-            <div class="ccard-meta">${c.count} photo${c.count!==1?'s':''}</div>
-            ${coordStr?`<div class="ccard-coords">${coordStr}</div>`:''}
-          </div>
-        </div>`;
-      card.onclick=()=>openCityView(c);
-      grid.appendChild(card);
-      if(hasCover){
-        const img=document.getElementById(`ccimg-${i}`);
-        const shim=document.getElementById(`cshim-${i}`);
-        if(img){
-          img.onload=()=>{img.classList.add('loaded');if(shim)shim.style.display='none';};
-          img.src=`/api/thumb?path=${encodeURIComponent(c.cover)}&size=400`;
-        }
-      }
-    });
-  }catch(e){
-    if(grid)grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--red);font-size:12px">${e.message}</div>`;
-  }
-}
-
-async function openCityView(cityObj){
-  // Reuse the day-panel for city photo browsing
-  const loadToken=++_gpLoadToken;
-  _gpHasMore=false;_gpNextOffset=null;_gpTotal=0;_gpLoadingPage=false;
-  _gpAlbumId=null;_gpDate=null;_gpFilter='all';_gpTagFilter='';
-  $('gp-add-btn').classList.remove('visible');
-  $('gp-title').textContent=cityObj.city;
-  $('gp-sub').textContent='Loading…';
-  $('gp-grid').innerHTML='<div style="grid-column:1/-1;display:flex;justify-content:center;padding:40px"><div style="width:18px;height:18px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div></div>';
-  $('gallery-panel').classList.add('open');
-  $('bc-sep2').style.display='';$('bc-page').style.display='';$('bc-page').textContent=cityObj.city;
-  try{
-    const d=await api(`/api/photos/by-city/${encodeURIComponent(cityObj.city)}`);
-    if(loadToken!==_gpLoadToken||_gpDate||_gpAlbumId)return;
-    _gpPhotos=d.photos||[];
-    $('gp-sub').textContent=d.count>0
-      ? `${d.count} photos · ${cityObj.city}`
-      : 'No photos found for this city';
-    if(!d.count){
-      $('gp-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--ink4);font-size:12px">No photos found in ${cityObj.city}.</div>`;
-      $('gp-tags').style.display='none';return;
-    }
-    _buildGpTags(d.photos);
-    renderGpGrid();
-  }catch(e){if(loadToken===_gpLoadToken)$('gp-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red);font-size:12px">${e.message}</div>`;}
-}
-
-/* ─── Cities strip (gallery inline filter) ───────────────────────── */
-let _citiesData=[];
-let _activeCity='';
-
-async function loadCities(){
-  try{
-    const d=await api('/api/cities').catch(()=>({cities:[]}));
-    _citiesData=d.cities||[];
-    // Update sidebar badge
-    const badge=$('cities-badge');
-    if(badge){badge.textContent=d.total||0;badge.style.display=(d.total>0)?'':'none';}
-    const strip=$('city-strip');
-    strip.innerHTML='';
-    if(!_citiesData.length)return;
-    // "All" reset chip
-    const all=document.createElement('button');
-    all.className='city-chip'+(_activeCity?'':' on');all.id='city-all';
-    all.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 010 20"/></svg> All locations`;
-    all.onclick=()=>filterByCity('');
-    strip.appendChild(all);
-    _citiesData.forEach(c=>{
-      const btn=document.createElement('button');
-      btn.className='city-chip'+(_activeCity===c.city?' on':'');
-      btn.dataset.city=c.city;
-      btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>${c.city}<span class="city-count">${c.count}</span>`;
-      btn.onclick=()=>filterByCity(c.city);
-      strip.appendChild(btn);
-    });
-  }catch(e){}
-}
-
-async function filterByCity(city){
-  _activeCity=city;
-  // Update chip active state
-  document.querySelectorAll('.city-chip').forEach(b=>{
-    const isAll=b.id==='city-all';
-    b.classList.toggle('on',isAll?!city:b.dataset.city===city);
-  });
-  if(!city){
-    // Reset to normal days view
-    showView(_currentView);
-    return;
-  }
-  // Show city photos in timeline-style
-  selClear();
-  $('days-grid').style.display='none';
-  $('timeline-view').style.display='block';
-  const tv=$('timeline-view');
-  tv.innerHTML=`<div style="text-align:center;padding:20px;color:var(--ink4);font-size:12px"><div style="width:16px;height:16px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite;margin:0 auto 8px"></div>Loading photos from ${city}…</div>`;
-  try{
-    const d=await api(`/api/photos/by-city/${encodeURIComponent(city)}`);
-    _tlPhotos=d.photos||[];
-    $('view-count').textContent=`${_tlPhotos.length} photos · ${city}`;
-    if(!_tlPhotos.length){tv.innerHTML=`<div style="text-align:center;padding:64px;color:var(--ink4)"><div style="font-weight:600;font-size:14px">No photos found in ${city}</div></div>`;return;}
-    // Group by date
-    const byDate={};
-    _tlPhotos.forEach(ph=>{
-      const dt=ph.capture_date?ph.capture_date.slice(0,10):'Unknown date';
-      if(!byDate[dt])byDate[dt]=[];
-      byDate[dt].push(ph);
-    });
-    tv.innerHTML='';
-    const obs=_ensureObserver();
-    Object.entries(byDate).sort(([a],[b])=>b.localeCompare(a)).forEach(([dt,photos])=>{
-      const sec=document.createElement('div');sec.className='tl-section';
-      sec.innerHTML=`<div class="tl-date-row"><span class="tl-date-label">${dt}</span><span class="tl-date-meta">${photos.length} photos</span></div><div class="tl-grid"></div>`;
-      tv.appendChild(sec);
-      const grid=sec.querySelector('.tl-grid');
-      photos.forEach(ph=>{
-        const div=document.createElement('div');div.className='tl-thumb';div.dataset.photoId=ph.id;
-        const img=document.createElement('img');img.className='loading';img.dataset.src=`/api/thumb?path=${encodeURIComponent(ph.id)}&size=250`;img.onload=()=>img.classList.replace('loading','loaded');obs.observe(img);
-        const favBtn=document.createElement('button');favBtn.className='tl-thumb-fav'+(ph.favourite?' fav':'');favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
-        favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(ph);favBtn.classList.toggle('fav',ph.favourite);};
-        const delBtn=document.createElement('button');delBtn.className='tl-thumb-del';delBtn.title='Move to trash';
-        delBtn.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/></svg>`;
-        delBtn.onclick=async(e)=>{e.stopPropagation();await _deletePhoto(ph.id,'timeline',div);};
-        const chk=document.createElement('div');chk.className='sel-check';
-        div.appendChild(img);div.appendChild(favBtn);div.appendChild(delBtn);div.appendChild(chk);
-        div.onclick=(e)=>{if(e.target===favBtn||favBtn.contains(e.target)||e.target===delBtn||delBtn.contains(e.target))return;if(_selThumb(div,ph,e))return;const idx=_tlPhotos.indexOf(ph);openLightbox(idx,_tlPhotos,'timeline');};
-        div.oncontextmenu=(e)=>{e.preventDefault();_selMode=true;_selThumb(div,ph,{shiftKey:false});};
-        grid.appendChild(div);
-      });
-    });
-  }catch(e){tv.innerHTML=`<div style="text-align:center;padding:40px;color:var(--red);font-size:12px">${e.message}</div>`;}
-}
-
-/* ─────────────────────────────────────────────────────────────────── */
 /* Shared single-photo delete (gallery + timeline). Moves to trash. */
 async function _deletePhoto(id, source, el){
   if(!confirm('Move this photo to trash? This cannot be undone from the app.'))return;
@@ -2668,29 +2377,6 @@ async function quitarDestino(){if(!confirm('Remove destination?'))return;try{awa
 
 </script>
 <script>
-
-/* ─── Wizard ─── */
-const WIZ_STEPS=[
-  {title:"Welcome to Photos Sync",sub:"Let's get you set up in 3 quick steps.",id:"welcome",render:()=>`<div style="text-align:center;padding:10px 0"><div style="width:50px;height:50px;border-radius:14px;background:linear-gradient(135deg,var(--b),var(--b2));display:grid;place-items:center;margin:0 auto 14px;box-shadow:0 4px 16px #3b5bdb25"><svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#fff" stroke-width="1.8"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div><div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:8px">Sync · Organize · Classify</div><div style="font-size:12px;color:var(--ink3);line-height:1.65;max-width:340px;margin:0 auto">Photos Sync connects to your phone over Wi-Fi, organizes photos by date, classifies them automatically, and stores them locally or on a remote server.</div><div style="display:flex;gap:6px;justify-content:center;margin-top:16px;flex-wrap:wrap">${['Source','Destination','Ready'].map((s,i)=>`<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink3)"><div style="width:20px;height:20px;border-radius:50%;background:var(--b);color:#fff;font-size:9px;font-weight:700;display:grid;place-items:center">${i+1}</div>${s}</div>${i<2?'<div style="color:var(--brd)">→</div>':''}`).join('')}</div></div>`},
-  {title:"Connect a photo source",sub:"How will photos reach this computer?",id:"source",render:()=>`<div style="display:flex;flex-direction:column;gap:8px"><div onclick="wizSelectSource('webdav')" id="opt-webdav" class="wiz-opt"><div class="wiz-opt-icon" style="background:var(--b4)"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="var(--b)" stroke-width="1.8"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20"/></svg></div><div><div style="font-size:13px;font-weight:700;color:var(--ink)">WebDAV (Wi-Fi) <span style="font-size:9px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:20px;font-weight:700;margin-left:4px">Recommended</span></div><div style="font-size:11px;color:var(--ink3);margin-top:3px;line-height:1.5">Mount your Android via <b>CX File Explorer</b>. Same Wi-Fi. <em>Windows only.</em></div></div></div><div onclick="wizSelectSource('ssh')" id="opt-ssh-src" class="wiz-opt"><div class="wiz-opt-icon" style="background:#f0fdf4"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="#12b76a" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15l3-3-3-3"/><line x1="14" y1="15" x2="17" y2="15"/></svg></div><div><div style="font-size:13px;font-weight:700;color:var(--ink)">SSH Server</div><div style="font-size:11px;color:var(--ink3);margin-top:3px;line-height:1.5">Sync from a Linux server or NAS. Requires <code style="background:var(--surface);padding:1px 4px;border-radius:3px;font-size:10px;font-family:'JetBrains Mono',monospace">pip install paramiko</code>.</div></div></div><div id="wiz-source-hint" style="font-size:11px;color:var(--ink4);text-align:center;padding:2px 0">Select a source to continue</div></div>`},
-  {title:"Set a destination",sub:"Where should organized photos be stored?",id:"dest",render:()=>`<div style="display:flex;flex-direction:column;gap:8px"><div onclick="wizSelectDest('local')" id="opt-local" class="wiz-opt"><div class="wiz-opt-icon" style="background:#f0fdf4"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="#12b76a" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ink)">Local folder <span style="font-size:9px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:20px;font-weight:700;margin-left:4px">Simplest</span></div><div style="font-size:11px;color:var(--ink3);margin-top:3px">Store organized photos on this computer.</div><div id="wiz-local-wrap" style="display:none;margin-top:9px"><input id="wiz-local-path" placeholder="e.g. C:\\\\Photos  or  /home/user/photos" class="inp" style="font-size:11px"><div style="font-size:9px;color:var(--ink4);margin-top:3px">Leave blank for default ~/PhotosSync/screenshots_agrupados</div></div></div></div><div onclick="wizSelectDest('ssh')" id="opt-ssh-dest" class="wiz-opt"><div class="wiz-opt-icon" style="background:var(--b4)"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="var(--b)" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15l3-3-3-3"/><line x1="14" y1="15" x2="17" y2="15"/></svg></div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ink)">SSH Server</div><div style="font-size:11px;color:var(--ink3);margin-top:3px">Upload to a Linux server or NAS.</div><div id="wiz-ssh-wrap" style="display:none;margin-top:9px"><div id="wiz-ssh-servers" style="font-size:11px;color:var(--ink4)">Loading servers…</div></div></div></div><div id="wiz-dest-hint" style="font-size:11px;color:var(--ink4);text-align:center;padding:2px 0">Select a destination to continue</div></div>`},
-  {title:"You're all set! 🎉",sub:"Here's your setup summary.",id:"done",render:()=>`<div style="padding:4px 0"><div id="wiz-summary" style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px"></div><div style="background:var(--surface);border:1px solid var(--brd);border-radius:var(--r3);padding:14px"><div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:5px">▶ Next: run the Pipeline</div><div style="font-size:11px;color:var(--ink3);line-height:1.65">Go to <b>Pipeline</b> and click <b>Run ALL</b> to sync, organize and classify your photos.</div></div></div>`},
-];
-let _wizStep=0,_wizSource='',_wizDest='',_wizSshAlias='',_wizLocalPath='';
-function wizOpen(){_wizStep=0;_wizSource='';_wizDest='';_wizSshAlias='';_wizLocalPath='';$('wizard').style.display='block';wizRender();}
-function wizClose(){$('wizard').style.display='none';localStorage.setItem('photos_sync_setup_done','1');}
-function wizSkip(){if(confirm('Skip setup?'))wizClose();}
-function wizNav(dir){if(dir===1&&_wizStep===WIZ_STEPS.length-1){wizClose();return;}if(dir===1){if(!wizValidate())return;wizCommit();}_wizStep=Math.max(0,Math.min(WIZ_STEPS.length-1,_wizStep+dir));wizRender();}
-function wizRender(){const step=WIZ_STEPS[_wizStep];const pct=Math.round((_wizStep/(WIZ_STEPS.length-1))*100);$('wiz-bar').style.width=pct+'%';$('wiz-title').textContent=step.title;$('wiz-sub').textContent=step.sub;$('wiz-step-badge').textContent=`${_wizStep+1} / ${WIZ_STEPS.length}`;$('wiz-body').innerHTML=step.render();$('wiz-back').style.display=_wizStep>0?'inline-flex':'none';$('wiz-next').textContent=_wizStep===WIZ_STEPS.length-1?'Go to dashboard →':'Next →';if(step.id==='source'&&_wizSource)wizSelectSource(_wizSource,true);if(step.id==='dest')_wizRenderDest();if(step.id==='done')wizBuildSummary();}
-function _wizRenderDest(){if(!_wizDest)return;wizSelectDest(_wizDest,true);if(_wizDest==='local'&&_wizLocalPath){const inp=$('wiz-local-path');if(inp)inp.value=_wizLocalPath;}}
-function wizSelectSource(type,silent){_wizSource=type;['opt-webdav','opt-ssh-src'].forEach(id=>{const el=$(id);if(el)el.classList.remove('on');});const el=type==='webdav'?$('opt-webdav'):$('opt-ssh-src');if(el)el.classList.add('on');const h=$('wiz-source-hint');if(h){h.style.color='var(--b)';h.textContent=type==='webdav'?'✅ WebDAV selected.':'✅ SSH selected.';}}
-function wizSelectDest(type,silent){_wizDest=type;['opt-local','opt-ssh-dest'].forEach(id=>{const el=$(id);if(el)el.classList.remove('on');});const el=type==='local'?$('opt-local'):$('opt-ssh-dest');if(el)el.classList.add('on');const lw=$('wiz-local-wrap'),sw=$('wiz-ssh-wrap');if(lw)lw.style.display=type==='local'?'block':'none';if(sw)sw.style.display=type==='ssh'?'block':'none';if(type==='ssh'&&!silent)_wizLoadSshServers();const h=$('wiz-dest-hint');if(h){h.style.color='var(--b)';h.textContent=type==='local'?'✅ Local folder selected.':'✅ SSH selected.';}}
-async function _wizLoadSshServers(){const wrap=$('wiz-ssh-servers');if(!wrap)return;try{const data=await api('/api/ssh');const dest=data.filter(s=>s.rol==='destino'||s.rol==='ambos');if(!dest.length){wrap.innerHTML=`<div style="color:var(--amber);background:#fefce8;border:1px solid #fde68a;border-radius:6px;padding:9px 11px;font-size:11px;line-height:1.5"><b>No SSH servers configured.</b> Skip, go to SSH Servers, add one with role destino or ambos.</div>`;_wizSshAlias='';return;}_wizSshAlias=dest[0].alias;wrap.innerHTML=`<label class="lbl">Select server</label><select id="wiz-ssh-alias" class="inp" style="font-size:11px" onchange="_wizSshAlias=this.value">${dest.map(s=>`<option value="${s.alias}" ${s.alias===_wizSshAlias?'selected':''}>${s.alias} (${s.host})</option>`).join('')}</select>`;}catch(e){wrap.innerHTML=`<div style="font-size:11px;color:var(--red)">Could not load: ${e.message}</div>`;}}
-function wizValidate(){const id=WIZ_STEPS[_wizStep].id;if(id==='source'&&!_wizSource){const h=$('wiz-source-hint');if(h){h.textContent='⚠️ Please select a source.';h.style.color='var(--red)';}return false;}if(id==='dest'){if(!_wizDest){const h=$('wiz-dest-hint');if(h){h.textContent='⚠️ Please select a destination.';h.style.color='var(--red)';}return false;}if(_wizDest==='local')_wizLocalPath=($('wiz-local-path')&&$('wiz-local-path').value.trim())||'';if(_wizDest==='ssh'){const sel=$('wiz-ssh-alias');if(sel)_wizSshAlias=sel.value;if(!_wizSshAlias){const h=$('wiz-dest-hint');if(h){h.textContent='⚠️ Add an SSH server first.';h.style.color='var(--red)';}return false;}}}return true;}
-async function wizCommit(){const id=WIZ_STEPS[_wizStep].id;if(id!=='dest')return;try{if(_wizDest==='local')await api('/api/carpetas/destino',{method:'POST',body:{tipo:'local',ruta:_wizLocalPath||''}});else if(_wizDest==='ssh'&&_wizSshAlias)await api('/api/carpetas/destino',{method:'POST',body:{tipo:'ssh',alias:_wizSshAlias}});}catch(e){console.warn('wizCommit:',e);}}
-function wizBuildSummary(){const s=$('wiz-summary');if(!s)return;const dv=_wizDest==='local'?(_wizLocalPath||'Default ~/PhotosSync/screenshots_agrupados'):(_wizSshAlias?`SSH: ${_wizSshAlias}`:'SSH server');const rows=[{icon:'📡',label:'Source',value:_wizSource==='webdav'?'WebDAV (Wi-Fi)':'SSH Server',ok:!!_wizSource},{icon:'📁',label:'Destination',value:dv,ok:!!_wizDest}];s.innerHTML=rows.map(r=>`<div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--brd);border-radius:var(--r3);padding:10px 12px"><span style="font-size:17px">${r.icon}</span><div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--ink)">${r.label}</div><div style="font-size:11px;color:var(--ink3);margin-top:1px">${r.value}</div></div><span style="font-size:15px">${r.ok?'✅':'⚠️'}</span></div>`).join('');}
-(async()=>{try{const st=await api('/api/setup-status');if(!st.done){localStorage.removeItem('photos_sync_setup_done');wizOpen();}}catch(e){}})();
-
 </script>
 </body>
 </html>
