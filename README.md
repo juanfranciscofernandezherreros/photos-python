@@ -74,6 +74,22 @@ salida.
 | `DB_BIND_IP` | `127.0.0.1` | Interfaz donde se publica PostgreSQL |
 | `SECRETS_DIR` | `./secrets` | Directorio local de Docker Secrets |
 
+### Permisos del contenedor
+
+La aplicación se ejecuta como el usuario no-root `photos-sync` y elimina todas
+las capabilities Linux. En Windows y macOS Docker Desktop gestiona los permisos
+del bind mount. En un host Linux configura `APP_UID` y `APP_GID` con el usuario
+propietario de la biblioteca:
+
+```bash
+printf 'APP_UID=%s\nAPP_GID=%s\n' "$(id -u)" "$(id -g)" >> .env
+sudo chown -R "$(id -u):$(id -g)" /ruta/de/PHOTOS_DIR
+docker compose up -d --build app
+```
+
+Los secretos se montan en modo lectura y deben ser legibles por ese UID. No
+uses `user: root` como solución a problemas de permisos.
+
 ## Observabilidad: Grafana, Prometheus y Loki
 
 Arranca la aplicación y el stack completo con:

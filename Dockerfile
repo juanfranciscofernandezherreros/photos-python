@@ -23,23 +23,36 @@ FROM python:3.12-slim AS runtime
 
 WORKDIR /app
 
+ARG APP_UID=10001
+ARG APP_GID=10001
+
 # Runtime system libs only
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid "$APP_GID" photos-sync \
+    && useradd --uid "$APP_UID" --gid "$APP_GID" --create-home --shell /usr/sbin/nologin photos-sync
 
 # Copy installed packages from builder
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin/photos-sync* /usr/local/bin/
-COPY --from=builder /app /app
+COPY --from=builder --chown=photos-sync:photos-sync /app /app
 
 # Photos are stored under /data (mount your host folder here)
-ENV PHOTOS_DIR=/data
+ENV PHOTOS_DIR=/data \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 EXPOSE 8765
 
-# Create the PhotosSync symlink so BASE_DIR resolves correctly
-RUN ln -s /data /root/PhotosSync
+# Keep Path.home()/PhotosSync mapped to the bind-mounted library while the
+# process runs without root privileges.
+RUN mkdir -p /data \
+    && chown photos-sync:photos-sync /data \
+    && ln -s /data /home/photos-sync/PhotosSync \
+    && chown -h photos-sync:photos-sync /home/photos-sync/PhotosSync
+
+USER photos-sync:photos-sync
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8765/health')" || exit 1
