@@ -20,20 +20,6 @@ from ..utils.progress import progress_bar
 SSH_SCAN_WORKERS = 4
 
 
-def _progreso_OLD(iterable, description: str = "", total: int | None = None):
-    """Progress bar writing to sys.stdout (replaces rich.progress.track)."""
-    items = list(iterable)
-    n = total or len(items)
-    for i, item in enumerate(items, 1):
-        if n > 0:
-            pct = int(i / n * 100)
-            bar = "█" * (pct // 5) + "░" * (20 - pct // 5)
-            print(f"\r{description} [{bar}] {i}/{n} ({pct}%)", end="", flush=True)
-        yield item
-    if n > 0:
-        print()
-
-
 def load_existing_metadata() -> dict[str, Capture]:
     """Load metadata from the database, keyed by source_path."""
     try:

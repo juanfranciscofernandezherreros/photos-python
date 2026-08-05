@@ -28,7 +28,6 @@ Public surface (grouped by entity):
     load_destination_config()  -> dict
     save_destination_local(path)
     save_destination_ssh(alias)
-    clear_destination()
 
   Captures
     load_captures()        -> list[dict]
@@ -49,7 +48,6 @@ Public surface (grouped by entity):
     delete_album(album_id)
     album_add_photos(album_id, paths)
     album_remove_photos(album_id, paths)
-    album_photo_paths(album_id) -> list[str]
 
   Day summaries
     load_summaries()       -> list[dict]
@@ -250,11 +248,6 @@ def save_destination_ssh(alias: str) -> None:
         conn.execute(insert(t_destination).values(
             id=1, type="ssh", path=None, ssh_alias=alias,
         ))
-
-
-def clear_destination() -> None:
-    with _conn() as conn:
-        conn.execute(delete(t_destination))
 
 
 def load_saved_destination() -> str | None:
@@ -525,33 +518,6 @@ def get_capture_by_dest(dest_path: str) -> dict | None:
     return _row_to_capture_dict(row) if row else None
 
 
-def update_capture_zip(capture_id: str, zip_path: str) -> None:
-    with _conn() as conn:
-        conn.execute(
-            update(t_captures)
-            .where(t_captures.c.id == capture_id)
-            .values(zip_path=zip_path)
-        )
-
-
-def update_capture_dest(capture_id: str, dest_path: str) -> None:
-    with _conn() as conn:
-        conn.execute(
-            update(t_captures)
-            .where(t_captures.c.id == capture_id)
-            .values(dest_path=dest_path)
-        )
-
-
-def update_capture_tags(capture_id: str, tags: list) -> None:
-    with _conn() as conn:
-        conn.execute(
-            update(t_captures)
-            .where(t_captures.c.id == capture_id)
-            .values(tags=encode_tags(tags))
-        )
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Favourites
 # ─────────────────────────────────────────────────────────────────────────────
@@ -605,14 +571,6 @@ def favourites_set() -> set[str]:
 # ─────────────────────────────────────────────────────────────────────────────
 # Albums
 # ─────────────────────────────────────────────────────────────────────────────
-
-def _album_photo_count(album_id: str, conn) -> int:
-    row = conn.execute(
-        select(t_album_photos)
-        .where(t_album_photos.c.album_id == album_id)
-    ).all()
-    return len(row)
-
 
 def load_albums() -> list[dict]:
     with get_engine().connect() as conn:
@@ -717,15 +675,6 @@ def album_remove_photos(album_id: str, paths: list[str]) -> int:
             select(t_album_photos).where(t_album_photos.c.album_id == album_id)
         ).all())
     return count
-
-
-def album_photo_paths(album_id: str) -> list[str]:
-    with get_engine().connect() as conn:
-        rows = conn.execute(
-            select(t_album_photos.c.photo_path)
-            .where(t_album_photos.c.album_id == album_id)
-        ).all()
-    return [r[0] for r in rows]
 
 
 # ─────────────────────────────────────────────────────────────────────────────

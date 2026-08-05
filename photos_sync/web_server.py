@@ -18,13 +18,11 @@ import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
-from datetime import datetime as _dt
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote
 
 import uvicorn
-from fastapi import Depends, FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -645,19 +643,6 @@ class WebDAVScanIn(BaseModel):
 
 
 
-
-
-def _parse_webdav_modified(raw: str) -> str:
-    """Parse a WebDAV Last-Modified header like 'Mon, 01 Jan 2024 00:00:00 GMT'
-    into an ISO date. Returns '' on failure."""
-    if not raw:
-        return ""
-    try:
-        from email.utils import parsedate_to_datetime
-        dt = parsedate_to_datetime(raw)
-        return dt.isoformat(timespec="seconds") if dt else ""
-    except Exception:
-        return ""
 
 
 # Job state (single global; only one WebDAV download at a time)

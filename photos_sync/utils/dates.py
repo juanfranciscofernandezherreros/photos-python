@@ -15,11 +15,6 @@ def parse_date(s: str) -> datetime:
     return datetime.strptime(s, DATE_FORMAT)
 
 
-def format_date(dt: datetime) -> str:
-    """Format a datetime into the standard capture date string."""
-    return dt.strftime(DATE_FORMAT)
-
-
 # Common phone/camera filename patterns → date extraction
 _DATE_PATTERNS = [
     # Android screenshots: Screenshot_20250629-133659.png

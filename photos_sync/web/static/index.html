@@ -1156,8 +1156,8 @@ function tab(id,b){document.querySelectorAll('[data-s]').forEach(s=>s.classList.
 const logBox=$('log-box');let ws;
 function conectarWS(){const p=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${p}://${location.host}/ws/log`);
 ws.onmessage=e=>{if(!e.data)return;logBox.textContent+=e.data;logBox.scrollTop=logBox.scrollHeight};
-ws.onopen=()=>{logBox.textContent='';$('srv-status').textContent='Online';$('srv-status').className='sb-status sb-on'};
-ws.onclose=()=>{$('srv-status').textContent='Offline';$('srv-status').className='sb-status sb-off';setTimeout(conectarWS,3000)}}
+ws.onopen=()=>{logBox.textContent='';$('srv-status').textContent='Online';$('srv-status').className='s-on'};
+ws.onclose=()=>{$('srv-status').textContent='Offline';$('srv-status').className='s-off';setTimeout(conectarWS,3000)}}
 conectarWS();
 
 /* ─── Gallery ─── */

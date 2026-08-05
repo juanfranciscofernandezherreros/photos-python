@@ -27,17 +27,6 @@ def load_connections() -> list[dict]:
     return repo.load_webdav_connections()
 
 
-def save_connections(conexiones: list[Connection]) -> None:
-    # Full replace via repo
-    from sqlalchemy import delete
-
-    from ..db import get_engine, t_webdav
-    with get_engine().begin() as conn:
-        conn.execute(delete(t_webdav))
-    for c in conexiones:
-        repo.add_or_update_webdav(c["letra"], c["ip"], c["puerto"], c.get("alias", ""))
-
-
 def add_or_update_connection(letra: str, ip: str, puerto: str, alias: str = "") -> list[dict]:
     return repo.add_or_update_webdav(letra, ip, puerto, alias)
 
