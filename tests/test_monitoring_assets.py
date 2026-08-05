@@ -10,12 +10,32 @@ def test_grafana_dashboards_are_valid_json() -> None:
     dashboard_dir = ROOT / "monitoring/grafana/dashboards"
     dashboards = [json.loads(path.read_text(encoding="utf-8")) for path in dashboard_dir.glob("*.json")]
 
-    assert {dashboard["uid"] for dashboard in dashboards} == {
-        "photos-sync-admin",
-        "photos-sync-observability",
-    }
+    assert {dashboard["uid"] for dashboard in dashboards} == {"api-rest-observability"}
     panel_types = {panel["type"] for dashboard in dashboards for panel in dashboard["panels"]}
-    assert panel_types >= {"stat", "timeseries", "logs", "table", "bargauge"}
+    assert panel_types >= {"row", "stat", "timeseries", "logs", "piechart", "bargauge"}
+
+    dashboard = dashboards[0]
+    variables = [variable["name"] for variable in dashboard["templating"]["list"]]
+    assert variables == ["service", "route", "method", "status_code", "correlation_id"]
+    assert sum(panel["type"] == "row" for panel in dashboard["panels"]) == 5
+    assert sum(panel["type"] == "stat" for panel in dashboard["panels"]) == 4
+
+    serialized = json.dumps(dashboard)
+    assert "http_requests_total" in serialized
+    assert "photos_http_requests_total" not in serialized
+    assert "correlation_id" in serialized
+
+
+def test_only_the_requested_grafana_alerts_are_active() -> None:
+    alerts = (
+        ROOT / "monitoring/grafana/provisioning/alerting/api-rest-alerts.yml"
+    ).read_text(encoding="utf-8")
+
+    assert alerts.count("      - uid:") == 3
+    assert alerts.count("        isPaused: false") == 3
+    assert "api-rest-high-5xx-rate" in alerts
+    assert "api-rest-no-traffic" in alerts
+    assert "api-rest-high-average-latency" in alerts
 
 
 def test_required_monitoring_configuration_exists() -> None:
@@ -27,5 +47,6 @@ def test_required_monitoring_configuration_exists() -> None:
         "monitoring/alloy/config.alloy",
         "monitoring/grafana/provisioning/datasources/datasources.yml",
         "monitoring/grafana/provisioning/dashboards/dashboards.yml",
+        "monitoring/grafana/provisioning/alerting/api-rest-alerts.yml",
     )
     assert all((ROOT / path).is_file() for path in required)

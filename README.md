@@ -86,12 +86,11 @@ docker compose --profile monitoring up -d --build
 Grafana se aprovisiona automáticamente con las fuentes **Prometheus** y
 **Loki** y con dos dashboards dentro de la carpeta `Photos Sync`:
 
-- `Photos Sync · Administración`: resumen sencillo de uso, endpoints más
-  utilizados y lentos, errores, pipeline, WebDAV, recursos, PostgreSQL y alertas.
-- `Photos Sync · Observabilidad`: vista técnica detallada para diagnóstico.
+- `API REST · Observabilidad`: dashboard único con KPIs, tráfico, análisis por
+  endpoint/método/código HTTP, logs y trazabilidad por `correlation_id`.
 
-El panel **Registro de peticiones** muestra método, endpoint, código HTTP,
-duración, IP y `request_id` para cada petición.
+El panel **Logs de cada petición** muestra timestamp, método, endpoint, código
+HTTP, duración y `correlation_id` para cada petición.
 
 La primera instalación usa `GRAFANA_ADMIN_USER` y
 `GRAFANA_ADMIN_PASSWORD` del `.env`. Cambiar esas variables no modifica una
@@ -104,18 +103,21 @@ docker exec photos_grafana grafana cli admin reset-admin-password NuevaClaveSegu
 Consultas útiles en **Explore → Loki**:
 
 ```logql
-# Todas las peticiones
-{service_name="app"} | json | event="http_request"
+# Todas las peticiones completadas
+{service="mi-api"} | json | message="HTTP request completed"
 
 # Solo errores HTTP
-{service_name="app"} | json | event="http_request" | status >= 400
+{service="mi-api"} | json | message="HTTP request completed" | status_code >= 400
+
+# Trazar una petición concreta
+{service="mi-api"} | json | correlation_id="req_..."
 ```
 
 Para contar las peticiones del intervalo seleccionado en Grafana, usa
 Prometheus:
 
 ```promql
-sum(increase(photos_http_requests_total[$__range]))
+sum(increase(http_requests_total{service="mi-api"}[$__range]))
 ```
 
 Las métricas usan la plantilla de la ruta (`/api/days/{date}/photos`) para

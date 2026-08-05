@@ -16,10 +16,12 @@ from typing import Any
 
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
+SERVICE_NAME = os.getenv("SERVICE_NAME", "mi-api")
+
 HTTP_REQUESTS = Counter(
-    "photos_http_requests_total",
+    "http_requests_total",
     "HTTP requests handled by the application.",
-    ("method", "route", "status"),
+    ("service", "route", "method", "status_code"),
 )
 HTTP_REQUEST_DURATION = Histogram(
     "photos_http_request_duration_seconds",
@@ -191,10 +193,11 @@ def stop_metrics_endpoint(handles: tuple[Any, threading.Thread] | None) -> None:
     log_event("metrics_server_stopped")
 
 
-def _request_id(headers: Iterable[tuple[bytes, bytes]]) -> str:
-    for name, value in headers:
-        if name.lower() == b"x-request-id":
-            candidate = value.decode("ascii", errors="ignore")
+def _correlation_id(headers: Iterable[tuple[bytes, bytes]]) -> str:
+    decoded = {name.lower(): value for name, value in headers}
+    for header in (b"x-correlation-id", b"x-request-id"):
+        if header in decoded:
+            candidate = decoded[header].decode("ascii", errors="ignore")
             if _REQUEST_ID_RE.fullmatch(candidate):
                 return candidate
     return f"req_{uuid.uuid4().hex}"
@@ -223,7 +226,7 @@ class ObservabilityMiddleware:
             return
 
         method = str(scope.get("method", "UNKNOWN")).upper()
-        request_id = _request_id(scope.get("headers", ()))
+        correlation_id = _correlation_id(scope.get("headers", ()))
         started = time.perf_counter()
         status = 500
         response_size = 0
@@ -234,7 +237,8 @@ class ObservabilityMiddleware:
             if message["type"] == "http.response.start":
                 status = int(message["status"])
                 headers = list(message.get("headers", ()))
-                headers.append((b"x-request-id", request_id.encode("ascii")))
+                headers.append((b"x-request-id", correlation_id.encode("ascii")))
+                headers.append((b"x-correlation-id", correlation_id.encode("ascii")))
                 message["headers"] = headers
             elif message["type"] == "http.response.body":
                 response_size += len(message.get("body", b""))
@@ -251,7 +255,12 @@ class ObservabilityMiddleware:
             route = _route_template(scope)
             status_text = str(status)
             HTTP_REQUESTS_IN_PROGRESS.labels(method=method).dec()
-            HTTP_REQUESTS.labels(method=method, route=route, status=status_text).inc()
+            HTTP_REQUESTS.labels(
+                service=SERVICE_NAME,
+                route=route,
+                method=method,
+                status_code=status_text,
+            ).inc()
             HTTP_REQUEST_DURATION.labels(method=method, route=route).observe(duration)
             HTTP_RESPONSE_SIZE.labels(method=method, route=route).inc(response_size)
             if exception is not None:
@@ -267,11 +276,13 @@ class ObservabilityMiddleware:
             log_event(
                 "http_request",
                 level=level,
-                request_id=request_id,
+                message="HTTP request completed",
+                service=SERVICE_NAME,
+                correlation_id=correlation_id,
                 method=method,
                 route=route,
                 path=str(scope.get("path", "")),
-                status=status,
+                status_code=status,
                 status_class=f"{status // 100}xx",
                 duration_ms=round(duration * 1000, 3),
                 response_size=response_size,

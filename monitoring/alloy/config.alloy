@@ -47,12 +47,13 @@ loki.process "photos" {
   stage.json {
     expressions = {
       event        = "event",
+      service      = "service",
       level        = "level",
       method       = "method",
       route        = "route",
-      status       = "status",
+      status_code  = "status_code",
       status_class = "status_class",
-      request_id   = "request_id",
+      correlation_id = "correlation_id",
       duration_ms  = "duration_ms",
     }
   }
@@ -61,6 +62,7 @@ loki.process "photos" {
     values = {
       event = "",
       level = "",
+      service = "",
     }
   }
 
@@ -68,9 +70,9 @@ loki.process "photos" {
     values = {
       method       = "",
       route        = "",
-      status       = "",
+      status_code  = "",
       status_class = "",
-      request_id   = "",
+      correlation_id = "",
       duration_ms  = "",
     }
   }

@@ -1,0 +1,172 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: API REST Observability
+    folder: API REST Observability
+    interval: 1m
+    rules:
+      - uid: api-rest-high-5xx-rate
+        title: Error rate 5xx superior al 5%
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: sum(rate(http_requests_total{service="mi-api",status_code=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total{service="mi-api"}[5m])), 0.001)
+              instant: true
+              intervalMs: 1000
+              legendFormat: 5xx rate
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0.05]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [C]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Más del 5% de las peticiones terminan en 5xx
+          description: La proporción de respuestas 5xx de mi-api supera el 5% durante 5 minutos.
+        labels:
+          service: mi-api
+          severity: critical
+        isPaused: false
+
+      - uid: api-rest-no-traffic
+        title: Caída total de tráfico
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: sum(rate(http_requests_total{service="mi-api"}[5m])) or vector(0)
+              instant: true
+              intervalMs: 1000
+              legendFormat: traffic
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: lte
+                  operator:
+                    type: and
+                  query:
+                    params: [C]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: Alerting
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: La API no recibe tráfico
+          description: mi-api no ha recibido peticiones durante al menos 5 minutos.
+        labels:
+          service: mi-api
+          severity: critical
+        isPaused: false
+
+      - uid: api-rest-high-average-latency
+        title: Latencia media superior a 1 segundo
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: loki
+            model:
+              editorMode: code
+              expr: avg_over_time({service="mi-api"} | json | message="HTTP request completed" | unwrap duration_ms [5m])
+              instant: true
+              intervalMs: 1000
+              legendFormat: average latency
+              maxDataPoints: 43200
+              queryType: instant
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [1000]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [C]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: La latencia media supera 1 segundo
+          description: La media de duration_ms para mi-api supera 1000 ms durante 5 minutos.
+        labels:
+          service: mi-api
+          severity: warning
+        isPaused: false

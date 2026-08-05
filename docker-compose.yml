@@ -35,6 +35,7 @@ services:
       METRICS_ADDR: 0.0.0.0
       METRICS_PORT: 9000
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SERVICE_NAME: ${SERVICE_NAME:-mi-api}
     volumes:
       - ${PHOTOS_DIR:-./photos}:/data
     ports:
@@ -195,7 +196,7 @@ services:
         condition: service_started
 
   grafana:
-    image: grafana/grafana:13.1.0
+    image: grafana/grafana:11.6.0
     container_name: photos_grafana
     restart: unless-stopped
     profiles: ["monitoring"]
@@ -205,7 +206,7 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_METRICS_ENABLED: "true"
-      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/photos-sync-admin.json
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/api-rest-observability.json
       GF_DASHBOARDS_MIN_REFRESH_INTERVAL: 1s
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro

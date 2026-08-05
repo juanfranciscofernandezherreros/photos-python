@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from photos_sync.observability import (
     EVENT_LOGGER,
     HTTP_REQUESTS,
+    SERVICE_NAME,
     JsonFormatter,
     ObservabilityMiddleware,
 )
@@ -23,7 +24,12 @@ def test_request_uses_route_template_and_propagates_request_id() -> None:
     def item(item_id: str) -> dict[str, str]:
         return {"id": item_id}
 
-    metric = HTTP_REQUESTS.labels(method="GET", route="/items/{item_id}", status="200")
+    metric = HTTP_REQUESTS.labels(
+        service=SERVICE_NAME,
+        route="/items/{item_id}",
+        method="GET",
+        status_code="200",
+    )
     before = metric._value.get()
 
     response = TestClient(app).get(
@@ -32,6 +38,7 @@ def test_request_uses_route_template_and_propagates_request_id() -> None:
 
     assert response.status_code == 200
     assert response.headers["x-request-id"] == "browser-request-42"
+    assert response.headers["x-correlation-id"] == "browser-request-42"
     assert metric._value.get() == before + 1
 
 
@@ -58,7 +65,10 @@ def test_access_log_does_not_include_query_string() -> None:
     assert event["event"] == "http_request"
     assert event["route"] == "/search"
     assert event["path"] == "/search"
-    assert event["status"] == 200
+    assert event["message"] == "HTTP request completed"
+    assert event["service"] == SERVICE_NAME
+    assert event["status_code"] == 200
+    assert event["correlation_id"]
 
 
 def test_invalid_request_id_is_replaced() -> None:
