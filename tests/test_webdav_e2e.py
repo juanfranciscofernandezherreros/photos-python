@@ -18,7 +18,7 @@ from __future__ import annotations
 import socket
 import threading
 import time
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
@@ -33,6 +33,9 @@ class _WebDAVHandler(BaseHTTPRequestHandler):
         "/DCIM/Camera/IMG_1001.jpg": b"real-bytes-of-image-two" * 5000,
         "/DCIM/Camera/IMG_1002.png": b"png-payload-here" * 8000,          # ~130 KB
     }
+    activity_lock = threading.Lock()
+    active_gets = 0
+    max_active_gets = 0
 
     def log_message(self, *a, **kw):
         pass  # silence stderr spam in tests
@@ -72,11 +75,22 @@ class _WebDAVHandler(BaseHTTPRequestHandler):
         content = self.files.get(self.path)
         if content is None:
             self.send_response(404); self.end_headers(); return
-        self.send_response(200)
-        self.send_header("Content-Type", "image/jpeg")
-        self.send_header("Content-Length", str(len(content)))
-        self.end_headers()
-        self.wfile.write(content)
+        with self.activity_lock:
+            type(self).active_gets += 1
+            type(self).max_active_gets = max(
+                type(self).max_active_gets,
+                type(self).active_gets,
+            )
+        try:
+            time.sleep(0.05)
+            self.send_response(200)
+            self.send_header("Content-Type", "image/jpeg")
+            self.send_header("Content-Length", str(len(content)))
+            self.end_headers()
+            self.wfile.write(content)
+        finally:
+            with self.activity_lock:
+                type(self).active_gets -= 1
 
 
 @pytest.fixture()
@@ -84,7 +98,9 @@ def webdav_server():
     """Start a real HTTP server on a free port for the test's lifetime."""
     # Pick a free port
     sock = socket.socket(); sock.bind(("127.0.0.1", 0)); port = sock.getsockname()[1]; sock.close()
-    srv = HTTPServer(("127.0.0.1", port), _WebDAVHandler)
+    _WebDAVHandler.active_gets = 0
+    _WebDAVHandler.max_active_gets = 0
+    srv = ThreadingHTTPServer(("127.0.0.1", port), _WebDAVHandler)
     t = threading.Thread(target=srv.serve_forever, daemon=True); t.start()
     # Wait briefly for the socket to be ready
     time.sleep(0.05)
@@ -134,6 +150,8 @@ class TestWebDAVEndToEnd:
         assert s["error"] is None
         assert s["downloaded"] == 3
         assert s["registered"] == 3
+        assert s["workers"] >= 2
+        assert _WebDAVHandler.max_active_gets >= 2
 
         # Files on disk
         assert (dest / "IMG_1000.jpg").is_file()

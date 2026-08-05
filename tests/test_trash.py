@@ -67,6 +67,31 @@ class TestTrashBasics:
         assert thumb.status_code == 200
         assert thumb.headers["content-type"] == "image/jpeg"
 
+    def test_missing_legacy_trash_copy_is_recovered_from_original(
+        self, cliente_api, cwd_temporal
+    ):
+        from photos_sync import repository as repo
+
+        original = Path(_make_photo(cwd_temporal, "recovered.jpg"))
+        entry = repo.add_to_trash(
+            original_path=str(original),
+            trash_path="/.trash/recovered.jpg",
+            filename=original.name,
+            size_mb=0.01,
+        )
+
+        response = cliente_api.get("/api/trash")
+
+        assert response.status_code == 200
+        recovered = next(
+            item for item in response.json()["trash"] if item["id"] == entry["id"]
+        )
+        recovered_path = Path(recovered["trash_path"])
+        assert recovered["exists"] is True
+        assert recovered_path.is_file()
+        assert recovered_path.is_relative_to(cwd_temporal / "organizado")
+        assert original.is_file()
+
 
 class TestRestore:
     def test_restore_puts_file_back(self, cliente_api, cwd_temporal):

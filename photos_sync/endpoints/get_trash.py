@@ -36,6 +36,23 @@ def get_trash(_auth: dict = Depends(require_login)):
             repo.update_trash_path(e["id"], str(destination))
             e["trash_path"] = str(destination)
             trash_path = destination
+        # A container rebuild removed legacy files stored under /.trash.  If
+        # WebDAV has since downloaded the same source again, preserve that
+        # source and rebuild the trash copy in the persistent library volume.
+        if not trash_path.is_file():
+            original = Path(e["original_path"])
+            if original.is_file() and _is_allowed(original):
+                destination_dir = _trash_directory_for(original)
+                destination_dir.mkdir(parents=True, exist_ok=True)
+                destination = destination_dir / e["filename"]
+                if destination.exists():
+                    destination = destination_dir / (
+                        f"{destination.stem}_{e['id']}{destination.suffix}"
+                    )
+                shutil.copy2(original, destination)
+                repo.update_trash_path(e["id"], str(destination))
+                e["trash_path"] = str(destination)
+                trash_path = destination
         # thumbnail served from the trash location
         e["url"] = f"/api/photo?path={quote(e['trash_path'])}"
         e["exists"] = trash_path.is_file()

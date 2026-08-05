@@ -668,6 +668,7 @@ _webdav_job: dict = {"running": False, "done": False, "error": None,
                      "total": 0, "downloaded": 0, "registered": 0, "skipped": 0,
                      "started_at": None, "finished_at": None,
                      "dest": "", "current_file": ""}
+_webdav_job_lock = threading.Lock()
 
 
 

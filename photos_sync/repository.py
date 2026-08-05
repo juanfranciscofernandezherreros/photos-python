@@ -486,6 +486,22 @@ def upsert_captures(caps: list[dict]) -> None:
     from .utils.dates import extract_date_from_filename
 
     with _conn() as conn:
+        destinations = {
+            (c.get("ruta_destino") or c.get("dest_path") or "")
+            for c in caps
+        }
+        destinations.discard("")
+        existing_by_dest = {}
+        if destinations:
+            existing_by_dest = dict(conn.execute(
+                select(t_captures.c.dest_path, t_captures.c.id)
+                .where(t_captures.c.dest_path.in_(destinations))
+            ).all())
+
+        # Normalize and deduplicate in memory. A destination already known by
+        # the database keeps its stable id, regardless of which pipeline step
+        # supplied the incoming record.
+        records_by_key: dict[str, dict] = {}
         for c in caps:
             # Derive real date from filename — this is the source of truth
             filename = c.get("archivo", "")
@@ -502,44 +518,83 @@ def upsert_captures(caps: list[dict]) -> None:
             dest = c.get("ruta_destino") or c.get("dest_path") or ""
             capture_id = c.get("id", "")
 
-            # If id looks like a file path, replace it with a proper UUID
-            if capture_id.startswith("/") or capture_id.startswith("C:") or \
-               capture_id.startswith("\\"):
-                # Check if a row already exists for this dest_path
-                existing = conn.execute(
-                    select(t_captures.c.id).where(t_captures.c.dest_path == dest)
-                ).first()
-                if existing:
-                    capture_id = existing[0]
-                else:
-                    capture_id = f"cap_{_uuid.uuid4().hex[:12]}"
+            if dest in existing_by_dest:
+                capture_id = existing_by_dest[dest]
+            elif capture_id.startswith("/") or capture_id.startswith("C:") or \
+                 capture_id.startswith("\\"):
+                capture_id = f"cap_{_uuid.uuid4().hex[:12]}"
             elif not capture_id:
                 capture_id = f"cap_{_uuid.uuid4().hex[:12]}"
 
-            if dest:
-                conn.execute(delete(t_captures).where(
-                    (t_captures.c.id == capture_id) | (t_captures.c.dest_path == dest)
-                ))
+            record = {
+                "id": capture_id,
+                "filename": filename,
+                "extension": c.get("formato", ""),
+                "size_mb": float(c.get("tamano_mb", 0)),
+                "mtime": float(c.get("mtime", 0)),
+                "capture_date": cap_date,
+                "capture_day": cap_date.date() if cap_date else fallback_day,
+                "source_path": c.get("ruta_original", ""),
+                "dest_path": dest,
+                "zip_path": c.get("ruta_zip"),
+                "ssh_alias": c.get("ssh_alias"),
+                "ssh_remote_path": c.get("ssh_ruta_remota"),
+                "gps_lat": c.get("gps_lat"),
+                "gps_lon": c.get("gps_lon"),
+                "tags": encode_tags(c.get("tags", [])),
+                "is_favourite": False,
+            }
+            records_by_key[dest or capture_id] = record
+
+        records = list({record["id"]: record for record in records_by_key.values()}.values())
+        dialect = conn.dialect.name
+        chunk_size = 500 if dialect == "postgresql" else 50
+        for start in range(0, len(records), chunk_size):
+            chunk = records[start:start + chunk_size]
+            if dialect == "postgresql":
+                from sqlalchemy.dialects.postgresql import insert as dialect_insert
+            elif dialect == "sqlite":
+                from sqlalchemy.dialects.sqlite import insert as dialect_insert
             else:
-                conn.execute(delete(t_captures).where(t_captures.c.id == capture_id))
-            conn.execute(insert(t_captures).values(
-                id=capture_id,
-                filename=filename,
-                extension=c.get("formato", ""),
-                size_mb=float(c.get("tamano_mb", 0)),
-                mtime=float(c.get("mtime", 0)),
-                capture_date=cap_date,
-                capture_day=cap_date.date() if cap_date else fallback_day,
-                source_path=c.get("ruta_original", ""),
-                dest_path=dest,
-                zip_path=c.get("ruta_zip"),
-                ssh_alias=c.get("ssh_alias"),
-                ssh_remote_path=c.get("ssh_ruta_remota"),
-                gps_lat=c.get("gps_lat"),
-                gps_lon=c.get("gps_lon"),
-                tags=encode_tags(c.get("tags", [])),
-                is_favourite=False,
-            ))
+                # The application supports PostgreSQL and SQLite. Retain a
+                # portable fallback for diagnostics on another SQL dialect.
+                ids = [record["id"] for record in chunk]
+                conn.execute(delete(t_captures).where(t_captures.c.id.in_(ids)))
+                conn.execute(insert(t_captures), chunk)
+                continue
+
+            statement = dialect_insert(t_captures)
+            if dialect == "postgresql":
+                statement = statement.values(chunk)
+            excluded = statement.excluded
+            statement = statement.on_conflict_do_update(
+                index_elements=[t_captures.c.id],
+                set_={
+                    column.name: getattr(excluded, column.name)
+                    for column in t_captures.c
+                    if column.name not in {"id", "is_favourite"}
+                },
+            )
+            if dialect == "postgresql":
+                conn.execute(statement)
+            else:
+                conn.execute(statement, chunk)
+
+
+def captures_by_destinations(paths: list[str]) -> dict[str, dict]:
+    """Return captures keyed by destination using one database round-trip."""
+    normalized = list(dict.fromkeys(path for path in paths if path))
+    if not normalized:
+        return {}
+    result: dict[str, dict] = {}
+    with get_engine().connect() as conn:
+        for start in range(0, len(normalized), 1000):
+            rows = conn.execute(
+                select(t_captures)
+                .where(t_captures.c.dest_path.in_(normalized[start:start + 1000]))
+            ).mappings().all()
+            result.update({row["dest_path"]: _row_to_capture_dict(row) for row in rows})
+    return result
 
 
 def get_capture_by_dest(dest_path: str) -> dict | None:
