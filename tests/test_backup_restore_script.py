@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 SCRIPT = Path(__file__).parents[1] / "scripts/test_backup_restore.sh"
 
 
