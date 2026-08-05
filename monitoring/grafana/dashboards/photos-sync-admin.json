@@ -76,21 +76,21 @@
     },
     {
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "fieldConfig": {"defaults": {"mappings": [{"options": {"0": {"color": "red", "text": "ERROR"}, "1": {"color": "green", "text": "CORRECTO"}}, "type": "value"}]}, "overrides": []},
+      "fieldConfig": {"defaults": {"mappings": [{"options": {"0": {"color": "red", "text": "ERROR"}, "1": {"color": "green", "text": "CORRECTO"}}, "type": "value"}], "noValue": "SIN EJECUCIONES"}, "overrides": []},
       "gridPos": {"h": 4, "w": 3, "x": 18, "y": 1},
       "id": 7,
       "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
-      "targets": [{"expr": "photos_pipeline_last_run_success", "instant": true, "refId": "A"}],
+      "targets": [{"expr": "photos_pipeline_last_run_success and on() (photos_pipeline_last_run_timestamp_seconds > 0)", "instant": true, "refId": "A"}],
       "title": "Último pipeline",
       "type": "stat"
     },
     {
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "fieldConfig": {"defaults": {"mappings": [{"options": {"0": {"color": "red", "text": "ERROR"}, "1": {"color": "green", "text": "CORRECTO"}}, "type": "value"}]}, "overrides": []},
+      "fieldConfig": {"defaults": {"mappings": [{"options": {"0": {"color": "red", "text": "ERROR"}, "1": {"color": "green", "text": "CORRECTO"}}, "type": "value"}], "noValue": "SIN DESCARGAS"}, "overrides": []},
       "gridPos": {"h": 4, "w": 3, "x": 21, "y": 1},
       "id": 8,
       "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
-      "targets": [{"expr": "photos_webdav_last_job_success", "instant": true, "refId": "A"}],
+      "targets": [{"expr": "photos_webdav_last_job_success and on() (photos_webdav_last_job_timestamp_seconds > 0)", "instant": true, "refId": "A"}],
       "title": "Último WebDAV",
       "type": "stat"
     },
@@ -360,7 +360,7 @@
       "type": "table"
     }
   ],
-  "refresh": "15s",
+  "refresh": "5s",
   "schemaVersion": 41,
   "tags": ["photos-sync", "administración"],
   "templating": {"list": []},
