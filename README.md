@@ -258,6 +258,19 @@ gunzip -c backups/photos_sync_20240101_030000.sql.gz | docker compose exec -T db
 docker compose start app
 ```
 
+### Probar automáticamente una restauración
+
+La prueba crea una base aislada con prefijo `photos_sync_restore_test_`, genera
+un dump comprimido igual que el backup real, elimina esa base temporal, la
+restaura y verifica un registro testigo. Nunca modifica `photos_sync`:
+
+```bash
+docker compose cp scripts/test_backup_restore.sh db:/tmp/test_backup_restore.sh
+docker compose exec -T db sh /tmp/test_backup_restore.sh
+```
+
+El script elimina la base temporal incluso si el dump o la restauración fallan.
+
 ### Ver logs del backup
 
 ```bash
