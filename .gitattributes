@@ -2,3 +2,4 @@
 serenity/mvnw text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
+deploy/caddy/Caddyfile text eol=lf

@@ -90,6 +90,13 @@ docker compose up -d --build app
 Los secretos se montan en modo lectura y deben ser legibles por ese UID. No
 uses `user: root` como solución a problemas de permisos.
 
+### HTTPS para acceso desde Internet
+
+No publiques el puerto `8765` directamente. El despliegue recomendado usa
+Caddy como proxy inverso, activa cookies seguras y obtiene/renueva el
+certificado TLS automáticamente. Consulta la guía completa en
+[`docs/https.md`](docs/https.md).
+
 ## Observabilidad: Grafana, Prometheus y Loki
 
 Arranca la aplicación y el stack completo con:
