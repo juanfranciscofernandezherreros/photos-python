@@ -28,7 +28,7 @@ def get_days(_auth: dict = Depends(require_login)):
     """
     from datetime import datetime as _dt
 
-    # DB metadata: photo path → (capture_date, tags, city, gps, is_favourite)
+    # DB metadata: photo path → (capture_date, tags, gps, is_favourite)
     caps = repo.load_captures()
 
     # DB summaries provide zip_path for a given date if the pipeline ran

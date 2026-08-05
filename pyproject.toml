@@ -29,7 +29,6 @@ ssh = [
 ]
 images = [
     "Pillow>=10.0",
-    "geopy>=2.4",
 ]
 dev = [
     "mypy>=1.9",

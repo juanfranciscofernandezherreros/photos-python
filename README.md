@@ -1,6 +1,6 @@
 # Photos Sync
 
-Sincroniza fotos desde el móvil (WebDAV / SSH), las organiza por fecha, clasifica por etiquetas y ciudad (GPS EXIF), y las almacena local o en servidor remoto.
+Sincroniza fotos desde el móvil (WebDAV / SSH), las organiza por fecha, clasifica por etiquetas y las almacena local o en servidor remoto.
 
 ## Inicio rápido con Docker
 

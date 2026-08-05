@@ -53,7 +53,6 @@ def get_day_photos(
             "size_mb": size_mb,
             "capture_date": candidate.get("fecha_captura") or "",
             "tags": candidate.get("tags") or [],
-            "city": candidate.get("city") or "",
             "gps_lat": candidate.get("gps_lat"),
             "gps_lon": candidate.get("gps_lon"),
             "favourite": bool(candidate.get("is_favourite")),

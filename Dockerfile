@@ -15,7 +15,7 @@ COPY pyproject.toml ./
 RUN echo "# Photos Sync" > README.md
 COPY photos_sync/ photos_sync/
 
-# Install the package with ssh + images extras (includes geopy, Pillow, paramiko)
+# Install the package with ssh + images extras (includes Pillow and paramiko)
 RUN pip install --no-cache-dir ".[ssh,images]"
 
 # ─── Runtime stage ────────────────────────────────────────────────────────────
@@ -43,7 +43,7 @@ EXPOSE 8765
 RUN ln -s /data /root/PhotosSync
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8765/api/setup-status')" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8765/health')" || exit 1
 
 # Start: wait for DB (handled by depends_on + healthcheck in compose),
 # then init tables and launch the web server binding on all interfaces.

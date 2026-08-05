@@ -37,7 +37,6 @@ def get_album(album_id: str, _auth: dict = Depends(require_login)):
             "size_mb":      round(path_obj.stat().st_size / 1048576, 2) if exists else 0,
             "capture_date": meta.get("fecha_captura", ""),
             "tags":         meta.get("tags", []),
-            "city":         meta.get("city", ""),
             "gps_lat":      meta.get("gps_lat"),
             "gps_lon":      meta.get("gps_lon"),
             "favourite":    fpath in favs,

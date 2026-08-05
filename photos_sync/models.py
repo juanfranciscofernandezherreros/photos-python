@@ -51,7 +51,6 @@ class Capture:
     tags: list[str] = field(default_factory=list)
     gps_lat: float | None = None
     gps_lon: float | None = None
-    city: str | None = None
 
     # ── serialization ─────────────────────────────────────────────────────
 
@@ -82,8 +81,6 @@ class Capture:
             d["gps_lat"] = self.gps_lat
         if self.gps_lon is not None:
             d["gps_lon"] = self.gps_lon
-        if self.city:
-            d["city"] = self.city
         return d
 
     @classmethod
@@ -104,7 +101,6 @@ class Capture:
             tags=d.get("tags", []),
             gps_lat=d.get("gps_lat"),
             gps_lon=d.get("gps_lon"),
-            city=d.get("city"),
         )
 
 

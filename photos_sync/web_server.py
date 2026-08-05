@@ -755,6 +755,7 @@ _HTML = _HTML_PATH.read_text(encoding="utf-8") if _HTML_PATH.exists() else "<h1>
 # Each route lives in a dedicated module. Importing and including routers here
 # keeps ``photos_sync.web_server:app`` as the stable public entry point.
 _ENDPOINT_MODULES = (
+    "health",
     "get_lockouts",
     "unlock_user",
     "auth_status",
@@ -784,8 +785,6 @@ _ENDPOINT_MODULES = (
     "download_zip",
     "toggle_favourite",
     "get_tags",
-    "get_cities",
-    "photos_by_city",
     "get_albums",
     "create_album",
     "update_album",
@@ -811,7 +810,6 @@ _ENDPOINT_MODULES = (
     "set_destino",
     "quitar_destino",
     "diagnostic",
-    "setup_status",
     "ui",
 )
 

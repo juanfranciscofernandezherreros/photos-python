@@ -113,7 +113,6 @@ t_captures = Table(
     Column("ssh_remote_path",  Text),
     Column("gps_lat",          Float),
     Column("gps_lon",          Float),
-    Column("city",             Text),
     # Tags stored as JSON string, e.g. '["camera","has_gps"]'
     Column("tags",             Text, nullable=False, default="[]"),
     Column("is_favourite",     Boolean, nullable=False, default=False),

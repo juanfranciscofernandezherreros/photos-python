@@ -56,10 +56,8 @@ Public surface (grouped by entity):
     upsert_summary(summary_dict)
     upsert_summaries(summaries)
 
-  Tags / Cities  (computed from captures)
+  Tags (computed from captures)
     load_tags()            -> list[dict]
-    load_cities()          -> list[dict]
-    photos_by_city(city)   -> list[dict]
 """
 from __future__ import annotations
 
@@ -285,7 +283,6 @@ def _row_to_capture_dict(r) -> dict:
         "ssh_ruta_remota": r["ssh_remote_path"],
         "gps_lat":         r["gps_lat"],
         "gps_lon":         r["gps_lon"],
-        "city":            r["city"],
         "tags":            decode_tags(r["tags"]),
     }
 
@@ -515,7 +512,6 @@ def upsert_captures(caps: list[dict]) -> None:
                 ssh_remote_path=c.get("ssh_ruta_remota"),
                 gps_lat=c.get("gps_lat"),
                 gps_lon=c.get("gps_lon"),
-                city=c.get("city"),
                 tags=encode_tags(c.get("tags", [])),
                 is_favourite=False,
             ))
@@ -544,15 +540,6 @@ def update_capture_dest(capture_id: str, dest_path: str) -> None:
             update(t_captures)
             .where(t_captures.c.id == capture_id)
             .values(dest_path=dest_path)
-        )
-
-
-def update_capture_gps_city(capture_id: str, gps_lat: float, gps_lon: float, city: str) -> None:
-    with _conn() as conn:
-        conn.execute(
-            update(t_captures)
-            .where(t_captures.c.id == capture_id)
-            .values(gps_lat=gps_lat, gps_lon=gps_lon, city=city or None)
         )
 
 
@@ -784,7 +771,7 @@ def upsert_summaries(summaries: list[dict]) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Tags and Cities (computed views over captures)
+# Tags (computed view over captures)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def load_all_tags() -> list[dict]:
@@ -799,68 +786,6 @@ def load_all_tags() -> list[dict]:
         [{"tag": t, "count": c} for t, c in tag_counts.items()],
         key=lambda x: -x["count"],
     )
-
-
-def load_all_cities() -> list[dict]:
-    """All distinct cities with counts and cover paths."""
-    city_data: dict[str, dict] = {}
-    with get_engine().connect() as conn:
-        rows = conn.execute(
-            select(
-                t_captures.c.city,
-                t_captures.c.dest_path,
-                t_captures.c.gps_lat,
-                t_captures.c.gps_lon,
-            ).where(t_captures.c.city != None)  # noqa: E711
-        ).all()
-    for r in rows:
-        city = (r[0] or "").strip()
-        if not city:
-            continue
-        fpath = r[1]
-        if city not in city_data:
-            city_data[city] = {
-                "city":  city,
-                "count": 0,
-                "cover": fpath if fpath and Path(fpath).is_file() else None,
-                "lat":   r[2],
-                "lon":   r[3],
-            }
-        city_data[city]["count"] += 1
-        if city_data[city]["cover"] is None and fpath and Path(fpath).is_file():
-            city_data[city]["cover"] = fpath
-    return sorted(city_data.values(), key=lambda x: -x["count"])
-
-
-def photos_by_city(city: str) -> list[dict]:
-    """All captures for a given city, as photo dicts."""
-    favs = favourites_set()
-    with get_engine().connect() as conn:
-        rows = conn.execute(
-            select(t_captures)
-            .where(t_captures.c.city == city)
-            .where(t_captures.c.dest_path != None)  # noqa: E711
-        ).mappings().all()
-    from urllib.parse import quote
-    photos = []
-    for r in rows:
-        fpath = r["dest_path"]
-        if not fpath or not Path(fpath).is_file():
-            continue
-        photos.append({
-            "id":           fpath,
-            "filename":     Path(fpath).name,
-            "size_mb":      round(Path(fpath).stat().st_size / 1048576, 2),
-            "capture_date": r["capture_date"],
-            "tags":         decode_tags(r["tags"]),
-            "city":         r["city"],
-            "gps_lat":      r["gps_lat"],
-            "gps_lon":      r["gps_lon"],
-            "favourite":    fpath in favs,
-            "url":          f"/api/photo?path={quote(fpath)}",
-            "exists":       True,
-        })
-    return photos
 
 
 # ═════════════════════════════════════════════════════════════════════════════

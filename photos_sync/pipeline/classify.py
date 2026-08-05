@@ -128,38 +128,6 @@ def _extract_gps(exif: dict) -> tuple[float, float] | None:
     return (lat, lon)
 
 
-# Cache reverse geocode results in memory (lat/lon rounded to 2 decimals → city)
-_geocode_cache: dict[tuple[float, float], str] = {}
-
-
-def _reverse_geocode(lat: float, lon: float) -> str:
-    """Return city name for coordinates using Nominatim (no API key needed).
-    Returns empty string if geopy is not installed or lookup fails."""
-    key = (round(lat, 2), round(lon, 2))
-    if key in _geocode_cache:
-        return _geocode_cache[key]
-    try:
-        from geopy.geocoders import Nominatim  # type: ignore[import]
-        gc = Nominatim(user_agent="photos_sync/0.2")
-        location = gc.reverse((lat, lon), exactly_one=True, language="en", timeout=5)
-        if location and location.raw:
-            addr = location.raw.get("address", {})
-            city = (
-                addr.get("city")
-                or addr.get("town")
-                or addr.get("village")
-                or addr.get("municipality")
-                or addr.get("county")
-                or ""
-            )
-            _geocode_cache[key] = city
-            return city
-    except Exception:
-        pass
-    _geocode_cache[key] = ""
-    return ""
-
-
 def _dimensions(path: Path) -> tuple[int, int] | None:
     if not _PIL_OK:
         return None
@@ -218,9 +186,6 @@ def classify_one(cap: Capture) -> list[str]:
             gps = _extract_gps(exif)
             if gps:
                 cap.gps_lat, cap.gps_lon = gps
-                city = _reverse_geocode(gps[0], gps[1])
-                if city:
-                    cap.city = city
         if exif.get("Make") or exif.get("Model"):
             tags.add("camera")
 
