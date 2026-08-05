@@ -13,7 +13,10 @@ import os
 from sqlalchemy import (
     Boolean,
     Column,
+    Date,
+    DateTime,
     Float,
+    Index,
     Integer,
     MetaData,
     Table,
@@ -105,7 +108,10 @@ t_captures = Table(
     Column("extension",        Text, nullable=False, default=""),
     Column("size_mb",          Float, nullable=False, default=0.0),
     Column("mtime",            Float, nullable=False, default=0.0),
-    Column("capture_date",     Text, nullable=False, default=""),
+    Column("capture_date",     DateTime, nullable=True),
+    # Denormalized calendar day used by gallery filters and ordering. Keeping
+    # it separate avoids applying trim/substr to every row on every request.
+    Column("capture_day",      Date, nullable=True),
     Column("source_path",      Text, nullable=False, default=""),
     Column("dest_path",        Text),
     Column("zip_path",         Text),
@@ -168,6 +174,31 @@ t_trash = Table(
     Column("size_mb",       Float, nullable=False, default=0.0),
     Column("deleted_at",    Text, nullable=False),       # ISO timestamp
 )
+
+# Indexes used by the gallery, favourites, reconciliation and trash cleanup.
+# The partial destination-path index excludes captures that have not yet been
+# organized, keeping the index smaller and more selective.
+Index(
+    "ix_captures_dest_path",
+    t_captures.c.dest_path,
+    postgresql_where=(t_captures.c.dest_path.is_not(None) & (t_captures.c.dest_path != "")),
+    sqlite_where=(t_captures.c.dest_path.is_not(None) & (t_captures.c.dest_path != "")),
+)
+Index("ix_captures_source_path", t_captures.c.source_path)
+Index("ix_captures_capture_day", t_captures.c.capture_day.desc())
+Index(
+    "ix_captures_favourite_day",
+    t_captures.c.is_favourite,
+    t_captures.c.capture_day.desc(),
+)
+Index(
+    "ux_album_photos_album_path",
+    t_album_photos.c.album_id,
+    t_album_photos.c.photo_path,
+    unique=True,
+)
+Index("ix_album_photos_photo_path", t_album_photos.c.photo_path)
+Index("ix_trash_deleted_at", t_trash.c.deleted_at)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

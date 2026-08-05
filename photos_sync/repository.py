@@ -59,9 +59,10 @@ Public surface (grouped by entity):
 """
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
-from sqlalchemy import case, delete, func, insert, select, update
+from sqlalchemy import case, delete, false, func, insert, select, update
 
 from .db import (
     decode_tags,
@@ -84,6 +85,27 @@ from .db import (
 def _conn():
     """Context manager: open a connection and auto-commit on exit."""
     return get_engine().begin()          # begin() auto-commits on __exit__
+
+
+def _parse_datetime(value) -> datetime | None:
+    """Accept legacy strings while storing native database timestamps."""
+    if value in (None, ""):
+        return None
+    if isinstance(value, datetime):
+        return value
+    try:
+        return datetime.fromisoformat(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _datetime_text(value) -> str:
+    """Keep the repository's public JSON-compatible date representation."""
+    if value in (None, ""):
+        return ""
+    if isinstance(value, datetime):
+        return value.isoformat(timespec="seconds")
+    return str(value)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -268,7 +290,7 @@ def _row_to_capture_dict(r) -> dict:
         "formato":         r["extension"],
         "tamano_mb":       r["size_mb"],
         "mtime":           r["mtime"],
-        "fecha_captura":   r["capture_date"],
+        "fecha_captura":   _datetime_text(r["capture_date"]),
         "ruta_original":   r["source_path"],
         "ruta_destino":    r["dest_path"],
         "ruta_zip":        r["zip_path"],
@@ -299,16 +321,23 @@ def load_captures_for_day(
     """
     from datetime import datetime
 
-    trimmed_date = func.trim(t_captures.c.capture_date)
-    has_capture_date = func.length(trimmed_date) >= 10
-    capture_day = func.substr(trimmed_date, 1, 10)
+    if date == "undated":
+        requested_day = None
+    else:
+        try:
+            requested_day = datetime.strptime(date, "%Y-%m-%d").date()
+        except ValueError:
+            return [], 0
     file_path = case(
         (t_captures.c.dest_path != "", t_captures.c.dest_path),
         else_=t_captures.c.source_path,
     ).label("file_path")
     has_file_path = file_path != ""
-    normal_filter = has_capture_date & (capture_day == date) & has_file_path
-    legacy_filter = (~has_capture_date) & has_file_path
+    normal_filter = (
+        false() if requested_day is None
+        else (t_captures.c.capture_day == requested_day) & has_file_path
+    )
+    legacy_filter = t_captures.c.capture_day.is_(None) & has_file_path
     order_by = (
         func.lower(t_captures.c.filename),
         func.lower(file_path),
@@ -373,9 +402,6 @@ def load_photos_page(
     """Return a global photo page ordered by effective day descending."""
     from datetime import datetime
 
-    trimmed_date = func.trim(t_captures.c.capture_date)
-    has_capture_date = func.length(trimmed_date) >= 10
-    capture_day = func.substr(trimmed_date, 1, 10)
     file_path = case(
         (t_captures.c.dest_path != "", t_captures.c.dest_path),
         else_=t_captures.c.source_path,
@@ -383,10 +409,10 @@ def load_photos_page(
     base_filter = file_path != ""
     if favourite:
         base_filter &= t_captures.c.is_favourite == True  # noqa: E712
-    normal_filter = has_capture_date & base_filter
-    legacy_filter = (~has_capture_date) & base_filter
+    normal_filter = t_captures.c.capture_day.is_not(None) & base_filter
+    legacy_filter = t_captures.c.capture_day.is_(None) & base_filter
     order_by = (
-        capture_day.desc(),
+        t_captures.c.capture_day.desc(),
         func.lower(t_captures.c.filename),
         func.lower(file_path),
     )
@@ -396,8 +422,8 @@ def load_photos_page(
         capture["file_path"] = row["file_path"]
         capture["is_favourite"] = bool(row["is_favourite"])
         capture["effective_day"] = effective_day or str(
-            row["capture_date"] or ""
-        ).strip()[:10]
+            row["capture_day"] or ""
+        )
         return capture
 
     with get_engine().connect() as conn:
@@ -464,7 +490,12 @@ def upsert_captures(caps: list[dict]) -> None:
             # Derive real date from filename — this is the source of truth
             filename = c.get("archivo", "")
             filename_date = extract_date_from_filename(filename)
-            cap_date = filename_date or c.get("fecha_captura", "")
+            cap_date = _parse_datetime(filename_date or c.get("fecha_captura", ""))
+            try:
+                mtime = float(c.get("mtime", 0))
+                fallback_day = datetime.fromtimestamp(mtime).date() if mtime > 0 else None
+            except (TypeError, ValueError, OSError, OverflowError):
+                fallback_day = None
 
             # Generate a stable id: if an existing row has this dest_path,
             # reuse its id (update). Otherwise generate a new UUID.
@@ -498,6 +529,7 @@ def upsert_captures(caps: list[dict]) -> None:
                 size_mb=float(c.get("tamano_mb", 0)),
                 mtime=float(c.get("mtime", 0)),
                 capture_date=cap_date,
+                capture_day=cap_date.date() if cap_date else fallback_day,
                 source_path=c.get("ruta_original", ""),
                 dest_path=dest,
                 zip_path=c.get("ruta_zip"),

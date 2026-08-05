@@ -148,6 +148,30 @@ docker compose --profile admin up -d
 docker compose exec app python migrations/import_from_json.py
 ```
 
+## Migrar fechas e indices de la galeria
+
+Antes de desplegar la version que usa `capture_day`, haz un backup y aplica la
+migracion con la aplicacion detenida. La conversion de `capture_date` obtiene un
+bloqueo de tabla durante la operacion.
+
+```bash
+docker compose stop app
+docker compose exec -T db pg_dump -U photos photos_sync | gzip > backups/pre_capture_day.sql.gz
+docker compose exec -T db psql -U photos -d photos_sync < migrations/capture_day_and_date_indexes.sql
+docker compose up -d --build app
+```
+
+En PowerShell, sustituye la tercera orden por:
+
+```powershell
+Get-Content -Raw migrations/capture_day_and_date_indexes.sql |
+  docker compose exec -T db psql -U photos -d photos_sync
+```
+
+La migracion puede ejecutarse de nuevo de forma segura. Convierte fechas
+validas a `TIMESTAMP`, conserva el dia derivado de `mtime` para filas antiguas
+y deja como `NULL` los valores que no se pueden interpretar.
+
 ## Desarrollo local
 
 ```bash
