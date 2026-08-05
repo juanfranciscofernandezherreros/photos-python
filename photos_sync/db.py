@@ -200,8 +200,18 @@ Index("ix_trash_deleted_at", t_trash.c.deleted_at)
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def init_db(engine=None) -> None:
-    """Create all tables if they don't exist yet, plus the single-admin guard."""
+    """Bring the database schema up to date.
+
+    PostgreSQL uses the versioned Alembic history. SQLite remains on
+    ``create_all`` because it is used for isolated unit tests and disposable
+    Serenity databases.
+    """
     eng = engine or get_engine()
+    if eng.dialect.name == "postgresql":
+        from .database_migrations import upgrade_database
+
+        upgrade_database(eng)
+        return
     metadata.create_all(eng)
     _ensure_single_admin_index(eng)
 
