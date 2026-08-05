@@ -956,6 +956,17 @@ def remove_trash_entry(entry_id: str) -> bool:
     return result.rowcount > 0
 
 
+def update_trash_path(entry_id: str, trash_path: str) -> bool:
+    """Update the physical location of an existing trash entry."""
+    with _conn() as conn:
+        result = conn.execute(
+            update(t_trash)
+            .where(t_trash.c.id == entry_id)
+            .values(trash_path=trash_path)
+        )
+    return result.rowcount > 0
+
+
 def trash_entries_older_than(days: int) -> list[dict]:
     """Return trash entries deleted more than `days` days ago."""
     from datetime import datetime, timedelta

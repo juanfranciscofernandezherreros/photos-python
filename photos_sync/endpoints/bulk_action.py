@@ -53,7 +53,7 @@ def bulk_action(req: BulkActionIn, _auth: dict = Depends(require_login)):
         src = Path(path_str)
         if not src.is_file():
             continue
-        trash = src.parent.parent.parent / ".trash"  # YYYY/MM/DD → base/.trash
+        trash = _trash_directory_for(src)
         trash.mkdir(parents=True, exist_ok=True)
         dest = trash / src.name
         # Avoid name collisions in trash

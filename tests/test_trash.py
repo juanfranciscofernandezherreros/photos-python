@@ -47,6 +47,26 @@ class TestTrashBasics:
         entry = cliente_api.get("/api/trash").json()["trash"][0]
         assert entry["original_path"] == p
 
+    def test_shallow_photo_trash_remains_inside_allowed_library(
+        self, cliente_api, cwd_temporal
+    ):
+        from PIL import Image
+
+        photo = cwd_temporal / "organizado" / "incoming" / "shallow.jpg"
+        photo.parent.mkdir(parents=True, exist_ok=True)
+        Image.new("RGB", (120, 80), (30, 60, 90)).save(photo, "JPEG")
+
+        response = _delete_photo(cliente_api, str(photo))
+        assert response.status_code == 200
+        entry = cliente_api.get("/api/trash").json()["trash"][0]
+        trash_path = Path(entry["trash_path"])
+        assert trash_path.is_relative_to(cwd_temporal / "organizado")
+        assert trash_path.is_file()
+
+        thumb = cliente_api.get(f"/api/thumb?path={trash_path}&size=200")
+        assert thumb.status_code == 200
+        assert thumb.headers["content-type"] == "image/jpeg"
+
 
 class TestRestore:
     def test_restore_puts_file_back(self, cliente_api, cwd_temporal):

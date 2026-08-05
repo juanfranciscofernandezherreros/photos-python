@@ -469,8 +469,26 @@ def _allowed_bases() -> list[Path]:
 
 
 def _is_allowed(p: Path) -> bool:
-    resolved_str = str(p.resolve())
-    return any(resolved_str.startswith(str(b)) for b in _allowed_bases())
+    resolved = p.resolve()
+    return any(resolved == base or resolved.is_relative_to(base) for base in _allowed_bases())
+
+
+def _trash_directory_for(p: Path) -> Path:
+    """Return a persistent, allowed trash directory for a photo path."""
+    resolved = p.resolve()
+    legacy_location = resolved.parent.parent.parent / ".trash"
+    if _is_allowed(legacy_location):
+        return legacy_location
+
+    containing_bases = [
+        base
+        for base in _allowed_bases()
+        if resolved == base or resolved.is_relative_to(base)
+    ]
+    if not containing_bases:
+        raise ValueError(f"Photo path is outside the configured libraries: {p}")
+    library_root = max(containing_bases, key=lambda base: len(base.parts))
+    return library_root / ".trash"
 
 
 
