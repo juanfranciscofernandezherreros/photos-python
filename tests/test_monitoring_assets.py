@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -66,3 +68,27 @@ def test_required_monitoring_configuration_exists() -> None:
         "monitoring/grafana/provisioning/alerting/api-rest-alerts.yml",
     )
     assert all((ROOT / path).is_file() for path in required)
+
+
+def test_prometheus_alert_rules_cover_self_hosted_failures() -> None:
+    document = yaml.safe_load(
+        (ROOT / "monitoring/prometheus/alerts.yml").read_text(encoding="utf-8")
+    )
+    rules = [rule for group in document["groups"] for rule in group["rules"]]
+    names = {rule["alert"] for rule in rules}
+
+    assert len(rules) >= 10
+    assert names >= {
+        "PhotosSyncApiDown",
+        "PhotosSyncPostgresDown",
+        "PhotosSyncHighHttp5xxRate",
+        "PhotosSyncHighP95Latency",
+        "PhotosSyncPipelineFailed",
+        "PhotosSyncPipelineStuck",
+        "PhotosSyncWebDavJobFailed",
+        "PhotosSyncWebDavJobStuck",
+        "PhotosSyncContainerMemoryHigh",
+        "PhotosSyncFilesystemNearlyFull",
+    }
+    assert all(rule.get("for") for rule in rules)
+    assert all(rule.get("labels", {}).get("severity") in {"warning", "critical"} for rule in rules)

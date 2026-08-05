@@ -1,1 +1,117 @@
-groups: []
+groups:
+  - name: photos-sync-availability
+    rules:
+      - alert: PhotosSyncApiDown
+        expr: up{job="photos-sync"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: photos-sync
+        annotations:
+          summary: Photos Sync API is unreachable
+          description: Prometheus has been unable to scrape the application for 2 minutes.
+
+      - alert: PhotosSyncPostgresDown
+        expr: pg_up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: postgres
+        annotations:
+          summary: PostgreSQL is unreachable
+          description: postgres-exporter reports that the Photos Sync database is unavailable.
+
+      - alert: PhotosSyncHighHttp5xxRate
+        expr: |
+          sum(rate(http_requests_total{job="photos-sync",status_code=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(http_requests_total{job="photos-sync"}[5m])), 0.001) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: photos-sync
+        annotations:
+          summary: More than 5% of Photos Sync requests return 5xx
+          description: The HTTP 5xx error ratio has remained above 5% for 5 minutes.
+
+      - alert: PhotosSyncHighP95Latency
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(photos_http_request_duration_seconds_bucket{job="photos-sync"}[5m]))) > 2
+        for: 10m
+        labels:
+          severity: warning
+          service: photos-sync
+        annotations:
+          summary: Photos Sync p95 latency is above 2 seconds
+          description: The 95th percentile HTTP response time has exceeded 2 seconds for 10 minutes.
+
+  - name: photos-sync-jobs
+    rules:
+      - alert: PhotosSyncPipelineFailed
+        expr: photos_pipeline_last_run_success == 0 and photos_pipeline_last_run_timestamp_seconds > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: pipeline
+        annotations:
+          summary: The latest synchronization pipeline failed
+          description: The last completed Photos Sync pipeline execution was unsuccessful.
+
+      - alert: PhotosSyncPipelineStuck
+        expr: photos_pipeline_running == 1
+        for: 2h
+        labels:
+          severity: critical
+          service: pipeline
+        annotations:
+          summary: Synchronization pipeline appears stuck
+          description: The pipeline has reported a running state continuously for 2 hours.
+
+      - alert: PhotosSyncWebDavJobFailed
+        expr: photos_webdav_last_job_success == 0 and photos_webdav_last_job_timestamp_seconds > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: webdav
+        annotations:
+          summary: The latest WebDAV download failed
+          description: The most recently completed WebDAV download job was unsuccessful.
+
+      - alert: PhotosSyncWebDavJobStuck
+        expr: photos_webdav_jobs_running > 0
+        for: 2h
+        labels:
+          severity: critical
+          service: webdav
+        annotations:
+          summary: WebDAV download appears stuck
+          description: A WebDAV download has remained active continuously for 2 hours.
+
+  - name: photos-sync-capacity
+    rules:
+      - alert: PhotosSyncContainerMemoryHigh
+        expr: |
+          container_memory_working_set_bytes{name=~"photos_app|photos_db"}
+          /
+          clamp_min(container_spec_memory_limit_bytes{name=~"photos_app|photos_db"}, 1) > 0.90
+        for: 15m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: Photos Sync container memory is above 90%
+          description: Container {{ $labels.name }} has used over 90% of its configured memory for 15 minutes.
+
+      - alert: PhotosSyncFilesystemNearlyFull
+        expr: |
+          container_fs_usage_bytes{name=~"photos_app|photos_db"}
+          /
+          clamp_min(container_fs_limit_bytes{name=~"photos_app|photos_db"}, 1) > 0.90
+        for: 15m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: Photos Sync filesystem is above 90%
+          description: Container {{ $labels.name }} is close to exhausting its filesystem capacity.
