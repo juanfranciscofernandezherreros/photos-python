@@ -90,7 +90,7 @@ jobs:
           --cov-report=term-missing --cov-report=html --cov-report=xml
           --cov-fail-under=80
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: python-coverage
@@ -129,7 +129,7 @@ jobs:
       - name: Verify request and response evidence
         run: python scripts/verify_serenity_report.py
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: serenity-api-report
@@ -214,7 +214,7 @@ jobs:
           .venv-build/bin/photos-sync --help
           .venv-build/bin/photos-sync-web --help
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
