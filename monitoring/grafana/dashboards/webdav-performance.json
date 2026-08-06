@@ -1,0 +1,136 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Whether a WebDAV ingestion job is currently running.",
+      "fieldConfig": {"defaults": {"mappings": [{"options": {"0": {"color": "text", "text": "Idle"}, "1": {"color": "green", "text": "Running"}}, "type": "value"}], "thresholds": {"mode": "absolute", "steps": [{"color": "text", "value": null}, {"color": "green", "value": 1}]}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 4, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto", "wideLayout": true},
+      "targets": [{"editorMode": "code", "expr": "photos_webdav_jobs_running", "instant": true, "legendFormat": "Job", "range": false, "refId": "A"}],
+      "title": "WebDAV job",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Active transfers compared with configured worker capacity.",
+      "fieldConfig": {"defaults": {"max": 32, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}, {"color": "green", "value": 16}, {"color": "orange", "value": 29}]}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 5, "x": 4, "y": 0},
+      "id": 2,
+      "options": {"minVizHeight": 75, "minVizWidth": 75, "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showThresholdLabels": false, "showThresholdMarkers": true, "sizing": "auto"},
+      "targets": [{"editorMode": "code", "expr": "photos_webdav_transfers_active", "instant": true, "legendFormat": "Active", "range": false, "refId": "A"}],
+      "title": "Active transfers",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Files waiting for an available worker.",
+      "fieldConfig": {"defaults": {"color": {"mode": "continuous-BlPu"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 5, "x": 9, "y": 0},
+      "id": 3,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto", "wideLayout": true},
+      "targets": [{"editorMode": "code", "expr": "photos_webdav_files_queued", "instant": true, "legendFormat": "Queued", "range": false, "refId": "A"}],
+      "title": "Queue depth",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Current job completion percentage.",
+      "fieldConfig": {"defaults": {"max": 100, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "orange", "value": 50}, {"color": "green", "value": 90}]}, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 5, "x": 14, "y": 0},
+      "id": 4,
+      "options": {"minVizHeight": 75, "minVizWidth": 75, "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showThresholdLabels": false, "showThresholdMarkers": true, "sizing": "auto"},
+      "targets": [{"editorMode": "code", "expr": "100 * photos_webdav_files_completed / clamp_min(photos_webdav_files_discovered, 1)", "instant": true, "legendFormat": "Progress", "range": false, "refId": "A"}],
+      "title": "Completion",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Files failed during the current job.",
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "red"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 5, "x": 19, "y": 0},
+      "id": 5,
+      "options": {"colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto", "wideLayout": true},
+      "targets": [{"editorMode": "code", "expr": "photos_webdav_files_failed", "instant": true, "legendFormat": "Failed", "range": false, "refId": "A"}],
+      "title": "Current failures",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Aggregate payload throughput received from the phone. Container network traffic is used until native WebDAV byte metrics become available after the next application restart.",
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 20, "gradientMode": "opacity", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}}, "unit": "Bps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5},
+      "id": 6,
+      "options": {"legend": {"calcs": ["lastNotNull", "mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "single", "sort": "none"}},
+      "targets": [{"editorMode": "code", "expr": "rate(photos_webdav_received_bytes_total[1m]) or sum(rate(container_network_receive_bytes_total{name=\"photos_app\"}[1m]))", "legendFormat": "Received", "range": true, "refId": "A"}],
+      "title": "WebDAV throughput",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Worker utilization, queue depth, and completed files over time.",
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "linear", "lineWidth": 2, "pointSize": 4, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5},
+      "id": 7,
+      "options": {"legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [
+        {"editorMode": "code", "expr": "photos_webdav_transfers_active", "legendFormat": "Active", "range": true, "refId": "A"},
+        {"editorMode": "code", "expr": "photos_webdav_files_queued", "legendFormat": "Queued", "range": true, "refId": "B"},
+        {"editorMode": "code", "expr": "photos_webdav_files_completed", "legendFormat": "Completed", "range": true, "refId": "C"}
+      ],
+      "title": "Transfer concurrency and progress",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "WebDAV file outcomes during the selected time range.",
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 13},
+      "id": 8,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "right", "showLegend": true}, "orientation": "auto", "showValue": "always", "stacking": "normal", "xTickLabelRotation": 0, "xTickLabelSpacing": 0},
+      "targets": [{"editorMode": "code", "expr": "sum by (outcome) (increase(photos_webdav_photos_total[$__range]))", "instant": true, "legendFormat": "{{outcome}}", "range": false, "refId": "A"}],
+      "title": "File outcomes",
+      "type": "barchart"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Transfers recovered through HTTP Range in the selected interval.",
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "green"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 6, "x": 12, "y": 13},
+      "id": 9,
+      "options": {"colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto", "wideLayout": true},
+      "targets": [{"editorMode": "code", "expr": "increase(photos_webdav_resumed_transfers_total[$__range])", "instant": true, "legendFormat": "Resumed", "range": false, "refId": "A"}],
+      "title": "Resumed transfers",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Payload bytes received during the selected interval, including retried data.",
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}, "unit": "bytes"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 6, "x": 18, "y": 13},
+      "id": 10,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto", "wideLayout": true},
+      "targets": [{"editorMode": "code", "expr": "increase(photos_webdav_received_bytes_total[$__range])", "instant": true, "legendFormat": "Bytes", "range": false, "refId": "A"}],
+      "title": "Bytes received",
+      "type": "stat"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["photos-sync", "webdav", "performance", "prometheus"],
+  "templating": {"list": []},
+  "time": {"from": "now-30m", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "WebDAV Performance",
+  "uid": "photos-webdav-performance",
+  "version": 1,
+  "weekStart": ""
+}

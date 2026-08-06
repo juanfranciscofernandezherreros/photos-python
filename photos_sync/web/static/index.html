@@ -948,6 +948,11 @@ select.inp{cursor:pointer}
             <label class="lbl">Save to folder <span style="text-transform:none;font-weight:400;color:var(--ink5)">(leave blank for default: /data/incoming)</span></label>
             <input id="wd-dl-dest" placeholder="/data/incoming" class="inp">
           </div>
+          <label style="display:flex;align-items:center;gap:8px;margin:2px 0 12px;font-size:12px;color:var(--ink3);cursor:pointer">
+            <input id="wd-include-videos" type="checkbox" style="accent-color:var(--b)">
+            Download videos (.mp4)
+            <span style="color:var(--ink5)">— disabled by default for faster photo sync</span>
+          </label>
           <div style="display:flex;gap:8px">
             <button class="bg" onclick="wdScan()">
               <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -2293,12 +2298,14 @@ function wdMode(mode,btn){
 async function wdScan(){
   const ip=($('wd-dl-ip')||{}).value||'';
   const port=($('wd-dl-port')||{}).value||'8080';
+  const includeVideos=!!($('wd-include-videos')||{}).checked;
   if(!ip.trim()){showMsg('wd-dl-msg','Enter the phone IP address',false);return;}
   const res=$('wd-dl-scan-result');
   if(res)res.textContent='Scanning…';
   try{
-    const d=await api('/api/webdav/scan',{method:'POST',body:{ip:ip.trim(),port:port.trim()}});
-    if(res)res.innerHTML=`Found <b>${d.count}</b> photos on the phone.${d.count?` Click <b>Download all photos</b> to fetch them.`:''}`;
+    const d=await api('/api/webdav/scan',{method:'POST',body:{ip:ip.trim(),port:port.trim(),include_videos:includeVideos}});
+    const excluded=d.excluded_videos?` <b>${d.excluded_videos}</b> MP4 videos excluded.`:'';
+    if(res)res.innerHTML=`Found <b>${d.count}</b> files to download.${excluded}${d.count?` Click <b>Download all photos</b> to fetch them.`:''}`;
   }catch(e){
     if(res)res.textContent='Could not reach phone: '+e.message;
   }
@@ -2409,13 +2416,14 @@ async function wdDownload(){
   const ip=($('wd-dl-ip')||{}).value||'';
   const port=($('wd-dl-port')||{}).value||'8080';
   const dest=($('wd-dl-dest')||{}).value||'';
+  const includeVideos=!!($('wd-include-videos')||{}).checked;
   if(!ip.trim()){showMsg('wd-dl-msg','Enter the phone IP address',false);return;}
   const btn=$('btn-wd-download');
   if(btn){btn.disabled=true;btn.textContent='Starting…';}
   const res=$('wd-dl-scan-result');
   if(res)res.textContent='Connecting to phone…';
   try{
-    await api('/api/webdav/download',{method:'POST',body:{ip:ip.trim(),port:port.trim(),dest_folder:dest.trim()}});
+    await api('/api/webdav/download',{method:'POST',body:{ip:ip.trim(),port:port.trim(),dest_folder:dest.trim(),include_videos:includeVideos}});
     if(res)res.textContent='Transfer started. Live details are shown below.';
     wdWatchStatus(true,dest.trim());
   }catch(e){

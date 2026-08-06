@@ -68,7 +68,7 @@ Documentation = "https://github.com/juanfranciscofernandezherreros/photos-python
 include = ["photos_sync*"]
 
 [tool.setuptools.package-data]
-photos_sync = ["alembic.ini", "alembic/script.py.mako"]
+photos_sync = ["alembic.ini", "alembic/script.py.mako", "web/static/index.html"]
 
 [tool.ruff]
 line-length = 100

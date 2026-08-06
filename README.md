@@ -71,9 +71,9 @@ Downloads run concurrently and each active file is written to a stable `.webdav.
 
 | Setting | Default | Purpose |
 |---|---:|---|
-| `WEBDAV_DOWNLOAD_WORKERS` | `8` | Concurrent transfers; use `4-8` on a phone and `8-16` on a fast server. |
-| `WEBDAV_CHUNK_SIZE_KB` | `1024` | Streaming chunk size; larger values reduce Python overhead. |
-| `WEBDAV_DB_BATCH_SIZE` | `100` | Number of completed files persisted per database batch. |
+| `WEBDAV_DOWNLOAD_WORKERS` | `32` | Stress profile; reduce to `8-16` if the phone or Wi-Fi saturates. |
+| `WEBDAV_CHUNK_SIZE_KB` | `2048` | Streaming chunk size that reduces Python overhead for large media. |
+| `WEBDAV_DB_BATCH_SIZE` | `250` | Number of completed files persisted per database batch. |
 
 Do not set worker counts blindly: phone storage, Wi-Fi, and the WebDAV server often become slower under excessive parallelism. See [WebDAV operations](docs/webdav.md) for tuning and recovery details.
 

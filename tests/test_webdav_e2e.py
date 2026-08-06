@@ -38,6 +38,7 @@ class _WebDAVHandler(BaseHTTPRequestHandler):
     max_active_gets = 0
     fail_paths: set[str] = set()
     range_requests: list[tuple[str, int]] = []
+    get_requests = 0
 
     def log_message(self, *a, **kw):
         pass  # silence stderr spam in tests
@@ -74,6 +75,7 @@ class _WebDAVHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
+        type(self).get_requests += 1
         content = self.files.get(self.path)
         if content is None:
             self.send_response(404); self.end_headers(); return
@@ -118,6 +120,7 @@ def webdav_server():
     _WebDAVHandler.max_active_gets = 0
     _WebDAVHandler.fail_paths = set()
     _WebDAVHandler.range_requests = []
+    _WebDAVHandler.get_requests = 0
     srv = ThreadingHTTPServer(("127.0.0.1", port), _WebDAVHandler)
     t = threading.Thread(target=srv.serve_forever, daemon=True); t.start()
     # Wait briefly for the socket to be ready
@@ -206,6 +209,7 @@ class TestWebDAVEndToEnd:
                 if cliente_api.get("/api/webdav/download-status").json()["done"]:
                     break
                 time.sleep(0.1)
+            first_run_gets = _WebDAVHandler.get_requests
 
             # Second run — files exist, should all be skipped-as-same-size
             cliente_api.post("/api/webdav/download", json={
@@ -222,6 +226,9 @@ class TestWebDAVEndToEnd:
         # Same-size files were skipped on the second run — but they were already
         # registered from the first, so no duplicates.
         assert len(repo.load_captures()) == 3
+        assert s["skipped"] == 3
+        assert s["downloaded"] == 0
+        assert _WebDAVHandler.get_requests == first_run_gets
 
     def test_downloaded_files_show_in_diag_endpoint(
         self, cliente_api, cwd_temporal, webdav_server,
@@ -338,3 +345,64 @@ class TestWebDAVEndToEnd:
         assert (remote_path, resume_at) in _WebDAVHandler.range_requests
         assert (dest / "IMG_1000.jpg").read_bytes() == content
         assert not partial.exists()
+
+    def test_mp4_files_can_be_excluded(
+        self, cliente_api, cwd_temporal, webdav_server,
+    ):
+        from photos_sync import repository as repo
+        from photos_sync.storage import webdav_downloader as wd
+
+        host, port = webdav_server
+        dest = cwd_temporal / "photos-only"
+        repo.save_destination_local(str(cwd_temporal))
+        original_files = dict(_WebDAVHandler.files)
+        original_paths = wd.DEFAULT_REMOTE_PATHS[:]
+        _WebDAVHandler.files = {
+            "/DCIM/Camera/photo.jpg": b"photo-bytes",
+            "/DCIM/Camera/video.mp4": b"video-bytes",
+        }
+        wd.DEFAULT_REMOTE_PATHS = ["/DCIM/Camera"]
+        try:
+            response = cliente_api.post("/api/webdav/download", json={
+                "ip": host,
+                "port": str(port),
+                "dest_folder": str(dest),
+                "include_videos": False,
+            })
+            assert response.status_code == 200
+            for _ in range(100):
+                status = cliente_api.get("/api/webdav/download-status").json()
+                if status["done"]:
+                    break
+                time.sleep(0.05)
+        finally:
+            _WebDAVHandler.files = original_files
+            wd.DEFAULT_REMOTE_PATHS = original_paths
+
+        assert status["total"] == 1
+        assert status["excluded_videos"] == 1
+        assert (dest / "photo.jpg").read_bytes() == b"photo-bytes"
+        assert not (dest / "video.mp4").exists()
+
+
+def test_status_caps_visible_failures_without_losing_total(cliente_api):
+    from photos_sync import web_server
+
+    failures = [
+        {"href": f"/DCIM/Camera/{index}.jpg", "status": "failed"}
+        for index in range(75)
+    ]
+    with web_server._webdav_job_lock:
+        original = dict(web_server._webdav_job)
+        web_server._webdav_job["failed_files"] = failures
+    try:
+        status = cliente_api.get("/api/webdav/download-status").json()
+    finally:
+        with web_server._webdav_job_lock:
+            web_server._webdav_job.clear()
+            web_server._webdav_job.update(original)
+
+    assert status["failed_files_total"] == 75
+    assert status["failed_files_truncated"] is True
+    assert len(status["failed_files"]) == 50
+    assert status["failed_files"][0]["href"].endswith("25.jpg")

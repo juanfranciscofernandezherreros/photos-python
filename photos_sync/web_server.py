@@ -666,6 +666,7 @@ class WebDAVScanIn(BaseModel):
     ip: str
     port: str = "8080"
     dest_folder: str = ""   # where to save downloads; defaults to ORGANIZED_DIR/incoming
+    include_videos: bool = True
 
     @field_validator("ip")
     @classmethod

@@ -15,6 +15,7 @@ def test_grafana_dashboards_are_valid_json() -> None:
     assert {dashboard["uid"] for dashboard in dashboards} == {
         "api-rest-observability",
         "hardware-infrastructure",
+        "photos-webdav-performance",
     }
     panel_types = {panel["type"] for dashboard in dashboards for panel in dashboard["panels"]}
     assert panel_types >= {"row", "stat", "timeseries", "logs", "piechart", "bargauge"}

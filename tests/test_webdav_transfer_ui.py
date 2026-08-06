@@ -22,3 +22,12 @@ def test_webdav_screen_can_retry_only_failed_photos() -> None:
     assert "Retry failed only" in html
     assert "/api/webdav/download/retry-failed" in html
     assert "renderWebDavTransfer" in html
+
+
+def test_webdav_screen_can_exclude_mp4_videos() -> None:
+    html = UI.read_text(encoding="utf-8")
+
+    assert 'id="wd-include-videos"' in html
+    assert 'id="wd-include-videos" type="checkbox"' in html
+    assert "include_videos:includeVideos" in html
+    assert "Download videos (.mp4)" in html

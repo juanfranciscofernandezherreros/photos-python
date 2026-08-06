@@ -7,12 +7,15 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 ### Added
 
 - Resumable WebDAV transfers with stable partial files and HTTP Range requests.
+- Native WebDAV throughput, queue, worker, resume, and failure metrics for Grafana.
+- An option to exclude MP4 videos from WebDAV synchronization.
 - Professional GitHub community health files and English documentation policy.
 
 ### Changed
 
-- WebDAV discovery removes overlapping roots and defaults to eight transfer workers.
-- WebDAV streaming chunks are configurable through `WEBDAV_CHUNK_SIZE_KB`.
+- WebDAV discovery removes overlapping roots and the stress profile uses 32 transfer workers.
+- WebDAV streaming uses configurable 2 MiB chunks and batched database writes.
+- Complete local files are removed from the HTTP worker queue before incremental synchronization.
 
 ### Security
 

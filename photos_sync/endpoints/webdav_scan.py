@@ -24,4 +24,19 @@ def webdav_scan(req: WebDAVScanIn, _auth: dict = Depends(require_admin)):
             if f.name not in seen:
                 all_files.append({"name": f.name, "size": f.size, "path": f.href})
                 seen.add(f.name)
-    return {"ok": True, "count": len(all_files), "files": all_files}
+    videos = [
+        item for item in all_files
+        if str(item["name"]).lower().endswith(".mp4")
+    ]
+    excluded_videos = len(videos)
+    if not req.include_videos:
+        all_files = [
+            item for item in all_files
+            if not str(item["name"]).lower().endswith(".mp4")
+        ]
+    return {
+        "ok": True,
+        "count": len(all_files),
+        "excluded_videos": excluded_videos if not req.include_videos else 0,
+        "files": all_files,
+    }

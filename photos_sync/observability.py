@@ -114,6 +114,38 @@ WEBDAV_LAST_JOB_TIMESTAMP = Gauge(
     "photos_webdav_last_job_timestamp_seconds",
     "Unix timestamp of the last completed WebDAV job.",
 )
+WEBDAV_WORKERS_CONFIGURED = Gauge(
+    "photos_webdav_workers_configured",
+    "Configured WebDAV transfer worker count.",
+)
+WEBDAV_FILES_TOTAL = Gauge(
+    "photos_webdav_files_discovered",
+    "Files discovered by the current WebDAV job.",
+)
+WEBDAV_FILES_QUEUED = Gauge(
+    "photos_webdav_files_queued",
+    "WebDAV files waiting for a transfer worker.",
+)
+WEBDAV_ACTIVE_TRANSFERS = Gauge(
+    "photos_webdav_transfers_active",
+    "WebDAV file transfers currently active.",
+)
+WEBDAV_FILES_COMPLETED = Gauge(
+    "photos_webdav_files_completed",
+    "Files completed by the current WebDAV job.",
+)
+WEBDAV_FILES_FAILED = Gauge(
+    "photos_webdav_files_failed",
+    "Files failed in the current WebDAV job.",
+)
+WEBDAV_BYTES_RECEIVED = Counter(
+    "photos_webdav_received_bytes_total",
+    "Bytes received from WebDAV servers, including retried transfer data.",
+)
+WEBDAV_RESUMED_TRANSFERS = Counter(
+    "photos_webdav_resumed_transfers_total",
+    "WebDAV transfers resumed with HTTP Range.",
+)
 
 
 _REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")

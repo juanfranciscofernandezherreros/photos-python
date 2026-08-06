@@ -8,13 +8,17 @@ After a disconnect, the next attempt sends `Range: bytes=<partial-size>-`. A com
 
 ## Tuning
 
-- Start with `WEBDAV_DOWNLOAD_WORKERS=8` on modern Wi-Fi.
-- Reduce it to `4` if the phone becomes hot, requests time out, or throughput drops.
-- Try `12` or `16` only when the WebDAV server and storage remain responsive.
-- Keep `WEBDAV_CHUNK_SIZE_KB=1024` for normal photos; `2048` can help very large videos at the cost of more memory per worker.
+- The bundled stress profile uses `WEBDAV_DOWNLOAD_WORKERS=32` on powerful hosts.
+- Reduce it to `8-16` if the phone becomes hot, requests time out, or throughput drops.
+- Use `WEBDAV_CHUNK_SIZE_KB=2048` for the stress test; `1024` consumes less memory.
 - Increase `WEBDAV_DB_BATCH_SIZE` only when database commits are visible in profiling.
 
 Measure total bytes per second over several minutes. A larger worker count is useful only when aggregate throughput improves.
+
+Before starting HTTP transfers, the downloader compares each remote size with its
+local file. Complete files are registered if necessary and removed from the worker
+queue, so incremental runs use connections only for new, incomplete, or changed
+files. A matching file therefore requires no extra WebDAV `GET` request.
 
 ## Recovery
 

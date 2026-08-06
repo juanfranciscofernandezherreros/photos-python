@@ -36,8 +36,8 @@ def _load_json(path: str | Path, default=None):
 
 def migrate():
     # Bootstrap database
-    from photos_sync.db import get_engine, init_db
     from photos_sync import repository as repo
+    from photos_sync.db import get_engine, init_db
 
     print("🔌 Connecting to database…")
     engine = get_engine()
