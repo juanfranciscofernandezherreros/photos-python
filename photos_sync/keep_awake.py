@@ -18,7 +18,7 @@ import contextlib
 import sys
 from collections.abc import Iterator
 
-# Flags de la API de Windows (kernel32.SetThreadExecutionState)
+# Windows API flags for kernel32.SetThreadExecutionState.
 _ES_CONTINUOUS = 0x80000000
 _ES_SYSTEM_REQUIRED = 0x00000001
 
@@ -32,7 +32,7 @@ def prevent_sleep() -> Iterator[None]:
         yield
         return
 
-    import ctypes  # import local: solo hace falta en Windows
+    import ctypes  # Local import because it is needed only on Windows.
 
     try:
         ctypes.windll.kernel32.SetThreadExecutionState(  # type: ignore[attr-defined]

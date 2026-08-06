@@ -17,7 +17,7 @@ def _guardar(**kwargs):
     return ssh_connection.add_or_update_ssh_connection(**defaults)
 
 
-# ──────────────────────────────── CRUD básico ────────────────────────────────
+# Basic CRUD
 
 class TestCRUD:
     def test_guardar_y_obtener(self):
@@ -90,7 +90,7 @@ class TestRoles:
         assert any(c["alias"] == "nas-a" for c in ssh_connection.connections_by_role("destino"))
 
 
-# ─────────────────── validaciones rol "ambos" ───────────────────────────────
+# Validation for the legacy "ambos" role.
 
 class TestValidacionAmbos:
     def test_ambos_sin_ruta_destino_lanza_valueerror(self):
@@ -112,12 +112,12 @@ class TestValidacionAmbos:
         assert c["ruta_remota_destino"] == "/backup"
 
     def test_origen_no_requiere_ruta_destino(self):
-        _guardar(rol="origen", ruta_remota_destino="")  # no debe lanzar
+        _guardar(rol="origen", ruta_remota_destino="")  # Must not raise.
         c = ssh_connection.get_connection("nas1")
         assert c["rol"] == "origen"
 
     def test_destino_no_requiere_ruta_destino(self):
-        _guardar(rol="destino", ruta_remota_destino="")  # no debe lanzar
+        _guardar(rol="destino", ruta_remota_destino="")  # Must not raise.
         c = ssh_connection.get_connection("nas1")
         assert c["rol"] == "destino"
 

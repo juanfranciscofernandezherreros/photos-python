@@ -41,6 +41,29 @@ DEFAULT_REMOTE_PATHS = [
 ]
 
 
+def non_overlapping_remote_paths(paths: list[str]) -> list[str]:
+    """Return the smallest set of roots that covers every requested path.
+
+    ``list_remote_files`` already walks subdirectories recursively, so scanning
+    both ``/Pictures`` and ``/Pictures/Screenshots`` wastes PROPFIND requests.
+    """
+    normalized = {
+        "/" + path.strip("/") if path.strip("/") else "/"
+        for path in paths
+    }
+    roots: list[str] = []
+    for path in sorted(normalized, key=lambda value: (value.count("/"), value.casefold())):
+        folded = path.casefold()
+        if any(
+            folded == root.casefold()
+            or folded.startswith(root.rstrip("/").casefold() + "/")
+            for root in roots
+        ):
+            continue
+        roots.append(path)
+    return roots
+
+
 @dataclass
 class RemoteFile:
     href: str          # full URL path, e.g. /Pictures/Screenshots/IMG_001.jpg
@@ -202,7 +225,7 @@ def sync_webdav_connection(
     Tries DEFAULT_REMOTE_PATHS if remote_paths is not given.
     Returns all downloaded local file paths.
     """
-    paths = remote_paths or DEFAULT_REMOTE_PATHS
+    paths = non_overlapping_remote_paths(remote_paths or DEFAULT_REMOTE_PATHS)
     all_files: list[RemoteFile] = []
     seen_names: set[str] = set()
 

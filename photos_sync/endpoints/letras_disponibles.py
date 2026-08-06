@@ -13,8 +13,7 @@ router = APIRouter()
 
 @router.get("/api/webdav/letras")
 def letras_disponibles(_auth: dict = Depends(require_admin)):
-    """Letras de unidad disponibles (D:-Z:). El JS las usa para el <select>,
-    sin hardcodear el rango en el cliente."""
+    """Return available drive letters (D:-Z:) for the client selector."""
     usadas = {c["letra"] for c in connection.load_connections()}
     return {
         "todas": connection.AVAILABLE_DRIVE_LETTERS,

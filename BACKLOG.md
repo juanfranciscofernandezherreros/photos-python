@@ -1,61 +1,47 @@
-# Photos Sync — Backlog
+# Photos Sync Roadmap
 
-Estado actualizado tras incorporar CI, seguridad, rendimiento, observabilidad,
-Alembic y pruebas de recuperación. Los tickets terminados se mantienen al final
-para que el documento también sirva como historial técnico.
+This roadmap tracks remaining engineering work after the CI, security, performance, observability, migration, and recovery milestones.
 
-## Prioridad alta
+## High priority
 
-### PS-15 · Probar flujos positivos de servicios externos
+### PS-15: Positive external-service integration flows
 
-Los contratos Serenity alcanzan todos los endpoints, pero SSH y algunas rutas
-WebDAV usan respuestas controladas o recursos inexistentes. Añadir servidores
-fake reproducibles para probar conexión, escaneo, descarga, reintento y
-reanudación de principio a fin.
+Serenity covers every endpoint, while some SSH and WebDAV cases still use controlled failures. Add reproducible fake servers for successful connection, discovery, download, retry, and resume flows.
 
-### PS-16 · Configurar entrega de alertas
+### PS-16: Alert delivery
 
-Prometheus ya evalúa reglas de disponibilidad, errores, latencia, jobs y
-capacidad. Falta incorporar Alertmanager o un contact point equivalente y
-documentar un destino de notificaciones opt-in para cada instalación.
+Prometheus and Grafana evaluate availability, error-rate, latency, job, and capacity rules. Add an opt-in Alertmanager or equivalent contact point and document notification routing.
 
-### PS-17 · Probar actualización desde esquemas históricos
+### PS-17: Historical schema upgrade fixtures
 
-Alembic adopta bases existentes y CI prueba PostgreSQL 16 desde cero. Conservar
-fixtures anonimizadas de cada esquema publicado para verificar todas las rutas
-de actualización, no solo la revisión actual.
+Alembic adopts existing installations and CI validates a clean PostgreSQL 16 database. Preserve anonymized fixtures for every published schema and test every supported upgrade path.
 
-## Prioridad media
+## Medium priority
 
-### PS-18 · Modularizar el frontend
+### PS-18: Frontend modularization
 
-`photos_sync/web/static/index.html` concentra HTML, CSS y JavaScript. Separar
-los módulos por dominio y añadir lint/pruebas del navegador sin introducir una
-cadena de build pesada para el despliegue self-hosted.
+Split `photos_sync/web/static/index.html` into domain-focused modules and add browser linting and tests without requiring a heavy build chain for self-hosted deployments.
 
-### PS-19 · Dividir el repositorio de datos
+### PS-19: Repository-layer modularization
 
-`photos_sync/repository.py` contiene consultas de galería, álbumes, usuarios,
-papelera y configuración. Dividirlo por dominio manteniendo una API de acceso
-estable y transacciones explícitas.
+Split `photos_sync/repository.py` by gallery, album, user, trash, and configuration domains while retaining stable transactions and access APIs.
 
-### PS-20 · Programación opcional del pipeline
+### PS-20: Optional pipeline scheduling
 
-Permitir una planificación sencilla para sincronizaciones nocturnas, con
-historial de últimas ejecuciones y sin obligar a desplegar un scheduler externo.
+Provide simple nightly synchronization with execution history without requiring an external scheduler.
 
-## Completado
+## Completed milestones
 
-| Área | Resultado |
+| Area | Result |
 |---|---|
-| CI | Ruff, mypy, Python 3.11/3.12, cobertura, Serenity, PostgreSQL y build con gate obligatorio |
-| Pruebas | Más de 370 tests, cobertura mínima del 80 % y catálogo completo de endpoints |
-| BDD | Reporte Serenity HTML con request/response saneadas para HTTP y WebSocket |
-| Base de datos | PostgreSQL, operaciones bulk, `capture_day`, índices y Alembic automático |
-| Recuperación | Backups diarios y prueba destructiva aislada de dump/restauración |
-| Seguridad | Secretos montados, bcrypt, bloqueo, rate limiting y comandos sin shell injection |
-| WebDAV | Descarga concurrente configurable, lotes de persistencia y progreso observable |
-| SSH | Escaneo paralelo, reintentos y reconexión de transferencias |
-| Observabilidad | Métricas, logs estructurados, Prometheus, Grafana, Loki y alertas reales |
-| Frontend | HTML estático extraído del servidor Python, galería, álbumes, favoritos y papelera |
-| Documentación | Docker, migraciones, pruebas, backups, restauración y operación documentados |
+| CI | Ruff, mypy, Python 3.11/3.12, coverage, Serenity, PostgreSQL 16, and build gates. |
+| Tests | More than 380 tests, 80% minimum branch coverage, and complete endpoint catalog validation. |
+| BDD | Serenity HTML report with sanitized HTTP and WebSocket requests and responses. |
+| Database | PostgreSQL, bulk operations, `capture_day`, indexes, and automatic Alembic migrations. |
+| Recovery | Daily backups and an isolated destructive dump/restore verification. |
+| Security | File-mounted secrets, bcrypt, lockout, rate limiting, and injection-safe command execution. |
+| WebDAV | Concurrent transfers, database batches, per-file progress, targeted retry, and HTTP Range resume. |
+| SSH | Parallel discovery, retry, and transfer reconnection. |
+| Observability | Metrics, structured logs, Prometheus, Grafana, Loki, and actionable alert rules. |
+| Runtime | Non-root container with dropped Linux capabilities. |
+| Documentation | Deployment, HTTPS, migration, testing, backup, restore, and operations guidance. |

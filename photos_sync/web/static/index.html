@@ -2358,7 +2358,7 @@ function wdFileRow(item,active=false){
   const size=Number(item.size)||0,transferred=Number(item.transferred)||0;
   const pct=size?Math.min(100,Math.round(transferred/size*100)):(active?'…':100);
   const extension=(String(item.name||'').split('.').pop()||'IMG').slice(0,4).toUpperCase();
-  const sub=active?`${wdBytes(transferred)} of ${wdBytes(size)}`:(item.status==='skipped'?'Already downloaded':wdBytes(size));
+  const sub=active?`${wdBytes(transferred)} of ${wdBytes(size)}`:(item.status==='skipped'?'Already downloaded':item.resumed_from?`Resumed from ${wdBytes(item.resumed_from)}`:wdBytes(size));
   return `<div class="wd-file"><span class="wd-file-icon">${wdEsc(extension)}</span><div style="min-width:0"><div class="wd-file-name" title="${wdEsc(item.name)}">${wdEsc(item.name)}</div><div class="wd-file-sub">${wdEsc(sub)}</div></div><span class="wd-file-pct">${pct}${typeof pct==='number'?'%':''}</span></div>`;
 }
 
@@ -2371,7 +2371,8 @@ function renderWebDavTransfer(s){
   $('wd-progress-pct').textContent=pct+'%';$('wd-progress-bar').style.width=pct+'%';
   $('wd-metric-downloaded').textContent=s.downloaded||0;$('wd-metric-active').textContent=active.length;
   $('wd-metric-queued').textContent=s.queued||0;$('wd-metric-skipped').textContent=s.skipped||0;$('wd-metric-failed').textContent=s.failed||0;
-  $('wd-transfer-subtitle').textContent=s.retrying?`Retry attempt ${s.attempt} · failed files only`:`Attempt ${s.attempt||1} · ${s.workers||0} parallel workers`;
+  const resumeLabel=s.resumed?` · ${s.resumed} resumed`:'';
+  $('wd-transfer-subtitle').textContent=(s.retrying?`Retry attempt ${s.attempt} · failed files only`:`Attempt ${s.attempt||1} · ${s.workers||0} parallel workers`)+resumeLabel;
   const state=$('wd-transfer-state');state.className='wd-state'+(s.running?' live':failed.length?' error':'');
   state.lastElementChild.textContent=s.running?(s.retrying?'Retrying':'Downloading'):failed.length?'Needs attention':'Complete';
   const activeBox=$('wd-active-files');activeBox.className=active.length?'':'wd-empty';activeBox.innerHTML=active.length?active.map(x=>wdFileRow(x,true)).join(''):'No active transfers';

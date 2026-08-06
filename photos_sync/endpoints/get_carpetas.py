@@ -15,9 +15,7 @@ router = APIRouter()
 
 @router.get("/api/carpetas")
 def get_carpetas(_auth: dict = Depends(require_admin)):
-    """Estado completo de carpetas: origen + destino + servidores SSH
-    disponibles como destino. La UI renderiza todo a partir de esto,
-    sin estado propio en JS."""
+    """Return source, destination, and eligible SSH server configuration."""
     return {
         "origen": [str(c) for c in load_saved_folders()],
         "destino": load_destination_config(),

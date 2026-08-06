@@ -1,14 +1,23 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "photos-sync"
 version = "0.1.0"
-description = "Extract, organize by date, and compress screenshots from an Android phone mounted via WebDAV"
+description = "Self-hosted WebDAV and SSH photo ingestion, organization, and gallery"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Juan Francisco Fernandez Herreros" }]
+keywords = ["photos", "webdav", "self-hosted", "fastapi", "postgresql"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "rich>=13.0",
     "fastapi>=0.110",
@@ -49,6 +58,12 @@ dev = [
 photos-sync         = "photos_sync.cli:main"
 photos-sync-web     = "photos_sync.__main__:main"
 
+[project.urls]
+Homepage = "https://github.com/juanfranciscofernandezherreros/photos-python"
+Repository = "https://github.com/juanfranciscofernandezherreros/photos-python"
+Issues = "https://github.com/juanfranciscofernandezherreros/photos-python/issues"
+Documentation = "https://github.com/juanfranciscofernandezherreros/photos-python#readme"
+
 [tool.setuptools.packages.find]
 include = ["photos_sync*"]
 
@@ -57,7 +72,7 @@ photos_sync = ["alembic.ini", "alembic/script.py.mako"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py39"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP"]

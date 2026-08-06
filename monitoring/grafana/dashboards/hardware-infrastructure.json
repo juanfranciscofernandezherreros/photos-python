@@ -55,7 +55,7 @@
     },
     {"collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 15}, "id": 9, "panels": [], "title": "Red y almacenamiento", "type": "row"},
     {
-      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "Tráfico de red recibido y transmitido por contenedor.",
+      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "Network traffic received and transmitted by each container.",
       "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "Red", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 15, "gradientMode": "opacity", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 4, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "Bps"}, "overrides": []},
       "gridPos": {"h": 9, "w": 12, "x": 0, "y": 16}, "id": 10, "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}}, "pluginVersion": "11.6.0",
       "targets": [{"editorMode": "code", "expr": "sum by (name) (rate(container_network_receive_bytes_total{container_label_com_docker_compose_project=\"photos-python\",name=~\"${container:regex}\"}[$__rate_interval]))", "instant": false, "legendFormat": "RX {{name}}", "range": true, "refId": "A"}, {"editorMode": "code", "expr": "sum by (name) (rate(container_network_transmit_bytes_total{container_label_com_docker_compose_project=\"photos-python\",name=~\"${container:regex}\"}[$__rate_interval]))", "instant": false, "legendFormat": "TX {{name}}", "range": true, "refId": "B"}], "title": "Red por contenedor", "type": "timeseries"
@@ -74,7 +74,7 @@
       "targets": [{"editorMode": "code", "expr": "sort_desc(sum by (name) (container_memory_working_set_bytes{container_label_com_docker_compose_project=\"photos-python\",name=~\"${container:regex}\"}))", "instant": true, "legendFormat": "{{name}}", "range": false, "refId": "A"}], "title": "RAM actual", "type": "bargauge"
     },
     {
-      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "CPU media durante los últimos cinco minutos.",
+      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "Average CPU usage over the last five minutes.",
       "fieldConfig": {"defaults": {"color": {"mode": "continuous-GrYlRd"}, "decimals": 1, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "percent"}, "overrides": []},
       "gridPos": {"h": 8, "w": 8, "x": 8, "y": 26}, "id": 14, "options": {"displayMode": "gradient", "legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false}, "maxVizHeight": 300, "minVizHeight": 16, "minVizWidth": 8, "namePlacement": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": true}, "showUnfilled": true, "sizing": "auto", "valueMode": "color"}, "pluginVersion": "11.6.0",
       "targets": [{"editorMode": "code", "expr": "sort_desc(100 * sum by (name) (rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_project=\"photos-python\",name=~\"${container:regex}\"}[5m])))", "instant": true, "legendFormat": "{{name}}", "range": false, "refId": "A"}], "title": "CPU actual", "type": "bargauge"
@@ -99,7 +99,7 @@
       "targets": [{"editorMode": "code", "expr": "pg_up", "instant": true, "legendFormat": "PostgreSQL", "range": false, "refId": "A"}], "title": "PostgreSQL", "type": "stat"
     },
     {
-      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "Número actual de conexiones observadas por PostgreSQL Exporter.",
+      "datasource": {"type": "prometheus", "uid": "prometheus"}, "description": "Current connection count observed by PostgreSQL Exporter.",
       "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "decimals": 0, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 50}, {"color": "red", "value": 90}]}, "unit": "short"}, "overrides": []},
       "gridPos": {"h": 7, "w": 4, "x": 20, "y": 35}, "id": 19, "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showPercentChange": true, "textMode": "auto", "wideLayout": true}, "pluginVersion": "11.6.0",
       "targets": [{"editorMode": "code", "expr": "sum(pg_stat_activity_count)", "instant": true, "legendFormat": "Conexiones", "range": false, "refId": "A"}], "title": "Conexiones PostgreSQL", "type": "stat"

@@ -14,7 +14,7 @@ router = APIRouter()
 @router.get("/api/ssh")
 def listar_ssh(_auth: dict = Depends(require_admin)):
     connections = ssh_connection.load_ssh_connections()
-    # No exponer la ruta de la clave privada en la respuesta de la API
+    # Do not expose private-key paths in API responses.
     return [
         {k: v for k, v in c.items() if k != "clave_privada"}
         | {"tiene_clave": bool(c.get("clave_privada"))}

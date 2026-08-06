@@ -27,6 +27,8 @@ jobs:
             command: python -m ruff check photos_sync tests scripts
           - name: mypy
             command: python -m mypy photos_sync --ignore-missing-imports
+          - name: English policy
+            command: python scripts/check_english.py
 
     steps:
       - uses: actions/checkout@v6

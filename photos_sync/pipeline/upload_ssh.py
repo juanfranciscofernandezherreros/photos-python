@@ -1,13 +1,8 @@
-"""
-Paso opcional del pipeline: sube la carpeta ya organizada (destino local,
-la misma que usa organizar.py) a un servidor Linux por SSH, si hay alguno
-configurado con rol "destino" o "ambos" (ver ssh_conexion.py).
+"""Upload the organized local library to a configured SSH destination.
 
-No sustituye a organizar.py: la organización por fecha sigue haciéndose
-siempre en local primero (más rápido y permite reintentar si la subida
-falla a mitad). Este paso simplemente refleja esa misma carpeta local en
-el servidor remoto, manteniendo la estructura AAAA/MM/DD, y no vuelve a
-upload un fichero si ya existe en remoto con el mismo tamaño.
+Local organization runs first so interrupted uploads can be retried. The
+remote mirror retains the YYYY/MM/DD layout and skips equal-sized files.
+Legacy role values remain ``destino`` and ``ambos`` for compatibility.
 """
 from __future__ import annotations
 

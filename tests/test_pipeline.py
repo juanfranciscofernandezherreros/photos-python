@@ -78,7 +78,7 @@ class TestCargarMetadatosExistentes:
 
 class TestOrganizarCapturas:
     def test_organiza_en_carpetas_por_fecha(self, tmp_path, metadatos_json):
-        # Crear los archivos físicos de origen
+        # Create physical source files.
         for nombre in ["Screenshot_20231024_153020.png", "Screenshot_20231025_090000.jpg"]:
             (tmp_path / nombre).write_bytes(b"fake")
 
@@ -103,7 +103,7 @@ class TestOrganizarCapturas:
         assert len(archivos) == 1
 
     def test_sin_metadatos_no_falla(self):
-        organize_captures_by_date()  # solo imprime el aviso, no lanza
+        organize_captures_by_date()  # Prints the warning without raising.
 
     def test_actualiza_ruta_destino_en_metadatos(self, tmp_path, metadatos_json):
         for nombre in ["Screenshot_20231024_153020.png", "Screenshot_20231025_090000.jpg"]:
@@ -127,7 +127,7 @@ class TestComprimir:
         compress_folders_by_day()
 
         zips = list((carpeta_organizada / "Comprimidos").glob("*.zip"))
-        assert len(zips) == 2  # un zip por cada día del fixture
+        assert len(zips) == 2  # One archive per fixture day.
 
     def test_zip_valido(self, tmp_path, carpeta_organizada):
         from photos_sync.storage import folders as _folders
@@ -135,7 +135,7 @@ class TestComprimir:
         compress_folders_by_day()
 
         for z in (carpeta_organizada / "Comprimidos").glob("*.zip"):
-            assert zip_is_valid(z), f"{z.name} no pasó la verificación de integridad"
+            assert zip_is_valid(z), f"{z.name} failed integrity verification"
 
     def test_no_duplica_zips_existentes(self, tmp_path, carpeta_organizada):
         from photos_sync.storage import folders as _folders
@@ -158,7 +158,7 @@ class TestComprimir:
         assert not zip_is_valid(z)
 
     def test_sin_carpeta_base_no_falla(self):
-        compress_folders_by_day()  # solo imprime el aviso
+        compress_folders_by_day()  # Prints the warning only.
 
 
 # ═══════════════════════════════ resumen ════════════════════════════════════

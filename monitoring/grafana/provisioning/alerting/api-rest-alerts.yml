@@ -54,15 +54,15 @@ groups:
         execErrState: Error
         for: 5m
         annotations:
-          summary: Más del 5% de las peticiones terminan en 5xx
-          description: La proporción de respuestas 5xx de mi-api supera el 5% durante 5 minutos.
+          summary: More than 5% of requests return 5xx responses
+          description: The mi-api 5xx response ratio has exceeded 5% for five minutes.
         labels:
           service: mi-api
           severity: critical
         isPaused: false
 
       - uid: api-rest-no-traffic
-        title: Caída total de tráfico
+        title: Complete traffic loss
         condition: C
         data:
           - refId: A
@@ -109,7 +109,7 @@ groups:
         execErrState: Error
         for: 5m
         annotations:
-          summary: La API no recibe tráfico
+          summary: The API is receiving no traffic
           description: mi-api no ha recibido peticiones durante al menos 5 minutos.
         labels:
           service: mi-api
@@ -164,8 +164,8 @@ groups:
         execErrState: Error
         for: 5m
         annotations:
-          summary: La latencia media supera 1 segundo
-          description: La media de duration_ms para mi-api supera 1000 ms durante 5 minutos.
+          summary: Average latency exceeds one second
+          description: Average duration_ms for mi-api has exceeded 1000 ms for five minutes.
         labels:
           service: mi-api
           severity: warning

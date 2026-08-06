@@ -13,15 +13,14 @@ router = APIRouter()
 
 @router.get("/api/ssh/roles")
 def get_roles_ssh(_auth: dict = Depends(require_admin)):
-    """Devuelve los roles válidos y sus reglas, para que la UI los renderice
-    sin hardcodear ninguna regla en JS."""
+    """Return valid legacy role values and their rendering rules."""
     return {
         "roles": ssh_connection.VALID_ROLES,
         "requiere_ruta_destino": ["destino", "ambos"],
         "ruta_destino_obligatoria": ["ambos"],
         "descripcion": {
-            "origen":  "El pipeline escanea este servidor en busca de capturas.",
-            "destino": "Lo organizado se sube a este servidor.",
-            "ambos":   "Origen Y destino. Requiere rutas distintas para evitar bucles.",
+            "origen":  "The pipeline scans this server for captures.",
+            "destino": "Organized files are uploaded to this server.",
+            "ambos":   "Source and destination; separate paths prevent loops.",
         },
     }

@@ -107,7 +107,7 @@ def parsear_argumentos() -> argparse.Namespace:
         help="Lists the saved SSH connections."
     )
     grupo_ssh.add_argument(
-        "--ssh-add", nargs=5, metavar=("ALIAS", "HOST", "PUERTO", "USUARIO", "RUTA_REMOTA"),
+        "--ssh-add", nargs=5, metavar=("ALIAS", "HOST", "PORT", "USER", "REMOTE_PATH"),
         help="Adds or updates an SSH connection to a Linux server."
     )
     grupo_ssh.add_argument(
@@ -123,9 +123,9 @@ def parsear_argumentos() -> argparse.Namespace:
     grupo_ssh.add_argument(
         "--ssh-remote-dest", type=str, default="", metavar="RUTA_REMOTA_DESTINO",
         help="Only relevant with --ssh-rol ambos: remote folder to upload the organized "
-             "photos to. It MUST be different from RUTA_REMOTA (the origin folder being "
+             "photos to. It MUST be different from REMOTE_PATH (the origin folder being "
              "scanned), or the pipeline would re-scan its own uploads on every run. If "
-             "omitted for role 'destino', RUTA_REMOTA is reused as the upload target."
+             "omitted for role 'destino', REMOTE_PATH is reused as the upload target."
     )
     grupo_ssh.add_argument(
         "--ssh-remove", type=str, metavar="ALIAS",
@@ -140,9 +140,7 @@ def parsear_argumentos() -> argparse.Namespace:
 
 
 def modo_gestion_ssh(args: argparse.Namespace) -> bool:
-    """Procesa los argumentos --ssh-*. Devuelve True si se ha manejado
-    alguno (y por tanto el programa debe terminar aquí, sin lanzar ni el
-    pipeline ni la GUI)."""
+    """Process --ssh-* arguments and report whether one was handled."""
     if args.ssh_list:
         connections = ssh_connection.load_ssh_connections()
         if not connections:

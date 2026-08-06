@@ -30,7 +30,7 @@ def get_day_photos(
 
     photos: list[dict] = []
 
-    # El acceso al disco se limita a las capturas seleccionadas por SQL.
+    # Limit disk access to captures selected by SQL.
     for candidate in selected:
         file_path = candidate["file_path"]
         path = Path(file_path)

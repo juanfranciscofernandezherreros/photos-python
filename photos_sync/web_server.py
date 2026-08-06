@@ -688,6 +688,7 @@ class WebDAVScanIn(BaseModel):
 _webdav_job: dict = {"running": False, "done": False, "error": None,
                      "total": 0, "downloaded": 0, "registered": 0, "skipped": 0,
                      "failed": 0, "completed": 0, "queued": 0,
+                     "resumed": 0,
                      "started_at": None, "finished_at": None,
                      "dest": "", "current_file": "", "source": {},
                      "active_files": {}, "recent_files": [], "failed_files": [],
@@ -767,11 +768,8 @@ def iniciar_servidor_web(host: str = "127.0.0.1", port: int = WEB_PORT) -> None:
 
 
 # ──────────────────────────── HTML inline ───────────────────────────────────
-# El JS solo hace tres cosas:
-#   1. Llamar a un endpoint Python al interactuar el usuario.
-#   2. Renderizar la respuesta que devuelve Python.
-#   3. Gestionar el estado visual mínimo (spinner, habilitar/deshabilitar botones).
-# Toda la lógica de negocio, validaciones y estado vive en Python.
+# The JavaScript calls Python endpoints, renders responses, and manages UI state.
+# Business rules, validation, and persistent state remain in Python.
 
 _HTML_PATH = Path(__file__).parent / "web" / "static" / "index.html"
 _HTML = _HTML_PATH.read_text(encoding="utf-8") if _HTML_PATH.exists() else "<h1>Missing index.html</h1>"

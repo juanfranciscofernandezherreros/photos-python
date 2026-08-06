@@ -15,7 +15,7 @@ router = APIRouter()
 
 @router.post("/api/ssh")
 def guardar_ssh(datos: SSHConnectionIn, _auth: dict = Depends(require_admin)):
-    # Si el cliente envía clave_privada vacía, preservar la que ya existía
+    # Preserve the existing private key when the client sends an empty value.
     clave = datos.clave_privada
     if not clave:
         existentes = ssh_connection.load_ssh_connections()

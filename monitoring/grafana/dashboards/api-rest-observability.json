@@ -124,12 +124,12 @@
       "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
       "id": 6,
       "panels": [],
-      "title": "Tráfico",
+      "title": "Traffic",
       "type": "row"
     },
     {
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "description": "Evolución del tráfico por ruta, expresada como peticiones por minuto.",
+      "description": "Traffic by route, expressed as requests per minute.",
       "fieldConfig": {
         "defaults": {
           "color": {"mode": "palette-classic"},
@@ -155,7 +155,7 @@
       "gridPos": {"h": 1, "w": 24, "x": 0, "y": 14},
       "id": 8,
       "panels": [],
-      "title": "Análisis",
+      "title": "Analysis",
       "type": "row"
     },
     {
@@ -174,7 +174,7 @@
     },
     {
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "description": "Distribución del tráfico por método HTTP.",
+      "description": "Traffic distribution by HTTP method.",
       "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "decimals": 0, "mappings": [], "unit": "short"}, "overrides": []},
       "gridPos": {"h": 8, "w": 8, "x": 8, "y": 15},
       "id": 10,
@@ -183,12 +183,12 @@
       "targets": [
         {"editorMode": "code", "expr": "sum by (method) (increase(http_requests_total{service=~\"${service:regex}\",route=~\"${route:regex}\",method=~\"${method:regex}\",status_code=~\"${status_code:regex}\"}[$__range]) and on(service,route,method,status_code) http_requests_total{method=~\"GET|POST|PUT|DELETE\"})", "instant": true, "legendFormat": "{{method}}", "range": false, "refId": "A"}
       ],
-      "title": "Llamadas por método HTTP",
+      "title": "Calls by HTTP method",
       "type": "piechart"
     },
     {
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "description": "Distribución por familias de códigos HTTP.",
+      "description": "Distribution by HTTP status-code family.",
       "fieldConfig": {
         "defaults": {"color": {"mode": "palette-classic"}, "decimals": 0, "mappings": [], "unit": "short"},
         "overrides": [
@@ -208,7 +208,7 @@
         {"editorMode": "code", "expr": "sum(increase(http_requests_total{service=~\"${service:regex}\",route=~\"${route:regex}\",method=~\"${method:regex}\",status_code=~\"${status_code:regex}\"}[$__range]) and on(service,route,method,status_code) http_requests_total{status_code=~\"4..\"})", "instant": true, "legendFormat": "4xx", "range": false, "refId": "C"},
         {"editorMode": "code", "expr": "sum(increase(http_requests_total{service=~\"${service:regex}\",route=~\"${route:regex}\",method=~\"${method:regex}\",status_code=~\"${status_code:regex}\"}[$__range]) and on(service,route,method,status_code) http_requests_total{status_code=~\"5..\"})", "instant": true, "legendFormat": "5xx", "range": false, "refId": "D"}
       ],
-      "title": "Códigos HTTP",
+      "title": "HTTP status codes",
       "type": "piechart"
     },
     {
@@ -221,7 +221,7 @@
     },
     {
       "datasource": {"type": "loki", "uid": "loki"},
-      "description": "Una línea por petición con timestamp, método, ruta, código, duración y correlation_id.",
+      "description": "One line per request with timestamp, method, route, status, duration, and correlation_id.",
       "fieldConfig": {"defaults": {}, "overrides": []},
       "gridPos": {"h": 10, "w": 24, "x": 0, "y": 24},
       "id": 13,
@@ -230,7 +230,7 @@
       "targets": [
         {"datasource": {"type": "loki", "uid": "loki"}, "editorMode": "code", "expr": "{service=\"mi-api\"} | json | message=\"HTTP request completed\" | service=~\"${service:regex}\" | route=~\"${route:regex}\" | method=~\"${method:regex}\" | status_code=~\"${status_code:regex}\" | line_format \"{{.timestamp}}  {{.method}}  {{.route}}  {{.status_code}}  {{.duration_ms}} ms  correlation_id={{.correlation_id}}\"", "queryType": "range", "refId": "A"}
       ],
-      "title": "Logs de cada petición",
+      "title": "Per-request logs",
       "type": "logs"
     },
     {
@@ -238,12 +238,12 @@
       "gridPos": {"h": 1, "w": 24, "x": 0, "y": 34},
       "id": 14,
       "panels": [],
-      "title": "Búsqueda por Correlation ID",
+      "title": "Correlation ID search",
       "type": "row"
     },
     {
       "datasource": {"type": "loki", "uid": "loki"},
-      "description": "Introduce un correlation_id para reconstruir la petición y consultar el body de su respuesta.",
+      "description": "Enter a correlation_id to reconstruct a request and inspect its response body.",
       "fieldConfig": {"defaults": {}, "overrides": []},
       "gridPos": {"h": 10, "w": 24, "x": 0, "y": 35},
       "id": 15,

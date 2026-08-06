@@ -20,19 +20,19 @@ router = APIRouter()
 def set_destino(datos: DestinoIn, _auth: dict = Depends(require_admin)):
     if datos.tipo == "local":
         if not datos.ruta:
-            raise HTTPException(400, "Falta la ruta para destino local.")
+            raise HTTPException(400, "A local destination path is required.")
         save_destination(datos.ruta)
     elif datos.tipo == "ssh":
         if not datos.alias:
-            raise HTTPException(400, "Falta el alias del servidor SSH.")
+            raise HTTPException(400, "An SSH server alias is required.")
         c = ssh_connection.get_connection(datos.alias)
         if c is None:
-            raise HTTPException(404, f"No existe ninguna conexión SSH con alias '{datos.alias}'.")
+            raise HTTPException(404, f"No SSH connection has alias '{datos.alias}'.")
         if c["rol"] not in ("destino", "ambos"):
             raise HTTPException(400,
-                f"El servidor '{datos.alias}' tiene rol '{c['rol']}': "
-                "para usarlo como destino debe tener rol 'destino' o 'ambos'.")
+                f"Server '{datos.alias}' has role '{c['rol']}'; "
+                "a destination requires the legacy role 'destino' or 'ambos'.")
         save_ssh_destination(datos.alias)
     else:
-        raise HTTPException(400, "tipo debe ser 'local' o 'ssh'.")
+        raise HTTPException(400, "tipo must be 'local' or 'ssh'.")
     return {"ok": True, "destino": load_destination_config()}

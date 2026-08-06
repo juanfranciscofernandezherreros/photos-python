@@ -46,6 +46,21 @@ class TestRemoteFile:
         assert f.size == 100
 
 
+class TestRemoteRoots:
+    def test_removes_descendants_already_covered_by_recursive_parent(self):
+        roots = wd.non_overlapping_remote_paths([
+            "/Pictures/Screenshots", "/DCIM/Camera", "/Pictures", "/Pictures",
+        ])
+
+        assert set(roots) == {"/DCIM/Camera", "/Pictures"}
+
+    def test_keeps_independent_roots(self):
+        assert wd.non_overlapping_remote_paths(["/DCIM/Camera", "/DCIM/Screenshots"]) == [
+            "/DCIM/Camera",
+            "/DCIM/Screenshots",
+        ]
+
+
 # ── list_remote_files ─────────────────────────────────────────────────────────
 
 class TestListRemoteFiles:
@@ -226,5 +241,3 @@ class TestSyncWebDAVConnection:
                                             remote_paths=["/a", "/a"])
         # dup.jpg only downloaded once despite two paths
         assert len(out) == 1
-
-

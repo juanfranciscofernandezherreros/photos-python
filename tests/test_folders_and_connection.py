@@ -12,7 +12,7 @@ from photos_sync.storage import connection, folders
 
 class TestCarpetasOrigen:
     def test_lista_vacia_sin_archivo(self):
-        # Sin archivo y sin móviles conectados → lista vacía
+        # No saved file and no connected phones produces an empty list.
         result = folders.load_saved_folders()
         assert isinstance(result, list)
 
@@ -25,7 +25,7 @@ class TestCarpetasOrigen:
     def test_guardar_vacio_devuelve_defaults(self):
         folders.save_folders([])
         result = folders.load_saved_folders()
-        # Lista vacía guardada → se usan defaults (rutas de móviles conectados)
+        # An empty saved list falls back to connected-phone defaults.
         assert isinstance(result, list)
 
     def test_archivo_corrupto_devuelve_defaults(self, tmp_path):

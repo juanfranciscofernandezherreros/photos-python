@@ -31,6 +31,6 @@ def test_caddyfile_proxies_only_to_internal_application() -> None:
 def test_https_documentation_warns_against_direct_publication() -> None:
     documentation = (ROOT / "docs/https.md").read_text(encoding="utf-8")
 
-    assert "No abras 8765" in documentation
+    assert "Do not expose Photos Sync" in documentation
     assert "COOKIE_SECURE=true" in documentation
-    assert "down -v" in documentation
+    assert "`-v` to `down`" in documentation

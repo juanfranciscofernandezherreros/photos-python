@@ -313,7 +313,7 @@ class TestUIHtml:
         assert "ws/log" in cliente_api.get("/").text
 
     def test_html_endpoints_match_api(self, cliente_api):
-        """Los endpoints llamados desde el JS deben existir en la API."""
+        """Every endpoint called by JavaScript must exist in the API."""
         html = cliente_api.get("/").text
         endpoints_esperados = [
             "/api/pasos", "/api/pipeline/ejecutar", "/api/pipeline/estado",
@@ -322,7 +322,7 @@ class TestUIHtml:
             "/api/carpetas/origen/quitar", "/api/carpetas/destino",
         ]
         for ep in endpoints_esperados:
-            assert ep in html, f"El endpoint '{ep}' no aparece en el HTML/JS"
+            assert ep in html, f"Endpoint '{ep}' is missing from the HTML/JS"
 
     def test_html_has_no_wizard_or_cities_ui(self, cliente_api):
         html = cliente_api.get("/").text.lower()

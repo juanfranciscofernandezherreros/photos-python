@@ -37,6 +37,7 @@ class _WebDAVHandler(BaseHTTPRequestHandler):
     active_gets = 0
     max_active_gets = 0
     fail_paths: set[str] = set()
+    range_requests: list[tuple[str, int]] = []
 
     def log_message(self, *a, **kw):
         pass  # silence stderr spam in tests
@@ -81,6 +82,12 @@ class _WebDAVHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
+        range_header = self.headers.get("Range", "")
+        start = 0
+        if range_header.startswith("bytes="):
+            start = int(range_header.removeprefix("bytes=").split("-", 1)[0])
+            type(self).range_requests.append((self.path, start))
+            content = content[start:]
         with self.activity_lock:
             type(self).active_gets += 1
             type(self).max_active_gets = max(
@@ -89,9 +96,12 @@ class _WebDAVHandler(BaseHTTPRequestHandler):
             )
         try:
             time.sleep(0.05)
-            self.send_response(200)
+            self.send_response(206 if start else 200)
             self.send_header("Content-Type", "image/jpeg")
             self.send_header("Content-Length", str(len(content)))
+            if start:
+                total = len(type(self).files[self.path])
+                self.send_header("Content-Range", f"bytes {start}-{total - 1}/{total}")
             self.end_headers()
             self.wfile.write(content)
         finally:
@@ -107,6 +117,7 @@ def webdav_server():
     _WebDAVHandler.active_gets = 0
     _WebDAVHandler.max_active_gets = 0
     _WebDAVHandler.fail_paths = set()
+    _WebDAVHandler.range_requests = []
     srv = ThreadingHTTPServer(("127.0.0.1", port), _WebDAVHandler)
     t = threading.Thread(target=srv.serve_forever, daemon=True); t.start()
     # Wait briefly for the socket to be ready
@@ -290,3 +301,40 @@ class TestWebDAVEndToEnd:
         assert status["retry_available"] is False
         assert (dest / "IMG_1001.jpg").is_file()
         assert len(repo.load_captures()) == 3
+
+    def test_existing_partial_file_is_resumed_with_http_range(
+        self, cliente_api, cwd_temporal, webdav_server,
+    ):
+        from photos_sync import repository as repo
+        from photos_sync.storage import webdav_downloader as wd
+
+        host, port = webdav_server
+        dest = cwd_temporal / "incoming"
+        dest.mkdir(parents=True)
+        repo.save_destination_local(str(cwd_temporal))
+        remote_path = "/DCIM/Camera/IMG_1000.jpg"
+        content = _WebDAVHandler.files[remote_path]
+        resume_at = len(content) // 2
+        partial = dest / "IMG_1000.jpg.webdav.part"
+        partial.write_bytes(content[:resume_at])
+
+        original_paths = wd.DEFAULT_REMOTE_PATHS[:]
+        wd.DEFAULT_REMOTE_PATHS = ["/DCIM/Camera"]
+        try:
+            response = cliente_api.post("/api/webdav/download", json={
+                "ip": host, "port": str(port), "dest_folder": str(dest),
+            })
+            assert response.status_code == 200
+            for _ in range(200):
+                status = cliente_api.get("/api/webdav/download-status").json()
+                if status["done"]:
+                    break
+                time.sleep(0.1)
+        finally:
+            wd.DEFAULT_REMOTE_PATHS = original_paths
+
+        assert status["failed"] == 0
+        assert status["resumed"] == 1
+        assert (remote_path, resume_at) in _WebDAVHandler.range_requests
+        assert (dest / "IMG_1000.jpg").read_bytes() == content
+        assert not partial.exists()

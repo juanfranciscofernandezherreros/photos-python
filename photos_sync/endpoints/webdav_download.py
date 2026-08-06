@@ -74,14 +74,19 @@ def _start_webdav_download(req: WebDAVScanIn, retry_files: list[dict] | None = N
         DEFAULT_REMOTE_PATHS,
         RemoteFile,
         list_remote_files,
+        non_overlapping_remote_paths,
     )
 
     dest = Path(req.dest_folder) if req.dest_folder else ORGANIZED_DIR / "incoming"
     if not _shared._is_allowed(dest):
         raise HTTPException(403, "Destination must be inside a configured photo library")
     dest.mkdir(parents=True, exist_ok=True)
-    workers = max(1, min(int(os.getenv("WEBDAV_DOWNLOAD_WORKERS", "6")), 16))
+    workers = max(1, min(int(os.getenv("WEBDAV_DOWNLOAD_WORKERS", "8")), 16))
     batch_size = max(1, min(int(os.getenv("WEBDAV_DB_BATCH_SIZE", "100")), 1000))
+    chunk_size = max(
+        64 * 1024,
+        min(int(os.getenv("WEBDAV_CHUNK_SIZE_KB", "1024")) * 1024, 8 * 1024 * 1024),
+    )
 
     is_retry = retry_files is not None
     global _webdav_job
@@ -93,8 +98,8 @@ def _start_webdav_download(req: WebDAVScanIn, retry_files: list[dict] | None = N
             "running": True, "done": False, "error": None,
             "total": 0, "downloaded": 0, "registered": 0,
             "skipped": 0, "failed": 0, "completed": 0,
-            "queued": 0,
-            "workers": workers, "batch_size": batch_size,
+            "queued": 0, "resumed": 0,
+            "workers": workers, "batch_size": batch_size, "chunk_size": chunk_size,
             "started_at": _t.time(), "finished_at": None,
             "dest": str(dest), "current_file": "",
             "source": {"ip": req.ip, "port": str(req.port), "dest_folder": str(dest)},
@@ -119,6 +124,7 @@ def _start_webdav_download(req: WebDAVScanIn, retry_files: list[dict] | None = N
             destination=str(dest),
             workers=workers,
             db_batch_size=batch_size,
+            chunk_size_bytes=chunk_size,
         )
 
         def session_for_thread() -> Session:
@@ -152,7 +158,8 @@ def _start_webdav_download(req: WebDAVScanIn, retry_files: list[dict] | None = N
             if retry_files is None:
                 # Independent roots are scanned concurrently. Results are sorted
                 # before naming so duplicate-name handling stays deterministic.
-                scan_workers = min(4, len(DEFAULT_REMOTE_PATHS))
+                scan_roots = non_overlapping_remote_paths(DEFAULT_REMOTE_PATHS)
+                scan_workers = min(4, len(scan_roots))
                 scan_results = []
                 with ThreadPoolExecutor(
                     max_workers=scan_workers,
@@ -160,7 +167,7 @@ def _start_webdav_download(req: WebDAVScanIn, retry_files: list[dict] | None = N
                 ) as scan_pool:
                     future_to_path = {
                         scan_pool.submit(list_remote_files, req.ip, req.port, path): path
-                        for path in DEFAULT_REMOTE_PATHS
+                        for path in scan_roots
                     }
                     for future in as_completed(future_to_path):
                         remote_path = future_to_path[future]
@@ -223,6 +230,7 @@ def _start_webdav_download(req: WebDAVScanIn, retry_files: list[dict] | None = N
                     "size": remote.size,
                     "modified": remote.modified,
                     "transferred": 0,
+                    "resumed_from": 0,
                     "status": "downloading",
                     "error": None,
                 }
@@ -233,24 +241,54 @@ def _start_webdav_download(req: WebDAVScanIn, retry_files: list[dict] | None = N
                     if local.exists() and remote.size > 0 and local.stat().st_size == remote.size:
                         return remote, local, "skipped", None
                     url = base_url.rstrip("/") + "/" + remote.href.lstrip("/")
-                    temporary = local.with_name(
-                        f"{local.name}.part.{threading.get_ident()}"
-                    )
-                    try:
-                        with session_for_thread().get(url, stream=True, timeout=(10, 120)) as response:
-                            response.raise_for_status()
-                            with open(temporary, "wb") as file_handle:
-                                for chunk in response.iter_content(chunk_size=262_144):
-                                    if chunk:
-                                        file_handle.write(chunk)
-                                        with _webdav_job_lock:
-                                            active = _webdav_job["active_files"].get(remote.href)
-                                            if active is not None:
-                                                active["transferred"] += len(chunk)
-                        temporary.replace(local)
-                    except Exception:
-                        temporary.unlink(missing_ok=True)
-                        raise
+                    temporary = local.with_name(f"{local.name}.webdav.part")
+                    resume_from = temporary.stat().st_size if temporary.exists() else 0
+                    if remote.size > 0 and resume_from > remote.size:
+                        temporary.unlink()
+                        resume_from = 0
+                    with _webdav_job_lock:
+                        item["transferred"] = resume_from
+                        item["resumed_from"] = resume_from
+
+                    headers = {}
+                    if resume_from:
+                        headers = {
+                            "Range": f"bytes={resume_from}-",
+                            "Accept-Encoding": "identity",
+                        }
+                    with session_for_thread().get(
+                        url,
+                        headers=headers,
+                        stream=True,
+                        timeout=(10, 120),
+                    ) as response:
+                        if response.status_code == 416 and remote.size == resume_from:
+                            temporary.replace(local)
+                            return remote, local, "downloaded", None
+                        response.raise_for_status()
+                        append = bool(resume_from and response.status_code == 206)
+                        if append:
+                            with _webdav_job_lock:
+                                _webdav_job["resumed"] += 1
+                        elif resume_from:
+                            resume_from = 0
+                            with _webdav_job_lock:
+                                item["transferred"] = 0
+                                item["resumed_from"] = 0
+                        with open(temporary, "ab" if append else "wb") as file_handle:
+                            for chunk in response.iter_content(chunk_size=chunk_size):
+                                if chunk:
+                                    file_handle.write(chunk)
+                                    with _webdav_job_lock:
+                                        active = _webdav_job["active_files"].get(remote.href)
+                                        if active is not None:
+                                            active["transferred"] += len(chunk)
+                    if remote.size > 0 and temporary.stat().st_size != remote.size:
+                        raise OSError(
+                            f"Incomplete WebDAV response for {remote.name}: "
+                            f"expected {remote.size} bytes, got {temporary.stat().st_size}"
+                        )
+                    temporary.replace(local)
                     return remote, local, "downloaded", None
                 except Exception as exc:
                     return remote, local, "failed", str(exc)
@@ -270,6 +308,7 @@ def _start_webdav_download(req: WebDAVScanIn, retry_files: list[dict] | None = N
                             "size": remote.size,
                             "modified": remote.modified,
                             "transferred": active.get("transferred", 0),
+                            "resumed_from": active.get("resumed_from", 0),
                             "status": outcome,
                             "error": error,
                         }
@@ -372,4 +411,5 @@ def _start_webdav_download(req: WebDAVScanIn, retry_files: list[dict] | None = N
         "dest_folder": str(dest),
         "workers": workers,
         "db_batch_size": batch_size,
+        "chunk_size_bytes": chunk_size,
     }

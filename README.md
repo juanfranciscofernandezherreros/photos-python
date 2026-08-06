@@ -1,217 +1,134 @@
 # Photos Sync
 
-Sincroniza fotos desde el móvil (WebDAV / SSH), las organiza por fecha, clasifica por etiquetas y las almacena local o en servidor remoto.
+[![CI](https://github.com/juanfranciscofernandezherreros/photos-python/actions/workflows/ci.yml/badge.svg)](https://github.com/juanfranciscofernandezherreros/photos-python/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Inicio rápido con Docker
+Self-hosted photo ingestion and management for WebDAV and SSH sources. Photos Sync downloads media, organizes it by capture date, indexes metadata in PostgreSQL, and provides a responsive web gallery with albums, favorites, trash, users, and operational monitoring.
+
+## Highlights
+
+- Concurrent WebDAV downloads with per-file progress, retry, and HTTP Range resume.
+- SSH ingestion with parallel scanning, retries, and reconnection.
+- PostgreSQL 16, versioned Alembic migrations, indexed capture dates, and batched writes.
+- FastAPI dashboard with role-based access, rate limiting, and secure sessions.
+- Prometheus, Grafana, Loki, and provisioned operational alerts.
+- Automated backups plus an isolated restore test.
+- Ruff, mypy, branch coverage above 80%, PostgreSQL integration tests, and Serenity BDD reports containing sanitized requests and responses.
+- Non-root application container and an optional Caddy HTTPS deployment.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Phone[Phone / WebDAV] --> API[FastAPI application]
+    SSH[SSH source] --> API
+    API --> Files[Photo library]
+    API --> DB[(PostgreSQL 16)]
+    API --> Metrics[Prometheus / Loki]
+    Metrics --> Grafana[Grafana]
+    DB --> Backup[Compressed backups]
+```
+
+## Quick start
+
+Requirements: Docker Engine with Docker Compose and Python 3.11+ for helper scripts.
 
 ```bash
 cp .env.example .env
 python scripts/generate_secrets.py
-docker compose up -d
-```
-
-Abre **http://localhost:8765**
-
-## Actualizar a la última versión
-
-**IMPORTANTE:** si ya tenías la app corriendo, Docker no reconstruye la
-imagen por sí solo cuando cambia el código Python. Después de descomprimir
-una versión nueva del proyecto, ejecuta:
-
-```bash
-docker compose down
-docker compose build --no-cache app
-docker compose up -d
-```
-
-O más rápido y equivalente:
-
-```bash
-docker compose up -d --build --force-recreate
-```
-
-Si sospechas que la BD ha quedado en mal estado (fotos que no aparecen,
-usuarios raros, etc.), puedes empezar de cero conservando las fotos:
-
-```bash
-docker compose down -v      # -v borra el volumen postgres_data
 docker compose up -d --build
 ```
 
-Con `-v` se borra la base de datos entera; la primera vez que abras la app
-te pedirá crear el administrador otra vez. Las **fotos en tu `PHOTOS_DIR` NO
-se tocan**, solo la BD. Después de esto puedes reingestar via WebDAV o
-ejecutar el Pipeline sobre tus carpetas existentes.
-
-### Verificar que la BD tiene datos
-
-Con el admin logueado, visita **http://localhost:8765/api/diag** — muestra
-el número de filas en cada tabla:
-
-```json
-{
-  "db_dialect": "postgresql",
-  "counts": {
-    "captures": 42,
-    "day_summaries": 5,
-    "source_folders": 1,
-    "users": 1,
-    ...
-  }
-}
-```
-
-Si `captures` es 0 después de descargar fotos, algo va mal — comparte esa
-salida.
-
-## Variables de entorno (`.env`)
-
-| Variable | Por defecto | Descripción |
-|---|---|---|
-| `PHOTOS_DIR` | `./photos` | Carpeta del host con las fotos |
-| `APP_PORT` | `8765` | Puerto del dashboard web |
-| `APP_BIND_IP` | `127.0.0.1` | Interfaz donde escucha el dashboard |
-| `DB_BIND_IP` | `127.0.0.1` | Interfaz donde se publica PostgreSQL |
-| `SECRETS_DIR` | `./secrets` | Directorio local de Docker Secrets |
-
-### Permisos del contenedor
-
-La aplicación se ejecuta como el usuario no-root `photos-sync` y elimina todas
-las capabilities Linux. En Windows y macOS Docker Desktop gestiona los permisos
-del bind mount. En un host Linux configura `APP_UID` y `APP_GID` con el usuario
-propietario de la biblioteca:
+Open <http://localhost:8765> and create the first administrator account. Check the deployment with:
 
 ```bash
-printf 'APP_UID=%s\nAPP_GID=%s\n' "$(id -u)" "$(id -g)" >> .env
-sudo chown -R "$(id -u):$(id -g)" /ruta/de/PHOTOS_DIR
-docker compose up -d --build app
+docker compose ps
+curl --fail http://localhost:8765/health
 ```
 
-Los secretos se montan en modo lectura y deben ser legibles por ese UID. No
-uses `user: root` como solución a problemas de permisos.
-
-### HTTPS para acceso desde Internet
-
-No publiques el puerto `8765` directamente. El despliegue recomendado usa
-Caddy como proxy inverso, activa cookies seguras y obtiene/renueva el
-certificado TLS automáticamente. Consulta la guía completa en
-[`docs/https.md`](docs/https.md).
-
-## Observabilidad: Grafana, Prometheus y Loki
-
-Arranca la aplicación y el stack completo con:
+Start the complete monitoring stack with:
 
 ```bash
 docker compose --profile monitoring up -d --build
 ```
 
-- Aplicación: <http://localhost:8765>
-- Grafana: <http://localhost:3000>
-- Prometheus: <http://localhost:9090>
+| Service | Address |
+|---|---|
+| Photos Sync | <http://localhost:8765> |
+| Grafana | <http://localhost:3000> |
+| Prometheus | <http://localhost:9090> |
 
-Grafana se aprovisiona automáticamente con las fuentes **Prometheus** y
-**Loki** y con dos dashboards dentro de la carpeta `Photos Sync`:
-
-- `API REST · Observabilidad`: dashboard de API con KPIs, tráfico, análisis por
-  endpoint/método/código HTTP, logs y trazabilidad por `correlation_id`.
-- `Hardware e Infraestructura`: dashboard independiente con salud de servicios,
-  CPU, RAM, red, disco, uptime de contenedores y estado de PostgreSQL.
-
-El panel **Logs de cada petición** muestra timestamp, método, endpoint, código
-HTTP, duración y `correlation_id` para cada petición.
-
-La primera instalación usa `GRAFANA_ADMIN_USER` y
-`secrets/grafana_admin_password.txt`. Cambiar ese archivo no modifica una
-contraseña que ya esté guardada en el volumen. Para restablecerla:
-
-```bash
-docker exec photos_grafana grafana cli admin reset-admin-password NuevaClaveSegura
-```
-
-Consultas útiles en **Explore → Loki**:
-
-```logql
-# Todas las peticiones completadas
-{service="mi-api"} | json | message="HTTP request completed"
-
-# Solo errores HTTP
-{service="mi-api"} | json | message="HTTP request completed" | status_code >= 400
-
-# Trazar una petición concreta
-{service="mi-api"} | json | correlation_id="req_..."
-```
-
-Para contar las peticiones del intervalo seleccionado en Grafana, usa
-Prometheus:
-
-```promql
-sum(increase(http_requests_total{service="mi-api"}[$__range]))
-```
-
-Las métricas usan la plantilla de la ruta (`/api/days/{date}/photos`) para
-evitar una serie distinta por fecha. Los logs de acceso no registran cuerpos,
-cookies, cabeceras de autenticación ni parámetros de consulta. Loki conserva
-14 días de logs y Prometheus 15 días de métricas por defecto; ambas retenciones
-se pueden ajustar desde `.env`/los archivos de `monitoring/`.
-
-Comprobar el estado o detener el stack:
-
-```bash
-docker compose --profile monitoring ps
-docker compose --profile monitoring down
-```
-
-## pgAdmin (opcional)
+pgAdmin is available through the optional `admin` profile:
 
 ```bash
 docker compose --profile admin up -d
-# http://localhost:5050  →  host: db, puerto: 5432
 ```
 
-## Migrar datos JSON existentes
+## WebDAV performance and recovery
+
+Downloads run concurrently and each active file is written to a stable `.webdav.part` file. If connectivity is interrupted, the next attempt asks the server for only the missing byte range. Servers without Range support remain compatible: the affected file restarts safely. Overlapping remote roots are collapsed before discovery to avoid repeated `PROPFIND` scans.
+
+| Setting | Default | Purpose |
+|---|---:|---|
+| `WEBDAV_DOWNLOAD_WORKERS` | `8` | Concurrent transfers; use `4-8` on a phone and `8-16` on a fast server. |
+| `WEBDAV_CHUNK_SIZE_KB` | `1024` | Streaming chunk size; larger values reduce Python overhead. |
+| `WEBDAV_DB_BATCH_SIZE` | `100` | Number of completed files persisted per database batch. |
+
+Do not set worker counts blindly: phone storage, Wi-Fi, and the WebDAV server often become slower under excessive parallelism. See [WebDAV operations](docs/webdav.md) for tuning and recovery details.
+
+## Configuration
+
+Copy `.env.example` and keep real credentials only in generated files under `secrets/`. Important settings include:
+
+| Variable | Default | Description |
+|---|---|---|
+| `PHOTOS_DIR` | `./photos` | Host photo-library directory. |
+| `APP_PORT` | `8765` | Web application port. |
+| `APP_BIND_IP` | `127.0.0.1` | Published application interface. |
+| `DB_BIND_IP` | `127.0.0.1` | Published PostgreSQL interface. |
+| `SECRETS_DIR` | `./secrets` | Local Docker Secrets directory. |
+| `APP_UID` / `APP_GID` | `1000` | Non-root container identity on Linux hosts. |
+
+On Linux, make the library writable by the configured identity. Never solve permission problems by running the application as root.
+
+## Updates and database migrations
+
+```bash
+git pull
+docker compose up -d --build --force-recreate
+```
+
+The application applies pending Alembic revisions before serving traffic and stops if a migration fails. Back up the database before upgrading. Existing JSON data can be imported with:
 
 ```bash
 docker compose exec app python migrations/import_from_json.py
 ```
 
-## Migraciones automáticas de PostgreSQL
+## Backups
 
-Cada arranque del contenedor ejecuta Alembic antes de servir tráfico. Una base
-nueva se crea desde cero y una instalación anterior sin `alembic_version` se
-adopta automáticamente antes de aplicar únicamente las revisiones pendientes.
-El historial actual incluye el esquema base, la normalización de fechas e
-índices y la retirada de la columna antigua `city`.
+The `backup` service creates compressed PostgreSQL dumps every 24 hours in `BACKUP_DIR` and retains them for `BACKUP_KEEP_DAYS` (seven by default).
 
-Haz un backup antes de actualizar entre versiones. Si una migración falla, la
-aplicación no continúa con un esquema incompleto. Los SQL de `migrations/` se
-conservan como herramientas históricas y de recuperación; ya no forman parte
-del procedimiento normal de despliegue.
-
-## Desarrollo local
+Run the isolated dump-and-restore verification without modifying the production database:
 
 ```bash
-pip install -e ".[dev,ssh,images]"
-export DATABASE_URL_FILE=/ruta/segura/database_url.txt
-python -m photos_sync
+docker compose cp scripts/test_backup_restore.sh db:/tmp/test_backup_restore.sh
+docker compose exec -T db sh /tmp/test_backup_restore.sh
 ```
 
-## Tests
+Operational procedures are documented in [Operations](docs/operations.md).
+
+## Development and quality gates
 
 ```bash
-python -m pytest tests -q
+python -m pip install -e ".[dev,ssh,images]"
+python -m ruff check .
+python -m mypy photos_sync
+python scripts/check_english.py
+python -m pytest tests -q --cov=photos_sync --cov-branch --cov-report=term-missing --cov-report=html --cov-report=xml --cov-fail-under=80
 ```
 
-La cobertura incluye ramas y tiene una barrera mínima del 80 %. El comando
-genera un informe navegable en `reports/coverage/index.html` y otro en XML:
-
-```bash
-python -m pytest tests -q --cov=photos_sync --cov-branch \
-  --cov-report=term-missing --cov-report=html --cov-report=xml \
-  --cov-fail-under=80
-```
-
-La suite de contratos Cucumber ejecuta todos los endpoints HTTP y WebSocket
-contra una API y una base SQLite temporales. Maven no necesita estar instalado:
+Coverage HTML is written to `reports/coverage/index.html`. Run the endpoint contract suite with:
 
 ```bash
 cd serenity
@@ -219,95 +136,22 @@ cd serenity
 mvnw.cmd verify     # Windows
 ```
 
-El reporte queda en `serenity/target/site/serenity/index.html`. Cada escenario
-muestra la request y la response reales (URL, método, cuerpo, estado y tipo de
-contenido); contraseñas y cookies se enmascaran. Una prueba de catálogo compara
-el feature con los decoradores de FastAPI, por lo que CI falla si se añade una
-ruta sin su escenario Serenity. Los dos reportes se publican también como
-artefactos de GitHub Actions durante 14 días.
+Its report is generated at `serenity/target/site/serenity/index.html`. Every API and WebSocket route must have a scenario; request and response data is included with passwords, cookies, and authorization data redacted.
 
-## Usuarios y login
+Project documentation, new comments, user-facing messages, issues, and pull requests must be written in English. Historical Spanish API paths, field names, and role values remain stable for backward compatibility.
 
-Al abrir la app por primera vez, aparece una pantalla para **crear el
-administrador**. Solo puede existir un administrador (garantizado por la
-base de datos).
+## Deployment and documentation
 
-- El **administrador** puede: configurar carpetas/SSH/WebDAV, ejecutar el
-  pipeline y registrar/borrar usuarios.
-- Los **usuarios normales** solo pueden ver la galería, álbumes y ciudades
-  (biblioteca compartida — todos ven las mismas fotos).
+- [Architecture](docs/architecture.md)
+- [Operations and backups](docs/operations.md)
+- [WebDAV tuning and recovery](docs/webdav.md)
+- [HTTPS with Caddy](docs/https.md)
+- [Contribution guide](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Roadmap](BACKLOG.md)
 
-El admin registra nuevos usuarios desde la pestaña **Users**.
+Do not expose port `8765` directly to the public Internet. Use the documented Caddy deployment or a private VPN.
 
-Cada usuario puede cambiar su propia contraseña desde el menú de su avatar
-(arriba a la derecha) → Change password.
+## License
 
-Los secretos de sesión, PostgreSQL, Grafana y pgAdmin se generan localmente:
-
-```bash
-python scripts/generate_secrets.py
-```
-
-El directorio `secrets/` está excluido de Git y del contexto de build. Si
-cambia `app_secret_key.txt`, todas las sesiones de la aplicación se cierran.
-
-## Backups automáticos
-
-El servicio `backup` del compose ejecuta `pg_dump` cada 24 horas y guarda
-los dumps comprimidos en `./backups/` (o en `BACKUP_DIR` si lo cambias en `.env`).
-Se conservan los últimos `BACKUP_KEEP_DAYS` días (por defecto 7); los más
-antiguos se borran automáticamente.
-
-Ficheros generados: `photos_sync_YYYYMMDD_HHMMSS.sql.gz`
-
-### Forzar un backup ahora
-
-```bash
-docker compose exec backup sh -c "
-  pg_dump --no-password | gzip > /backups/manual_$(date +%Y%m%d_%H%M%S).sql.gz
-"
-```
-
-### Restaurar un backup
-
-```bash
-# 1. Elige el fichero a restaurar
-ls backups/
-
-# 2. Restaura (para y borra los datos actuales)
-docker compose stop app
-docker compose exec -T db psql -U photos -c "DROP DATABASE photos_sync; CREATE DATABASE photos_sync;"
-gunzip -c backups/photos_sync_20240101_030000.sql.gz | docker compose exec -T db psql -U photos photos_sync
-docker compose start app
-```
-
-### Probar automáticamente una restauración
-
-La prueba crea una base aislada con prefijo `photos_sync_restore_test_`, genera
-un dump comprimido igual que el backup real, elimina esa base temporal, la
-restaura y verifica un registro testigo. Nunca modifica `photos_sync`:
-
-```bash
-docker compose cp scripts/test_backup_restore.sh db:/tmp/test_backup_restore.sh
-docker compose exec -T db sh /tmp/test_backup_restore.sh
-```
-
-El script elimina la base temporal incluso si el dump o la restauración fallan.
-
-### Ver logs del backup
-
-```bash
-docker compose logs backup --tail=20
-```
-
-## Papelera (Trash)
-
-Las fotos borradas no se eliminan de inmediato: se mueven a la papelera,
-desde donde puedes **restaurarlas** a su ubicación original o **borrarlas
-definitivamente**.
-
-- Pestaña **Trash** en el menú lateral (con contador).
-- Selecciona fotos → **Restore** (vuelven a su carpeta) o **Delete forever**.
-- **Empty trash** vacía toda la papelera de golpe.
-- Purga automática: el admin puede llamar a `POST /api/trash/purge-old?days=30`
-  para borrar definitivamente lo que lleve más de 30 días en la papelera.
+Photos Sync is available under the [MIT License](LICENSE).
