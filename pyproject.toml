@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "photos-sync"
-version = "0.1.0"
+version = "1.0.0"
 description = "Self-hosted WebDAV and SSH photo ingestion, organization, and gallery"
 readme = "README.md"
 requires-python = ">=3.11"
