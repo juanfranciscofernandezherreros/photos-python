@@ -27,6 +27,8 @@ Feature: Complete Photos Sync API contract
       | GET       | /api/days                         |
       | GET       | /api/days/{date}/photos           |
       | GET       | /api/photos                       |
+      | GET       | /api/exif                         |
+      | GET       | /api/exif/{capture_id}            |
       | GET       | /api/photo                        |
       | GET       | /api/thumb                        |
       | GET       | /api/photos/download-zip          |

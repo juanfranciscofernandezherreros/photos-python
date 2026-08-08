@@ -9,6 +9,7 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 - Resumable WebDAV transfers with stable partial files and HTTP Range requests.
 - Native WebDAV throughput, queue, worker, resume, and failure metrics for Grafana.
 - An option to exclude MP4 videos from WebDAV synchronization.
+- Versioned per-photo EXIF storage, searchable APIs, and a dedicated metadata tab.
 - Professional GitHub community health files and English documentation policy.
 
 ### Changed

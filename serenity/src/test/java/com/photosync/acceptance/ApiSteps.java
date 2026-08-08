@@ -152,7 +152,8 @@ public class ApiSteps {
     private static String materialize(String route) {
         String value = route.replace("{user_id}", "missing-user").replace("{album_id}", "missing-album")
             .replace("{date}", "2024-01-01").replace("{letra}", "Z%3A")
-            .replace("{alias}", "missing-ssh").replace("{username}", "nobody");
+            .replace("{alias}", "missing-ssh").replace("{username}", "nobody")
+            .replace("{capture_id}", "missing-capture");
         if (route.equals("/api/photo") || route.equals("/api/thumb")) value += "?path=" + sandbox.resolve("missing.jpg").toUri();
         return value;
     }

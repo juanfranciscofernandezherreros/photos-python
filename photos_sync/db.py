@@ -15,6 +15,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     Float,
+    ForeignKey,
     Index,
     Integer,
     MetaData,
@@ -120,6 +121,47 @@ t_captures = Table(
     Column("is_favourite",     Boolean, nullable=False, default=False),
 )
 
+# One normalized EXIF record per capture. Frequently displayed fields have
+# dedicated columns; raw_json retains the remaining camera metadata without
+# forcing the UI to understand vendor-specific tags.
+t_photo_exif = Table(
+    "photo_exif", metadata,
+    Column(
+        "capture_id",
+        Text,
+        ForeignKey("captures.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column("file_path", Text, nullable=False),
+    Column("file_mtime", Float, nullable=False, default=0.0),
+    Column("extracted_at", DateTime, nullable=False),
+    Column("has_exif", Boolean, nullable=False, default=False),
+    Column("width", Integer),
+    Column("height", Integer),
+    Column("camera_make", Text),
+    Column("camera_model", Text),
+    Column("lens_model", Text),
+    Column("software", Text),
+    Column("artist", Text),
+    Column("copyright", Text),
+    Column("date_time_original", Text),
+    Column("offset_time_original", Text),
+    Column("orientation", Integer),
+    Column("exposure_time", Text),
+    Column("f_number", Float),
+    Column("iso_speed", Integer),
+    Column("focal_length_mm", Float),
+    Column("flash", Text),
+    Column("white_balance", Text),
+    Column("metering_mode", Text),
+    Column("exposure_program", Text),
+    Column("gps_lat", Float),
+    Column("gps_lon", Float),
+    Column("gps_altitude_m", Float),
+    Column("raw_json", Text, nullable=False, default="{}"),
+    Column("error", Text),
+)
+
 # Day summaries
 t_summaries = Table(
     "day_summaries", metadata,
@@ -195,6 +237,8 @@ Index(
 )
 Index("ix_album_photos_photo_path", t_album_photos.c.photo_path)
 Index("ix_trash_deleted_at", t_trash.c.deleted_at)
+Index("ix_photo_exif_extracted_at", t_photo_exif.c.extracted_at.desc())
+Index("ix_photo_exif_camera", t_photo_exif.c.camera_make, t_photo_exif.c.camera_model)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

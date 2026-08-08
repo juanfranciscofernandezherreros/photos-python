@@ -22,7 +22,7 @@ PasoPipeline = tuple[str, Callable[[], None]]
 PASOS: list[PasoPipeline] = [
     ("Sync & save captures", sync_captures),
     ("Organize by date", organize_captures_by_date),
-    ("Classify photos", classify_captures),
+    ("Classify photos & extract EXIF", classify_captures),
     ("Compress by day", compress_folders_by_day),
     ("Generate summary", generate_daily_summary),
     ("Upload to SSH", upload_organized_to_ssh),

@@ -24,10 +24,13 @@ Tags assigned (non-exclusive):
 """
 from __future__ import annotations
 
+import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from .. import repository as repo
+from ..exif import exif_datetime_to_iso, extract_photo_exif
 from ..models import Capture
 
 # EXIF support (optional — gracefully degraded if Pillow is missing)
@@ -140,7 +143,7 @@ def _dimensions(path: Path) -> tuple[int, int] | None:
 
 # ── Core tagger ───────────────────────────────────────────────────────────────
 
-def classify_one(cap: Capture) -> list[str]:
+def classify_one(cap: Capture, photo_exif: dict | None = None) -> list[str]:
     """Apply all rules to one Capture. Returns a sorted, deduplicated tag list.
 
     This is the public, testable function. classify_captures() calls it for
@@ -177,22 +180,37 @@ def classify_one(cap: Capture) -> list[str]:
         local = Path(cap.source_path.replace("\\", "/"))
 
     if local and local.exists():
-        exif = _exif_tags(local)
+        exif = photo_exif.get("raw", {}) if photo_exif is not None else _exif_tags(local)
 
-        if not exif:
+        has_exif = bool(photo_exif.get("has_exif")) if photo_exif is not None else bool(exif)
+        if not has_exif:
             tags.add("no_exif")
-        if "GPSInfo" in exif:
+        if photo_exif is not None and photo_exif.get("gps_lat") is not None:
+            tags.add("has_gps")
+            cap.gps_lat = photo_exif["gps_lat"]
+            cap.gps_lon = photo_exif["gps_lon"]
+        elif "GPSInfo" in exif:
             tags.add("has_gps")
             gps = _extract_gps(exif)
             if gps:
                 cap.gps_lat, cap.gps_lon = gps
-        if exif.get("Make") or exif.get("Model"):
+        if (
+            (photo_exif is not None and (
+                photo_exif.get("camera_make") or photo_exif.get("camera_model")
+            ))
+            or exif.get("Make")
+            or exif.get("Model")
+        ):
             tags.add("camera")
 
-        dims = _dimensions(local)
+        dims = (
+            (photo_exif.get("width"), photo_exif.get("height"))
+            if photo_exif is not None
+            else _dimensions(local)
+        )
         if dims:
             w, h = dims
-            if w > 0 and h > 0:
+            if w is not None and h is not None and w > 0 and h > 0:
                 ratio = w / h
                 if ratio >= 2.0:
                     tags.add("panorama")
@@ -235,13 +253,56 @@ def classify_captures() -> None:
 
     captures = [Capture.from_dict(d) for d in raw]
     tag_counts: dict[str, int] = {}
+    cached_exif = repo.load_photo_exif_cache()
+    metadata_by_capture: dict[str, dict] = {}
+    extraction_jobs: list[tuple[Capture, Path]] = []
 
     for cap in captures:
-        cap.tags = classify_one(cap)
+        if cap.dest_path:
+            local_path = Path(cap.dest_path)
+        elif cap.source_path.startswith("ssh://"):
+            local_path = Path(cap.source_path.removeprefix("ssh://"))
+        else:
+            local_path = Path(cap.source_path.replace("\\", "/"))
+        cached = cached_exif.get(cap.id)
+        try:
+            unchanged = bool(
+                cached
+                and not cached.get("error")
+                and cached.get("file_path") == str(local_path)
+                and float(cached.get("file_mtime") or 0) == local_path.stat().st_mtime
+            )
+        except OSError:
+            unchanged = False
+        if unchanged and cached is not None:
+            metadata_by_capture[cap.id] = cached
+        else:
+            extraction_jobs.append((cap, local_path))
+
+    workers = max(1, min(int(os.getenv("EXIF_EXTRACTION_WORKERS", "8")), 16))
+    extracted_records: list[dict] = []
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="exif") as pool:
+        results = pool.map(
+            extract_photo_exif,
+            (local_path for _cap, local_path in extraction_jobs),
+        )
+        for (cap, _local_path), photo_exif in zip(extraction_jobs, results, strict=True):
+            photo_exif["capture_id"] = cap.id
+            metadata_by_capture[cap.id] = photo_exif
+            extracted_records.append(photo_exif)
+
+    for cap in captures:
+        photo_exif = metadata_by_capture[cap.id]
+        photo_exif["capture_id"] = cap.id
+        cap.tags = classify_one(cap, photo_exif)
+        exif_date = exif_datetime_to_iso(photo_exif.get("date_time_original"))
+        if not cap.capture_date and exif_date:
+            cap.capture_date = exif_date
         for t in cap.tags:
             tag_counts[t] = tag_counts.get(t, 0) + 1
 
     repo.upsert_captures([c.to_dict() for c in captures])
+    repo.upsert_photo_exif(extracted_records)
 
     print("-" * 55)
     print("CLASSIFICATION SUMMARY:")
@@ -250,6 +311,19 @@ def classify_captures() -> None:
         print(f"  {tag:<20} {bar} {count}")
     print(f"\n✅ Tagged {len(captures)} captures — "
           f"{len(tag_counts)} distinct tag(s).")
+    exif_records = list(metadata_by_capture.values())
+    with_exif = sum(1 for record in exif_records if record["has_exif"])
+    errors = sum(1 for record in exif_records if record["error"])
+    print(
+        f"EXIF stored for {len(exif_records)} photos: "
+        f"{with_exif} with metadata, {len(exif_records) - with_exif - errors} "
+        f"without metadata, {errors} errors."
+    )
+    print(
+        f"Incremental EXIF scan: {len(extracted_records)} read from disk, "
+        f"{len(exif_records) - len(extracted_records)} unchanged records reused, "
+        f"{workers} workers."
+    )
 
 
 if __name__ == "__main__":

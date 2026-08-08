@@ -1,0 +1,184 @@
+<div id="photo-dashboard-concept">
+  <style>
+    #photo-dashboard-concept {
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      color: light-dark(#17201c, #edf5f0);
+      background: light-dark(#f3f5f2, #111714);
+      border: 1px solid light-dark(#dfe5e0, #2d3932);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+    #photo-dashboard-concept * { box-sizing: border-box; }
+    #photo-dashboard-concept .photo-app-shell { display: grid; grid-template-columns: 190px minmax(0, 1fr); min-height: 660px; }
+    #photo-dashboard-concept .photo-sidebar {
+      background: light-dark(#e7ece7, #18211c);
+      border-right: 1px solid light-dark(#d5ddd6, #2d3932);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+    #photo-dashboard-concept .photo-brand { display: flex; align-items: center; gap: 10px; font-weight: 500; padding: 0 10px; }
+    #photo-dashboard-concept .photo-brand-mark {
+      display: grid; place-items: center; width: 32px; height: 32px;
+      border-radius: 10px; background: light-dark(#245c43, #9dd7b8); color: light-dark(#f8fcf9, #122018);
+    }
+    #photo-dashboard-concept .photo-nav { display: grid; gap: 5px; }
+    #photo-dashboard-concept .photo-nav button {
+      appearance: none; border: 0; background: transparent; color: inherit;
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      border-radius: 10px; text-align: left; cursor: pointer; font: inherit;
+    }
+    #photo-dashboard-concept .photo-nav button:hover { background: light-dark(#dce4dd, #222e27); }
+    #photo-dashboard-concept .photo-nav button[aria-current="page"] {
+      background: light-dark(#245c43, #9dd7b8); color: light-dark(#f8fcf9, #122018);
+    }
+    #photo-dashboard-concept .photo-nav svg, #photo-dashboard-concept .photo-header svg,
+    #photo-dashboard-concept .photo-button svg, #photo-dashboard-concept .photo-brand svg { width: 16px; height: 16px; }
+    #photo-dashboard-concept .photo-sidebar-footer { margin-top: auto; padding: 0 10px; color: light-dark(#68736c, #aab8af); }
+    #photo-dashboard-concept .photo-main { min-width: 0; padding: 24px 28px 30px; background: light-dark(#f8faf8, #111714); }
+    #photo-dashboard-concept .photo-header { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 26px; }
+    #photo-dashboard-concept .photo-header h1 { margin: 0 0 4px; font-weight: 500; }
+    #photo-dashboard-concept .photo-header p { margin: 0; color: light-dark(#68736c, #aab8af); }
+    #photo-dashboard-concept .photo-button {
+      appearance: none; border: 0; border-radius: 10px; padding: 10px 14px;
+      background: light-dark(#245c43, #9dd7b8); color: light-dark(#f8fcf9, #122018);
+      display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font: inherit; font-weight: 500;
+    }
+    #photo-dashboard-concept .photo-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px; }
+    #photo-dashboard-concept .photo-kpi {
+      background: light-dark(#ffffff, #1b241f); border: 1px solid light-dark(#e0e6e1, #2c3831);
+      border-radius: 14px; padding: 17px;
+    }
+    #photo-dashboard-concept .photo-kpi-label { color: light-dark(#68736c, #aab8af); margin-bottom: 9px; }
+    #photo-dashboard-concept .photo-kpi-row { display: flex; align-items: end; justify-content: space-between; gap: 10px; }
+    #photo-dashboard-concept .photo-kpi-value { font-size: 1.65em; font-weight: 500; letter-spacing: -0.03em; }
+    #photo-dashboard-concept .photo-delta { color: light-dark(#276848, #9dd7b8); white-space: nowrap; }
+    #photo-dashboard-concept .photo-content-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(230px, .75fr); gap: 18px; }
+    #photo-dashboard-concept .photo-section {
+      background: light-dark(#ffffff, #1b241f); border: 1px solid light-dark(#e0e6e1, #2c3831);
+      border-radius: 14px; padding: 18px;
+    }
+    #photo-dashboard-concept .photo-section-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 17px; }
+    #photo-dashboard-concept .photo-section h2 { margin: 0; font-weight: 500; }
+    #photo-dashboard-concept .photo-periods { display: flex; padding: 3px; border-radius: 9px; background: light-dark(#eef2ee, #263129); }
+    #photo-dashboard-concept .photo-periods button {
+      appearance: none; border: 0; border-radius: 7px; padding: 6px 9px; background: transparent; color: inherit; font: inherit; cursor: pointer;
+    }
+    #photo-dashboard-concept .photo-periods button[aria-pressed="true"] { background: light-dark(#ffffff, #39463e); box-shadow: 0 1px 3px light-dark(#d5ddd6, #101411); }
+    #photo-dashboard-concept .photo-chart { height: 190px; display: flex; align-items: end; gap: 12px; border-bottom: 1px solid light-dark(#dfe5e0, #344039); padding: 10px 4px 0; }
+    #photo-dashboard-concept .photo-bar-wrap { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: end; align-items: center; gap: 8px; color: light-dark(#68736c, #aab8af); }
+    #photo-dashboard-concept .photo-bar { width: min(28px, 70%); border-radius: 7px 7px 2px 2px; background: light-dark(#82b99b, #78be98); transition: height .28s ease; }
+    #photo-dashboard-concept .photo-storage { margin-top: 20px; }
+    #photo-dashboard-concept .photo-storage-row { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 9px; }
+    #photo-dashboard-concept .photo-progress { height: 8px; background: light-dark(#e4e9e5, #303c35); border-radius: 99px; overflow: hidden; }
+    #photo-dashboard-concept .photo-progress span { display: block; width: 68%; height: 100%; background: light-dark(#245c43, #9dd7b8); border-radius: inherit; }
+    #photo-dashboard-concept .photo-activity { display: grid; gap: 18px; }
+    #photo-dashboard-concept .photo-activity-item { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 11px; align-items: start; }
+    #photo-dashboard-concept .photo-thumb { width: 38px; height: 38px; border-radius: 9px; display: grid; place-items: center; color: light-dark(#315845, #d6eadf); background: light-dark(#dce9e1, #294035); }
+    #photo-dashboard-concept .photo-activity-item p { margin: 0; }
+    #photo-dashboard-concept .photo-meta { color: light-dark(#68736c, #aab8af); margin-top: 3px !important; }
+    #photo-dashboard-concept .photo-view-all { margin-top: 20px; color: light-dark(#245c43, #9dd7b8); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+    #photo-dashboard-concept .photo-view-all svg { width: 16px; height: 16px; }
+    @media (max-width: 640px) {
+      #photo-dashboard-concept .photo-app-shell { grid-template-columns: 1fr; }
+      #photo-dashboard-concept .photo-sidebar { border-right: 0; border-bottom: 1px solid light-dark(#d5ddd6, #2d3932); padding: 14px; gap: 14px; }
+      #photo-dashboard-concept .photo-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      #photo-dashboard-concept .photo-nav button { justify-content: center; padding: 9px 6px; }
+      #photo-dashboard-concept .photo-nav button span { display: none; }
+      #photo-dashboard-concept .photo-sidebar-footer { display: none; }
+      #photo-dashboard-concept .photo-main { padding: 20px 16px 24px; }
+      #photo-dashboard-concept .photo-kpis, #photo-dashboard-concept .photo-content-grid { grid-template-columns: 1fr; }
+      #photo-dashboard-concept .photo-header { align-items: flex-start; }
+      #photo-dashboard-concept .photo-button span { display: none; }
+    }
+  </style>
+  <div class="photo-app-shell">
+    <aside class="photo-sidebar" aria-label="Primary navigation">
+      <div class="photo-brand"><span class="photo-brand-mark"><i data-lucide="aperture" aria-hidden="true"></i></span><span>PhotoSync</span></div>
+      <nav class="photo-nav">
+        <button type="button" aria-current="page"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Overview</span></button>
+        <button type="button"><i data-lucide="image" aria-hidden="true"></i><span>Photos</span></button>
+        <button type="button"><i data-lucide="folder" aria-hidden="true"></i><span>Albums</span></button>
+        <button type="button"><i data-lucide="heart" aria-hidden="true"></i><span>Favourites</span></button>
+      </nav>
+      <div class="photo-sidebar-footer">Last sync: 4 minutes ago</div>
+    </aside>
+
+    <main class="photo-main">
+      <header class="photo-header">
+        <div><h1>Good morning, Alex</h1><p>Your photo library is up to date.</p></div>
+        <button type="button" class="photo-button"><i data-lucide="upload" aria-hidden="true"></i><span>Upload photos</span></button>
+      </header>
+
+      <section class="photo-kpis" aria-label="Library summary">
+        <div class="photo-kpi"><div class="photo-kpi-label">Total photos</div><div class="photo-kpi-row"><span class="photo-kpi-value">12,486</span><span class="photo-delta">+248</span></div></div>
+        <div class="photo-kpi"><div class="photo-kpi-label">Albums</div><div class="photo-kpi-row"><span class="photo-kpi-value">36</span><span class="photo-delta">+3</span></div></div>
+        <div class="photo-kpi"><div class="photo-kpi-label">Storage used</div><div class="photo-kpi-row"><span class="photo-kpi-value">68%</span><span>34 GB</span></div></div>
+      </section>
+
+      <div class="photo-content-grid">
+        <section class="photo-section">
+          <div class="photo-section-head">
+            <h2>Uploads</h2>
+            <div class="photo-periods" aria-label="Chart period">
+              <button type="button" data-period="week" aria-pressed="true">Week</button>
+              <button type="button" data-period="month" aria-pressed="false">Month</button>
+            </div>
+          </div>
+          <div class="photo-chart" role="img" aria-label="Photos uploaded each day this week">
+            <div class="photo-bar-wrap"><div class="photo-bar" style="height:42%"></div><span>Mon</span></div>
+            <div class="photo-bar-wrap"><div class="photo-bar" style="height:67%"></div><span>Tue</span></div>
+            <div class="photo-bar-wrap"><div class="photo-bar" style="height:51%"></div><span>Wed</span></div>
+            <div class="photo-bar-wrap"><div class="photo-bar" style="height:82%"></div><span>Thu</span></div>
+            <div class="photo-bar-wrap"><div class="photo-bar" style="height:63%"></div><span>Fri</span></div>
+            <div class="photo-bar-wrap"><div class="photo-bar" style="height:91%"></div><span>Sat</span></div>
+            <div class="photo-bar-wrap"><div class="photo-bar" style="height:72%"></div><span>Sun</span></div>
+          </div>
+          <div class="photo-storage">
+            <div class="photo-storage-row"><span>Storage</span><span>34 GB of 50 GB</span></div>
+            <div class="photo-progress" aria-label="68% of storage used"><span></span></div>
+          </div>
+        </section>
+
+        <section class="photo-section">
+          <div class="photo-section-head"><h2>Recent activity</h2></div>
+          <div class="photo-activity">
+            <div class="photo-activity-item"><div class="photo-thumb"><i data-lucide="images" aria-hidden="true"></i></div><div><p>48 photos added</p><p class="photo-meta">Summer in Lisbon · 12 min</p></div></div>
+            <div class="photo-activity-item"><div class="photo-thumb"><i data-lucide="folder-plus" aria-hidden="true"></i></div><div><p>Album created</p><p class="photo-meta">Family weekends · 2 hr</p></div></div>
+            <div class="photo-activity-item"><div class="photo-thumb"><i data-lucide="cloud-check" aria-hidden="true"></i></div><div><p>Backup completed</p><p class="photo-meta">2,104 items · Yesterday</p></div></div>
+            <div class="photo-activity-item"><div class="photo-thumb"><i data-lucide="star" aria-hidden="true"></i></div><div><p>12 favourites added</p><p class="photo-meta">From Recent uploads · Mon</p></div></div>
+          </div>
+          <a href="#" class="photo-view-all">View all activity <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script>
+    (() => {
+      const root = document.getElementById('photo-dashboard-concept');
+      const chart = root.querySelector('.photo-chart');
+      const bars = [...root.querySelectorAll('.photo-bar')];
+      const labels = [...root.querySelectorAll('.photo-bar-wrap span')];
+      const datasets = {
+        week: { values: [42, 67, 51, 82, 63, 91, 72], labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], aria: 'Photos uploaded each day this week' },
+        month: { values: [58, 79, 47, 86, 66, 74, 93], labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'Avg', 'Peak'], aria: 'Photos uploaded by week this month' }
+      };
+      root.querySelectorAll('[data-period]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const next = datasets[button.dataset.period];
+          root.querySelectorAll('[data-period]').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+          bars.forEach((bar, index) => { bar.style.height = next.values[index] + '%'; });
+          labels.forEach((label, index) => { label.textContent = next.labels[index]; });
+          chart.setAttribute('aria-label', next.aria);
+        });
+      });
+      root.querySelectorAll('.photo-nav button').forEach((button) => {
+        button.addEventListener('click', () => {
+          root.querySelectorAll('.photo-nav button').forEach((item) => item.removeAttribute('aria-current'));
+          button.setAttribute('aria-current', 'page');
+        });
+      });
+    })();
+  </script>
+</div>

@@ -63,7 +63,7 @@ from .storage.folders import (
 PASOS: list[tuple[str, Any]] = [
     ("Sync & save captures", download.sync_captures),
     ("Organize by date",    organize.organize_captures_by_date),
-    ("Classify photos",     classify.classify_captures),
+    ("Classify photos & extract EXIF", classify.classify_captures),
     ("Compress by day",     compress.compress_folders_by_day),
     ("Generate summary",    summary.generate_daily_summary),
     ("Upload to SSH",       upload_ssh.upload_organized_to_ssh),
@@ -798,6 +798,7 @@ _ENDPOINT_MODULES = (
     "get_days",
     "get_day_photos",
     "get_photos",
+    "get_exif",
     "serve_photo",
     "serve_thumbnail",
     "get_favourites",

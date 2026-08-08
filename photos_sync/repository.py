@@ -59,6 +59,7 @@ Public surface (grouped by entity):
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -74,6 +75,7 @@ from .db import (
     t_captures,
     t_destination,
     t_folders,
+    t_photo_exif,
     t_ssh,
     t_summaries,
     t_trash,
@@ -307,6 +309,222 @@ def load_captures() -> list[dict]:
     with get_engine().connect() as conn:
         rows = conn.execute(select(t_captures)).mappings().all()
     return [_row_to_capture_dict(r) for r in rows]
+
+
+def upsert_photo_exif(records: list[dict]) -> None:
+    """Persist normalized EXIF results with one row per capture."""
+    if not records:
+        return
+    allowed = {column.name for column in t_photo_exif.c}
+    normalized: list[dict] = []
+    for record in records:
+        item = {key: value for key, value in record.items() if key in allowed}
+        item["raw_json"] = json.dumps(
+            record.get("raw", {}),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        normalized.append(item)
+
+    with _conn() as conn:
+        dialect = conn.dialect.name
+        for start in range(0, len(normalized), 250):
+            chunk = normalized[start:start + 250]
+            statement: Any
+            if dialect == "postgresql":
+                from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+
+                statement = postgresql_insert(t_photo_exif).values(chunk)
+            elif dialect == "sqlite":
+                from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+                statement = sqlite_insert(t_photo_exif).values(chunk)
+            else:
+                ids = [item["capture_id"] for item in chunk]
+                conn.execute(delete(t_photo_exif).where(t_photo_exif.c.capture_id.in_(ids)))
+                conn.execute(insert(t_photo_exif), chunk)
+                continue
+            excluded = statement.excluded
+            statement = statement.on_conflict_do_update(
+                index_elements=[t_photo_exif.c.capture_id],
+                set_={
+                    column.name: getattr(excluded, column.name)
+                    for column in t_photo_exif.c
+                    if column.name != "capture_id"
+                },
+            )
+            conn.execute(statement)
+
+
+def _exif_row_to_dict(row, *, include_raw: bool = False) -> dict:
+    item = {
+        "capture_id": row["capture_id"],
+        "filename": row["filename"],
+        "file_path": row["effective_path"],
+        "capture_date": _datetime_text(row["capture_date"]),
+        "extracted_at": _datetime_text(row["extracted_at"]),
+        "has_exif": bool(row["has_exif"]) if row["exif_capture_id"] else None,
+        "width": row["width"],
+        "height": row["height"],
+        "camera_make": row["camera_make"],
+        "camera_model": row["camera_model"],
+        "lens_model": row["lens_model"],
+        "software": row["software"],
+        "artist": row["artist"],
+        "copyright": row["copyright"],
+        "date_time_original": row["date_time_original"],
+        "offset_time_original": row["offset_time_original"],
+        "orientation": row["orientation"],
+        "exposure_time": row["exposure_time"],
+        "f_number": row["f_number"],
+        "iso_speed": row["iso_speed"],
+        "focal_length_mm": row["focal_length_mm"],
+        "flash": row["flash"],
+        "white_balance": row["white_balance"],
+        "metering_mode": row["metering_mode"],
+        "exposure_program": row["exposure_program"],
+        "gps_lat": row["exif_gps_lat"],
+        "gps_lon": row["exif_gps_lon"],
+        "gps_altitude_m": row["gps_altitude_m"],
+        "error": row["error"],
+    }
+    if include_raw:
+        try:
+            item["raw"] = json.loads(row["raw_json"] or "{}")
+        except (TypeError, ValueError):
+            item["raw"] = {}
+    return item
+
+
+def _photo_exif_select():
+    effective_path = func.coalesce(
+        func.nullif(t_captures.c.dest_path, ""),
+        t_captures.c.source_path,
+    ).label("effective_path")
+    return select(
+        t_captures.c.id.label("capture_id"),
+        t_captures.c.filename,
+        t_captures.c.capture_date,
+        t_captures.c.capture_day,
+        effective_path,
+        t_photo_exif.c.capture_id.label("exif_capture_id"),
+        t_photo_exif.c.extracted_at,
+        t_photo_exif.c.has_exif,
+        t_photo_exif.c.width,
+        t_photo_exif.c.height,
+        t_photo_exif.c.camera_make,
+        t_photo_exif.c.camera_model,
+        t_photo_exif.c.lens_model,
+        t_photo_exif.c.software,
+        t_photo_exif.c.artist,
+        t_photo_exif.c.copyright,
+        t_photo_exif.c.date_time_original,
+        t_photo_exif.c.offset_time_original,
+        t_photo_exif.c.orientation,
+        t_photo_exif.c.exposure_time,
+        t_photo_exif.c.f_number,
+        t_photo_exif.c.iso_speed,
+        t_photo_exif.c.focal_length_mm,
+        t_photo_exif.c.flash,
+        t_photo_exif.c.white_balance,
+        t_photo_exif.c.metering_mode,
+        t_photo_exif.c.exposure_program,
+        t_photo_exif.c.gps_lat.label("exif_gps_lat"),
+        t_photo_exif.c.gps_lon.label("exif_gps_lon"),
+        t_photo_exif.c.gps_altitude_m,
+        t_photo_exif.c.raw_json,
+        t_photo_exif.c.error,
+    ).select_from(
+        t_captures.outerjoin(t_photo_exif, t_photo_exif.c.capture_id == t_captures.c.id)
+    )
+
+
+def load_photo_exif_page(
+    offset: int,
+    limit: int,
+    query: str = "",
+    status: str = "all",
+) -> tuple[list[dict], int, dict]:
+    """Return a searchable page plus extraction coverage statistics."""
+    statement = _photo_exif_select()
+    conditions: list[Any] = []
+    if query.strip():
+        pattern = f"%{query.strip()}%"
+        conditions.append(
+            t_captures.c.filename.ilike(pattern)
+            | t_photo_exif.c.camera_make.ilike(pattern)
+            | t_photo_exif.c.camera_model.ilike(pattern)
+            | t_photo_exif.c.lens_model.ilike(pattern)
+        )
+    if status == "with_exif":
+        conditions.append(t_photo_exif.c.has_exif == True)  # noqa: E712
+    elif status == "without_exif":
+        conditions.extend([
+            t_photo_exif.c.capture_id.is_not(None),
+            t_photo_exif.c.has_exif == False,  # noqa: E712
+            t_photo_exif.c.error.is_(None),
+        ])
+    elif status == "errors":
+        conditions.append(t_photo_exif.c.error.is_not(None))
+    elif status == "pending":
+        conditions.append(t_photo_exif.c.capture_id.is_(None))
+    if conditions:
+        statement = statement.where(*conditions)
+
+    joined = t_captures.outerjoin(
+        t_photo_exif,
+        t_photo_exif.c.capture_id == t_captures.c.id,
+    )
+    count_statement = select(func.count()).select_from(joined)
+    if conditions:
+        count_statement = count_statement.where(*conditions)
+    with get_engine().connect() as conn:
+        total = int(conn.execute(count_statement).scalar_one())
+        rows = conn.execute(
+            statement.order_by(
+                t_captures.c.capture_day.desc(),
+                func.lower(t_captures.c.filename),
+            ).offset(offset).limit(limit)
+        ).mappings().all()
+        stats_row = conn.execute(select(
+            func.count(t_captures.c.id).label("total"),
+            func.count(t_photo_exif.c.capture_id).label("extracted"),
+            func.count(case((t_photo_exif.c.has_exif == True, 1))).label("with_exif"),  # noqa: E712
+            func.count(case((
+                (t_photo_exif.c.capture_id.is_not(None))
+                & (t_photo_exif.c.has_exif == False)  # noqa: E712
+                & (t_photo_exif.c.error.is_(None)),
+                1,
+            ))).label("without_exif"),
+            func.count(case((t_photo_exif.c.error.is_not(None), 1))).label("errors"),
+        ).select_from(joined)).mappings().one()
+    stats = {key: int(value or 0) for key, value in stats_row.items()}
+    stats["pending"] = stats["total"] - stats["extracted"]
+    return [_exif_row_to_dict(row) for row in rows], total, stats
+
+
+def get_photo_exif(capture_id: str) -> dict | None:
+    """Return the complete normalized and raw EXIF record for one capture."""
+    with get_engine().connect() as conn:
+        row = conn.execute(
+            _photo_exif_select().where(t_captures.c.id == capture_id)
+        ).mappings().first()
+    return _exif_row_to_dict(row, include_raw=True) if row else None
+
+
+def load_photo_exif_cache() -> dict[str, dict]:
+    """Return persisted extraction records keyed by capture id for reuse."""
+    with get_engine().connect() as conn:
+        rows = conn.execute(select(t_photo_exif)).mappings().all()
+    cached: dict[str, dict] = {}
+    for row in rows:
+        item = dict(row)
+        try:
+            item["raw"] = json.loads(item.pop("raw_json") or "{}")
+        except (TypeError, ValueError):
+            item["raw"] = {}
+        cached[item["capture_id"]] = item
+    return cached
 
 
 def load_captures_for_day(

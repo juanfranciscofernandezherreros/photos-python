@@ -5,8 +5,8 @@ Photos Sync is a self-hosted FastAPI application backed by PostgreSQL and a host
 ## Main components
 
 - **Web application:** authentication, gallery, configuration, WebDAV ingestion, pipeline control, and metrics.
-- **Storage layer:** SQLAlchemy repositories, Alembic migrations, indexed capture dates, and batched writes.
-- **Ingestion:** concurrent WebDAV and SSH discovery and transfer, followed by metadata extraction and organization.
+- **Storage layer:** SQLAlchemy repositories, Alembic migrations, indexed capture dates, normalized per-photo EXIF records, and batched writes.
+- **Ingestion:** concurrent WebDAV and SSH discovery and transfer, followed by EXIF extraction, classification, and organization.
 - **Observability:** structured application logs in Loki, Prometheus metrics, and provisioned Grafana dashboards and alerts.
 - **Recovery:** scheduled compressed database dumps and an isolated restore verification.
 

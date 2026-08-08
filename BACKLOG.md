@@ -41,6 +41,7 @@ Provide simple nightly synchronization with execution history without requiring 
 | Recovery | Daily backups and an isolated destructive dump/restore verification. |
 | Security | File-mounted secrets, bcrypt, lockout, rate limiting, and injection-safe command execution. |
 | WebDAV | Concurrent transfers, database batches, per-file progress, targeted retry, and HTTP Range resume. |
+| EXIF | Versioned per-photo metadata, normalized searchable fields, raw safe tags, API coverage, and a dedicated UI. |
 | SSH | Parallel discovery, retry, and transfer reconnection. |
 | Observability | Metrics, structured logs, Prometheus, Grafana, Loki, and actionable alert rules. |
 | Runtime | Non-root container with dropped Linux capabilities. |

@@ -11,6 +11,7 @@ Self-hosted photo ingestion and management for WebDAV and SSH sources. Photos Sy
 - Concurrent WebDAV downloads with per-file progress, retry, and HTTP Range resume.
 - SSH ingestion with parallel scanning, retries, and reconnection.
 - PostgreSQL 16, versioned Alembic migrations, indexed capture dates, and batched writes.
+- Per-photo EXIF indexing with normalized camera, exposure, lens, resolution, and GPS fields.
 - FastAPI dashboard with role-based access, rate limiting, and secure sessions.
 - Prometheus, Grafana, Loki, and provisioned operational alerts.
 - Automated backups plus an isolated restore test.
@@ -76,6 +77,23 @@ Downloads run concurrently and each active file is written to a stable `.webdav.
 | `WEBDAV_DB_BATCH_SIZE` | `250` | Number of completed files persisted per database batch. |
 
 Do not set worker counts blindly: phone storage, Wi-Fi, and the WebDAV server often become slower under excessive parallelism. See [WebDAV operations](docs/webdav.md) for tuning and recovery details.
+
+## EXIF metadata
+
+Run the `Classify photos & extract EXIF` pipeline step after ingestion. It stores
+one `photo_exif` row per capture, including records for images without EXIF or
+files that could not be read. The EXIF tab provides coverage statistics,
+search, status filters, normalized metadata, thumbnails, and a detail view for
+additional vendor tags.
+
+Normalized fields include camera make and model, lens, software, original
+timestamp and offset, orientation, dimensions, exposure time, aperture, ISO,
+focal length, flash, white balance, metering, exposure program, GPS coordinates,
+and altitude. Large binary maker notes are deliberately excluded to keep the
+database bounded. Unchanged files reuse their stored metadata on later runs;
+new and modified files are read concurrently using `EXIF_EXTRACTION_WORKERS`
+(eight by default, capped at 16). Access requires an authenticated Photos Sync
+session.
 
 ## Configuration
 

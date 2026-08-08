@@ -11,9 +11,9 @@ def test_fresh_database_upgrades_to_head(tmp_path):
     upgrade_database(engine)
 
     inspector = inspect(engine)
-    assert {"captures", "users", "trash", "alembic_version"} <= set(inspector.get_table_names())
+    assert {"captures", "users", "trash", "photo_exif", "alembic_version"} <= set(inspector.get_table_names())
     with engine.connect() as connection:
-        assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "0003_drop_city"
+        assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "0004_photo_exif"
 
 
 def test_existing_unversioned_database_is_adopted(tmp_path):
@@ -26,4 +26,4 @@ def test_existing_unversioned_database_is_adopted(tmp_path):
 
     assert "city" not in {column["name"] for column in inspect(engine).get_columns("captures")}
     with engine.connect() as connection:
-        assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "0003_drop_city"
+        assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "0004_photo_exif"

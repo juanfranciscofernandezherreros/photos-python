@@ -1,0 +1,23 @@
+2026-08-07 00:00:24 [INFO] ⏳ ['STARTING'] -> ok
+2026-08-07 00:00:24 [INFO] ✅ ['COMPLETED'] -> ok
+2026-08-07 00:00:24 [INFO] ⏳ ['STARTING'] -> bad
+2026-08-07 00:00:24 [ERROR] ❌ ['ERROR'] -> Failed to execute 'bad': boom
+2026-08-07 00:00:24 [INFO] =======================================================
+2026-08-07 00:00:24 [INFO] ⚙️ STARTING EXECUTION
+2026-08-07 00:00:24 [INFO] =======================================================
+2026-08-07 00:00:24 [INFO] ⏳ ['STARTING'] -> one
+2026-08-07 00:00:24 [INFO] ✅ ['COMPLETED'] -> one
+2026-08-07 00:00:24 [INFO] =======================================================
+2026-08-07 00:00:24 [INFO] 🎉 ALL SELECTED STEPS HAVE BEEN EXECUTED SUCCESSFULLY
+2026-08-07 00:00:24 [INFO] =======================================================
+2026-08-07 00:00:24 [INFO] =======================================================
+2026-08-07 00:00:24 [INFO] ⚙️ STARTING EXECUTION
+2026-08-07 00:00:24 [INFO] =======================================================
+2026-08-07 00:00:24 [INFO] ⏳ ['STARTING'] -> bad
+2026-08-07 00:00:24 [ERROR] ❌ ['ERROR'] -> Failed to execute 'bad': 
+2026-08-07 00:00:24 [ERROR] 🛑 Orchestration stopped due to a previous error.
+2026-08-07 00:00:24 [WARNING] ⚠️ Ignoring option '99': out of range.
+2026-08-07 00:00:24 [ERROR] ❌ --steps must be a comma-separated list of numbers, e.g., --steps 1,2,3
+2026-08-07 00:00:24 [WARNING] ⚠️ Ignoring option '99': out of range.
+2026-08-07 00:00:24 [ERROR] ❌ No valid steps to execute.
+2026-08-07 00:00:24 [ERROR] ❌ Port must be a number, e.g.: 22
