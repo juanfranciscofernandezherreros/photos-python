@@ -810,6 +810,7 @@ _ENDPOINT_MODULES = (
     "purge_old_trash",
     "fix_capture_dates",
     "download_zip",
+    "download_days_zip",
     "toggle_favourite",
     "get_tags",
     "get_albums",

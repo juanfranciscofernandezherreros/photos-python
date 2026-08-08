@@ -25,6 +25,7 @@ Feature: Complete Photos Sync API contract
       | GET       | /api/pipeline/estado              |
       | POST      | /api/pipeline/ejecutar            |
       | GET       | /api/days                         |
+      | GET       | /api/days/download-zip            |
       | GET       | /api/days/{date}/photos           |
       | GET       | /api/photos                       |
       | GET       | /api/exif                         |

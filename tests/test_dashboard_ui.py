@@ -11,7 +11,7 @@ def test_overview_is_the_default_library_section() -> None:
 
     assert 'data-s="overview" class="on"' in html
     assert 'onclick="tab(\'overview\',this)"' in html
-    assert '<b id="bc-section">Overview</b>' in html
+    assert '<b id="bc-section">Home</b>' in html
     assert 'data-s="gallery" class="on"' not in html
 
 
@@ -56,3 +56,40 @@ def test_dashboard_uses_the_sage_and_forest_palette() -> None:
     assert "--b2:       #347455" in html
     assert "--b3:       #7faa91" in html
     assert "--ink:      #18231d" in html
+
+
+def test_navigation_uses_plain_language_labels() -> None:
+    html = HTML_PATH.read_text(encoding="utf-8")
+
+    for label in (
+        "Home",
+        "All photos",
+        "Photo information",
+        "Organize &amp; backup",
+        "Add from phone",
+        "Settings",
+        "Recycle bin",
+    ):
+        assert label in html
+
+
+def test_settings_offer_task_based_guided_choices() -> None:
+    html = HTML_PATH.read_text(encoding="utf-8")
+
+    assert 'data-s="settings"' in html
+    assert "You do not need to configure everything" in html
+    assert "Phone import" in html
+    assert "Storage locations" in html
+    assert "Remote storage" in html
+    assert "People and access" in html
+    assert "Advanced connection options" in html
+    assert "Back to settings" in html
+
+
+def test_home_includes_a_three_step_getting_started_guide() -> None:
+    html = HTML_PATH.read_text(encoding="utf-8")
+
+    assert "Start here" in html
+    assert "Connect your phone" in html
+    assert "Copy your photos" in html
+    assert "Organize and protect" in html

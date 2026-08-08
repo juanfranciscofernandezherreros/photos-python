@@ -30,4 +30,4 @@ def test_webdav_screen_can_exclude_mp4_videos() -> None:
     assert 'id="wd-include-videos"' in html
     assert 'id="wd-include-videos" type="checkbox"' in html
     assert "include_videos:includeVideos" in html
-    assert "Download videos (.mp4)" in html
+    assert "Include videos" in html

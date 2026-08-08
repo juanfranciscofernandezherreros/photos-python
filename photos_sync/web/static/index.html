@@ -98,14 +98,14 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 
 .sb-label{
   padding:12px 16px 4px;
-  font-size:9px;font-weight:700;color:var(--ink5);
+  font-size:10px;font-weight:700;color:var(--ink4);
   text-transform:uppercase;letter-spacing:.12em;
 }
 
 .nb{
   display:flex;align-items:center;gap:9px;
   padding:7px 12px;margin:1px 6px;
-  border-radius:var(--r3);font-size:12.5px;font-weight:500;
+  border-radius:var(--r2);font-size:13.5px;font-weight:500;
   color:var(--ink3);cursor:pointer;border:none;background:none;
   width:calc(100% - 12px);text-align:left;transition:all .15s;
   position:relative;
@@ -168,6 +168,8 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 }
 .hdr-btn:hover{background:var(--bg3);color:var(--ink3);border-color:rgba(255,255,255,.1)}
 .hdr-btn svg{width:14px;height:14px}
+.mobile-nav-button{display:none}
+.mobile-nav-backdrop{display:none}
 .um-item{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;background:none;border:none;border-radius:var(--r3);color:var(--ink2);font-size:12px;font-weight:500;cursor:pointer;text-align:left;transition:.12s}
 .um-item:hover{background:var(--bg3)}
 .hdr-avatar{
@@ -185,8 +187,8 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 
 /* ── Page header ─────────────────────────────────────────── */
 .ph{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap}
-.ph-title{font-size:19px;font-weight:700;color:var(--ink);letter-spacing:-.02em;line-height:1}
-.ph-sub{font-size:11px;color:var(--ink4);margin-top:3px}
+.ph-title{font-size:24px;font-weight:700;color:var(--ink);letter-spacing:-.02em;line-height:1.1}
+.ph-sub{font-size:13px;color:var(--ink3);margin-top:5px;line-height:1.5}
 
 /* ── Stat cards ─────────────────────────────────────────── */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
@@ -195,7 +197,10 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
   border-radius:var(--r);padding:16px;
   display:flex;flex-direction:column;gap:12px;
   transition:.18s;cursor:pointer;position:relative;overflow:hidden;
+  font:inherit;text-align:left;color:inherit;
 }
+.sc:not([onclick]){cursor:default}
+.sc:focus-visible{outline:3px solid var(--b-glow);outline-offset:2px}
 .sc::after{
   content:'';position:absolute;inset:0;
   background:linear-gradient(135deg,rgba(36,92,67,.04),transparent);
@@ -292,10 +297,18 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 }
 .dcard-info{
   padding:10px 12px 12px;
-  display:flex;align-items:center;justify-content:space-between;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
 }
 .dcard-meta{font-size:11px;color:var(--ink4)}
 .dcard-meta b{color:var(--ink2);font-weight:600;display:block;margin-bottom:1px}
+.dcard-download{
+  flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;padding:6px 8px;
+  border-radius:7px;border:1px solid var(--brd);background:var(--bg3);color:var(--b2);
+  font:inherit;font-size:9.5px;font-weight:700;cursor:pointer;transition:.14s;
+}
+.dcard-download:hover{background:rgba(36,92,67,.1);border-color:rgba(36,92,67,.3)}
+.dcard-download:disabled{opacity:.55;cursor:wait}
+.dcard-download svg{width:12px;height:12px}
 .dcard-zip{
   display:inline-flex;align-items:center;gap:3px;
   background:rgba(36,92,67,.12);color:var(--b2);
@@ -339,28 +352,32 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 
 /* ── Day panel ──────────────────────────────────────────── */
 #gallery-panel{
-  position:fixed;top:0;right:0;bottom:0;width:460px;
-  background:var(--bg2);border-left:1px solid var(--brd);
-  box-shadow:-24px 0 64px rgba(0,0,0,.5);
+  position:fixed;top:0;right:0;bottom:0;left:var(--sb-w);width:auto;
+  background:var(--bg);
   z-index:200;display:none;flex-direction:column;
 }
-#gallery-panel.open{display:flex;animation:slideRight .22s cubic-bezier(.4,0,.2,1) both}
+#gallery-panel.open{display:flex;animation:fadeIn .18s ease both}
 .gph{
-  padding:12px 16px;border-bottom:1px solid var(--brd);
-  display:flex;align-items:center;gap:10px;flex-shrink:0;
+  min-height:72px;padding:14px 28px;border-bottom:1px solid var(--brd);
+  display:flex;align-items:center;gap:14px;flex-shrink:0;background:var(--surface);
 }
+.gph-copy{min-width:0;flex:1}
+.gph-title{font-size:18px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
+.gph-sub{font-size:11px;color:var(--ink4);margin-top:3px}
+.gph-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .gph-close{
-  width:26px;height:26px;border-radius:var(--r3);
-  border:1px solid var(--brd);background:none;cursor:pointer;
-  display:grid;place-items:center;margin-left:auto;
-  color:var(--ink4);transition:.14s;
+  min-height:32px;border-radius:var(--r3);padding:0 10px;
+  border:1px solid var(--brd);background:var(--bg);cursor:pointer;
+  display:flex;align-items:center;gap:6px;color:var(--ink3);font:inherit;font-size:11px;font-weight:600;transition:.14s;
 }
 .gph-close:hover{background:var(--bg3);color:var(--ink2)}
 .gph-close svg{width:13px;height:13px}
+.gp-day-download{display:none;align-items:center;gap:6px}
+#gallery-panel.day-view .gp-day-download{display:inline-flex}
 .gpf{
-  padding:8px 16px;border-bottom:1px solid var(--brd);
+  padding:11px 28px;border-bottom:1px solid var(--brd);
   display:flex;gap:4px;align-items:center;flex-shrink:0;
-  overflow-x:auto;scrollbar-width:none;background:var(--bg3);
+  overflow-x:auto;scrollbar-width:none;background:var(--surface);
 }
 .gpf::-webkit-scrollbar{display:none}
 .gpfb{
@@ -371,24 +388,35 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 .gpfb:hover{border-color:rgba(36,92,67,.35);color:var(--b2)}
 .gpfb.on{background:var(--b);color:#fff;border-color:var(--b)}
 .gp-grid{
-  flex:1;overflow-y:auto;padding:10px;
-  display:grid;grid-template-columns:repeat(3,1fr);gap:4px;
+  width:100%;max-width:1320px;box-sizing:border-box;margin:0 auto;
+  flex:1;overflow-y:auto;padding:20px 28px 40px;
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;
   align-content:start;
   scrollbar-width:thin;scrollbar-color:var(--bg4) transparent;
 }
 .gp-grid::-webkit-scrollbar{width:3px}
 .gp-grid::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
 .gp-photo{
-  border-radius:5px;overflow:hidden;aspect-ratio:1;
-  position:relative;cursor:pointer;background:var(--bg3);transition:.16s;
+  width:100%;min-width:0;border-radius:10px;overflow:hidden;aspect-ratio:4/3;
+  position:relative;cursor:pointer;background:#111;transition:.16s;
 }
-.gp-photo:hover{transform:scale(1.04);box-shadow:var(--sh-lg);z-index:2}
+.gp-photo::after{
+  content:'';position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:rgba(0,0,0,0);transition:background .16s ease;
+}
+.gp-photo:hover::after{background:rgba(0,0,0,.18)}
+.gp-photo:hover{box-shadow:0 0 0 2px rgba(36,92,67,.24)}
+.gp-photo:focus-within{box-shadow:0 0 0 3px var(--b-glow)}
 .gp-photo img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .2s}
 .gp-photo img.loading{opacity:0}.gp-photo img.loaded{opacity:1}
+#gallery-panel.day-view .gp-grid{
+  grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;
+}
+#gallery-panel.day-view .gp-photo{aspect-ratio:1;border-radius:6px}
 .gp-photo-fav{
   position:absolute;bottom:4px;right:4px;width:22px;height:22px;
   border-radius:50%;background:#0009;border:none;cursor:pointer;
-  display:grid;place-items:center;opacity:0;transition:.15s;
+  display:grid;place-items:center;opacity:0;transition:.15s;z-index:4;
 }
 .gp-photo:hover .gp-photo-fav,.gp-photo-fav.fav{opacity:1}
 .gp-photo-fav svg{width:11px;height:11px;fill:transparent;stroke:#fff;stroke-width:2;transition:.16s}
@@ -411,6 +439,9 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 .gp-photo:hover .gp-photo-del{opacity:1}
 .gp-photo-del:hover{background:rgba(239,68,68,.85)!important}
 .gp-photo-del svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2.5}
+#gallery-panel.day-view .gp-photo-alb,#gallery-panel.day-view .gp-photo-del{display:none}
+.gp-select-button[aria-pressed="true"]{background:var(--b);border-color:var(--b);color:#fff}
+.gp-tags-toggle{display:none;align-items:center;gap:5px}
 /* ── Lightbox ───────────────────────────────────────────── */
 #lightbox{
   position:fixed;inset:0;z-index:500;
@@ -457,9 +488,13 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
   display:grid;place-items:center;opacity:0;transition:.12s;z-index:3;pointer-events:none;
 }
 .tl-thumb:hover .sel-check,.gp-photo:hover .sel-check{opacity:.85}
+.selection-mode .gp-photo .sel-check{opacity:.85}
 .tl-thumb.selected .sel-check,.gp-photo.selected .sel-check{opacity:1;background:var(--b);border-color:var(--b)}
 .tl-thumb.selected .sel-check::after,.gp-photo.selected .sel-check::after{content:'';display:block;width:4px;height:7px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px)}
 .tl-thumb.selected,.gp-photo.selected{outline:2px solid var(--b);outline-offset:-2px}
+.gp-photo.selected{outline:3px solid #111;outline-offset:-3px;box-shadow:none}
+.gp-photo.selected::after{background:rgba(0,0,0,.48)}
+.gp-photo.selected .sel-check{background:#111;border-color:#fff}
 
 /* ── Bulk toolbar ───────────────────────────────────────── */
 #bulk-toolbar{
@@ -521,13 +556,14 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 
 /* ── Modal (generic) ────────────────────────────────────── */
 #modal{display:none;position:fixed;inset:0;z-index:750;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);animation:fadeIn .16s ease}
-#modal.open{display:grid;place-items:center}
-.modal-card{width:min(400px,92vw);background:var(--bg2);border:1px solid var(--brd);border-radius:14px;box-shadow:0 32px 80px rgba(0,0,0,.6);overflow:hidden;animation:fadeUp .2s ease both}
-.modal-head{padding:16px 18px 0}
+#modal.open{display:grid;place-items:center;padding:24px;box-sizing:border-box}
+.modal-card{width:min(400px,92vw);max-height:calc(100dvh - 48px);background:var(--bg2);border:1px solid var(--brd);border-radius:14px;box-shadow:0 32px 80px rgba(0,0,0,.6);overflow:hidden;animation:fadeUp .2s ease both;display:flex;flex-direction:column}
+.modal-card.exif-detail-modal{width:min(920px,calc(100vw - 48px))}
+.modal-head{padding:16px 18px 0;flex:0 0 auto}
 .modal-title{font-size:15px;font-weight:700;color:var(--ink)}
 .modal-sub{font-size:11px;color:var(--ink4);margin-top:2px}
-.modal-body{padding:14px 18px}
-.modal-foot{padding:12px 18px 16px;display:flex;justify-content:flex-end;gap:7px}
+.modal-body{padding:14px 18px;overflow-y:auto;min-height:0}
+.modal-foot{padding:12px 18px 16px;display:flex;justify-content:flex-end;gap:7px;flex:0 0 auto}
 .modal-list{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;scrollbar-width:thin;scrollbar-color:var(--bg4) transparent}
 .modal-list::-webkit-scrollbar{width:3px}.modal-list::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
 .modal-alb{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r3);border:1px solid var(--brd);background:var(--bg3);cursor:pointer;transition:.14s;text-align:left;width:100%}
@@ -543,7 +579,7 @@ html,body{height:100%;font-family:'Inter',system-ui,sans-serif;background:var(--
 .card{background:var(--surface);border:1px solid var(--brd);border-radius:var(--r);padding:18px}
 .card-title{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:7px}
 .card-title svg{width:13px;height:13px;color:var(--ink4)}
-.lbl{display:block;font-size:9px;font-weight:700;color:var(--ink5);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.lbl{display:block;font-size:11px;font-weight:600;color:var(--ink3);text-transform:none;letter-spacing:0;margin-bottom:5px}
 .inp{
   width:100%;background:var(--bg3);border:1px solid var(--brd);
   color:var(--ink);font-size:12.5px;font-family:inherit;
@@ -582,10 +618,12 @@ select.inp{cursor:pointer}
 .exif-pill.pending{color:var(--amber);background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2)}
 .exif-pill.error{color:var(--red);background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2)}
 .exif-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.exif-preview{width:100%;height:min(38vh,360px);display:grid;place-items:center;margin-bottom:12px;background:#111;border-radius:var(--r2);overflow:hidden}
+.exif-preview img{width:100%;height:100%;display:block;object-fit:contain}
 .exif-detail-item{padding:9px 10px;border:1px solid var(--brd);border-radius:var(--r3);background:var(--bg3);min-width:0}
 .exif-detail-item span{display:block;font-size:8px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink5);margin-bottom:4px}
 .exif-detail-item b{display:block;font-size:11px;color:var(--ink2);overflow-wrap:anywhere}
-.exif-raw{margin-top:12px;max-height:260px;overflow:auto;border:1px solid var(--brd);border-radius:var(--r3)}
+.exif-raw{margin-top:12px;border:1px solid var(--brd);border-radius:var(--r3)}
 .exif-raw-row{display:grid;grid-template-columns:minmax(120px,.7fr) minmax(0,1.3fr);gap:10px;padding:7px 9px;border-bottom:1px solid var(--brd2);font-size:10px}
 .exif-raw-row:last-child{border-bottom:none}.exif-raw-row code{color:var(--b2);overflow-wrap:anywhere}.exif-raw-row div{color:var(--ink3);overflow-wrap:anywhere}
 .tag{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
@@ -662,6 +700,34 @@ select.inp{cursor:pointer}
 .overview-day-size{font-size:9px;color:var(--ink5);margin-top:2px}
 .overview-day-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink4);white-space:nowrap}
 .overview-empty{padding:18px 0;text-align:center;color:var(--ink5);font-size:11px}
+.getting-started{display:grid;grid-template-columns:minmax(180px,.75fr) minmax(0,2.25fr);gap:18px;align-items:center;margin-bottom:18px;padding:20px;background:linear-gradient(135deg,rgba(36,92,67,.08),rgba(127,170,145,.12));border:1px solid rgba(36,92,67,.14);border-radius:var(--r)}
+.getting-started-copy h2{font-size:15px;color:var(--ink);margin-bottom:5px}
+.getting-started-copy p{font-size:12px;color:var(--ink3);line-height:1.55}
+.getting-started-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.getting-started-step{appearance:none;text-align:left;border:1px solid var(--brd);background:var(--surface);border-radius:var(--r2);padding:12px;cursor:pointer;color:inherit;transition:.15s}
+.getting-started-step:hover{border-color:rgba(36,92,67,.28);transform:translateY(-1px);box-shadow:var(--sh)}
+.getting-started-number{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--b);color:#fff;font-size:10px;font-weight:700;margin-bottom:8px}
+.getting-started-step b{display:block;font-size:11.5px;color:var(--ink2);margin-bottom:3px}
+.getting-started-step>span:last-child{display:block;font-size:9.5px;color:var(--ink4);line-height:1.4}
+.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.settings-choice{appearance:none;width:100%;display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:12px;text-align:left;background:var(--surface);border:1px solid var(--brd);border-radius:var(--r);padding:18px;color:inherit;cursor:pointer;transition:.16s}
+.settings-choice:hover{border-color:rgba(36,92,67,.3);box-shadow:var(--sh-md);transform:translateY(-1px)}
+.settings-choice-icon{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:rgba(36,92,67,.1);color:var(--b)}
+.settings-choice-icon svg{width:18px;height:18px}
+.settings-choice b{display:block;font-size:13px;color:var(--ink2);margin-bottom:4px}
+.settings-choice-copy{display:block}
+.settings-choice-copy span{display:block;font-size:10.5px;color:var(--ink4);line-height:1.45}
+.settings-choice>svg{width:16px;height:16px;color:var(--ink5)}
+.plain-guide{display:flex;gap:11px;align-items:flex-start;background:rgba(36,92,67,.07);border:1px solid rgba(36,92,67,.14);border-radius:var(--r2);padding:13px 14px;margin-bottom:14px;color:var(--ink3);font-size:12px;line-height:1.55}
+.plain-guide svg{width:17px;height:17px;flex:0 0 auto;color:var(--b);margin-top:1px}
+.plain-guide b{color:var(--ink2)}
+.settings-back{display:inline-flex;align-items:center;gap:5px;border:0;background:none;color:var(--b2);font:inherit;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:12px;padding:0}
+.settings-back svg{width:13px;height:13px}
+.settings-advanced{margin-top:12px;border-top:1px solid var(--brd);padding-top:12px}
+.settings-advanced summary{cursor:pointer;color:var(--ink3);font-size:11px;font-weight:700}
+.settings-advanced[open] summary{margin-bottom:10px}
+.friendly-field-hint{font-size:10px;color:var(--ink4);margin-top:4px;line-height:1.45}
+.settings-detail-nav{display:none!important}
 
 /* ── Responsive ─────────────────────────────────────────── */
 @media(min-width:1400px){
@@ -672,25 +738,46 @@ select.inp{cursor:pointer}
 @media(min-width:1680px){
   :root{--sb-w:240px}
   .main{padding:28px 40px 56px}
-  #gallery-panel{width:500px}
+  .gp-grid{max-width:1400px}
 }
 @media(max-width:1024px){
   #days-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
   .stats{grid-template-columns:repeat(2,1fr)}
   .overview-grid{grid-template-columns:1fr}
+  .getting-started{grid-template-columns:1fr}
+  .gp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #gallery-panel.day-view .gp-grid{grid-template-columns:repeat(auto-fill,minmax(115px,1fr))}
 }
 @media(max-width:767px){
   :root{--sb-w:0px}
   .sb{display:none}
+  .sb.mobile-open{display:flex;position:fixed;inset:0 auto 0 0;width:min(84vw,320px);z-index:301;box-shadow:var(--sh-lg)}
+  .mobile-nav-backdrop.mobile-open{display:block;position:fixed;inset:0;background:rgba(24,35,29,.4);z-index:300;border:0}
+  .mobile-nav-button{display:grid}
+  .hdr{padding:0 12px;gap:8px}
+  .bc{font-size:10.5px;min-width:0}.bc>b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
   .main{padding:14px 16px 32px;overflow-y:auto}
   .content{overflow:visible}
   .stats{grid-template-columns:repeat(2,1fr);gap:8px}
   #days-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-  #gallery-panel{top:0;right:0;bottom:0;border-radius:0;width:100%!important}
+  #gallery-panel{top:0;right:0;bottom:0;left:0;border-radius:0;width:auto!important}
+  .gph{min-height:0;padding:11px 14px;gap:10px;flex-wrap:wrap}.gph-title{font-size:16px}.gph-sub{font-size:10px}.gph-actions{margin-left:auto}
+  .gpf{padding:9px 14px}.gp-grid{padding:12px 12px 24px;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #gallery-panel.day-view .gp-grid{grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:5px}
   .lb-nav.prev{left:-4px}.lb-nav.next{right:-4px}
   .fg2,.fg3{grid-template-columns:1fr}
   .wd-columns{grid-template-columns:1fr}.wd-metrics{grid-template-columns:repeat(2,1fr)}
   .overview-breakdown{grid-template-columns:1fr}
+  .getting-started-steps,.settings-grid{grid-template-columns:1fr}
+  #modal.open{padding:12px}.modal-card,.modal-card.exif-detail-modal{width:100%;max-height:calc(100dvh - 24px)}
+  .exif-detail-grid{grid-template-columns:1fr}.exif-preview{height:min(34vh,280px)}.exif-raw-row{grid-template-columns:1fr;gap:4px}
+}
+@media(max-width:420px){
+  .stats{grid-template-columns:1fr}
+  .ph-title{font-size:21px}
+  .getting-started{padding:16px}
+  .gp-grid{grid-template-columns:1fr;gap:8px}
+  #gallery-panel.day-view .gp-grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:4px}
 }
 </style>
 </head>
@@ -731,15 +818,15 @@ select.inp{cursor:pointer}
 
   <div id="srv-status" class="s-load">Connecting…</div>
 
-  <div class="sb-label">Library</div>
+  <div class="sb-label">Your photos</div>
   <nav>
     <button class="nb on" onclick="tab('overview',this)">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      Overview
+      Home
     </button>
     <button class="nb" onclick="tab('gallery',this)">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      Gallery
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M4 16l4.5-4.5a2 2 0 012.8 0L16 16m-2-2l1.6-1.6a2 2 0 012.8 0L20 14"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
+      All photos
     </button>
     <button class="nb" onclick="tab('albums',this)">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M4 5a2 2 0 012-2h9l3 3v0M4 5v14a2 2 0 002 2h12a2 2 0 002-2V8M4 5h11"/><circle cx="9" cy="12" r="1.6"/><path d="M20 17l-4-4-6 5"/></svg>
@@ -748,39 +835,38 @@ select.inp{cursor:pointer}
     </button>
     <button class="nb" onclick="tab('exif',this)">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M4 7h3l2-3h6l2 3h3a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V9a2 2 0 012-2z"/><circle cx="12" cy="13" r="4"/></svg>
-      EXIF
+      Photo information
       <span class="nb-badge" id="exif-badge" style="display:none">0</span>
     </button>
     <button class="nb" onclick="tab('pipeline',this)">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-      Pipeline
+      Organize &amp; backup
       <span class="nb-dot" id="dot-pipeline" style="display:none"></span>
     </button>
   </nav>
 
-  <div class="sb-label" style="margin-top:6px">Configuration</div>
+  <div class="sb-label" style="margin-top:6px">Bring in photos</div>
   <nav>
-    <button class="nb" onclick="tab('ssh',this)">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15l3-3-3-3"/><line x1="14" y1="15" x2="17" y2="15"/></svg>
-      SSH Servers
-    </button>
     <button class="nb" onclick="tab('webdav',this)">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20"/></svg>
-      WebDAV
+      Add from phone
     </button>
-    <button class="nb" onclick="tab('folders',this)">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-      Folders
-    </button>
-    <button class="nb" onclick="tab('users',this)">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-      Users
+  </nav>
+
+  <div class="sb-label" style="margin-top:6px">Manage</div>
+  <nav>
+    <button class="nb" onclick="tab('settings',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6v.2h-4V21a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 00.3-1.9A1.7 1.7 0 003 14H2.8v-4H3a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 009 4.6 1.7 1.7 0 0010 3V2.8h4V3a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 00-.3 1.9 1.7 1.7 0 001.6 1h.2v4H21a1.7 1.7 0 00-1.6 1z"/></svg>
+      Settings
     </button>
     <button class="nb" onclick="tab('trash',this)">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-      Trash
+      Recycle bin
       <span class="nb-badge" id="trash-badge" style="display:none">0</span>
     </button>
+    <button class="nb settings-detail-nav" onclick="tab('ssh',this)" style="display:none">Remote storage</button>
+    <button class="nb settings-detail-nav" onclick="tab('folders',this)" style="display:none">Storage locations</button>
+    <button class="nb settings-detail-nav" onclick="tab('users',this)" style="display:none">People and access</button>
   </nav>
 
   <div class="sb-bottom">
@@ -795,24 +881,24 @@ select.inp{cursor:pointer}
 </aside>
 
 <!-- ── Content ──────────────────────────────────────────── -->
+<button class="mobile-nav-backdrop" id="mobile-nav-backdrop" aria-label="Close navigation" onclick="toggleMobileNav(false)"></button>
 <div class="content">
   <header class="hdr">
+    <button class="hdr-btn mobile-nav-button" id="mobile-nav-button" type="button" aria-label="Open navigation" aria-expanded="false" onclick="toggleMobileNav()">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
     <div class="bc">
-      Photos Sync <span>›</span> <b id="bc-section">Overview</b>
+      Photos Sync <span>›</span> <b id="bc-section">Home</b>
       <span id="bc-sep2" style="display:none">›</span>
       <b id="bc-page" style="display:none"></b>
     </div>
-    <div class="hdr-search">
+    <div class="hdr-search" id="global-photo-search" style="display:none">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input id="day-filter" placeholder="Search days…" oninput="filterDays(this.value)">
-      <span class="hdr-kbd">⌘K</span>
+      <input id="day-filter" placeholder="Search photo days…" oninput="filterDays(this.value)">
     </div>
     <div class="hdr-actions">
       <button class="hdr-btn" title="Refresh" onclick="refreshCurrentSection()">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-      </button>
-      <button class="hdr-btn">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
       </button>
       <div style="position:relative">
         <button class="hdr-avatar" id="user-menu-btn" onclick="toggleUserMenu(event)" style="cursor:pointer;border:none" title="Account">
@@ -843,11 +929,23 @@ select.inp{cursor:pointer}
       <div class="ph">
         <div>
           <div class="ph-title">Library overview</div>
-          <div class="ph-sub">Photos, metadata, connections and sync status in one place</div>
+          <div class="ph-sub">Everything you need to add, find and protect your photos</div>
         </div>
         <div class="overview-actions">
-          <button class="bg" onclick="openSection('exif')">Review EXIF</button>
+          <button class="bg" onclick="openSection('exif')">Photo information</button>
           <button class="bp" onclick="openSection('gallery')">Open library</button>
+        </div>
+      </div>
+
+      <div class="getting-started">
+        <div class="getting-started-copy">
+          <h2>Start here</h2>
+          <p>Three simple steps take photos from your phone to an organized and protected library.</p>
+        </div>
+        <div class="getting-started-steps">
+          <button class="getting-started-step overview-admin-only" onclick="openSection('webdav')"><span class="getting-started-number">1</span><b>Connect your phone</b><span>Use the same Wi-Fi network.</span></button>
+          <button class="getting-started-step overview-admin-only" onclick="openSection('webdav')"><span class="getting-started-number">2</span><b>Copy your photos</b><span>Review the count, then start the import.</span></button>
+          <button class="getting-started-step overview-admin-only" onclick="openSection('pipeline')"><span class="getting-started-number">3</span><b>Organize and protect</b><span>Sort photos and create your backup.</span></button>
         </div>
       </div>
 
@@ -890,17 +988,17 @@ select.inp{cursor:pointer}
           <div class="overview-card" id="overview-connections-card">
             <div class="overview-card-head">
               <div class="overview-card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 12h8m-4-4v8"/><circle cx="12" cy="12" r="9"/></svg>Connections</div>
-              <button class="overview-link overview-admin-only" onclick="openSection('webdav')">Manage</button>
+              <button class="overview-link overview-admin-only" onclick="openSection('settings')">Manage</button>
             </div>
             <div class="overview-status-list">
               <div class="overview-status-row">
                 <div class="overview-status-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/></svg></div>
-                <div><div class="overview-status-name">WebDAV</div><div class="overview-status-sub" id="overview-webdav-sub">Checking saved devices</div></div>
+                <div><div class="overview-status-name">Phone import</div><div class="overview-status-sub" id="overview-webdav-sub">Checking saved devices</div></div>
                 <span class="overview-state" id="overview-webdav-state">Checking</span>
               </div>
               <div class="overview-status-row">
                 <div class="overview-status-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 15l3-3-3-3m7 6h3"/></svg></div>
-                <div><div class="overview-status-name">SSH servers</div><div class="overview-status-sub" id="overview-ssh-sub">Checking saved servers</div></div>
+                <div><div class="overview-status-name">Remote storage</div><div class="overview-status-sub" id="overview-ssh-sub">Checking saved servers</div></div>
                 <span class="overview-state" id="overview-ssh-state">Checking</span>
               </div>
             </div>
@@ -925,9 +1023,13 @@ select.inp{cursor:pointer}
     <section data-s="gallery">
       <div class="ph">
         <div>
-          <div class="ph-title">Photo Library</div>
-          <div class="ph-sub">Organized by date from your devices</div>
+          <div class="ph-title">All photos</div>
+          <div class="ph-sub">Browse your library by day or view everything in one timeline</div>
         </div>
+        <button class="bg" id="download-all-days" type="button" onclick="downloadDays()" disabled>
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 19h16"/></svg>
+          Download all days
+        </button>
       </div>
 
       <div class="stats">
@@ -1003,7 +1105,7 @@ select.inp{cursor:pointer}
       <div class="ph">
         <div>
           <div class="ph-title">Albums</div>
-          <div class="ph-sub">Group photos into collections — a photo can live in several</div>
+          <div class="ph-sub">Create simple collections without moving or duplicating photos</div>
         </div>
         <button class="bp" onclick="openNewAlbum()">
           <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1018,10 +1120,10 @@ select.inp{cursor:pointer}
     <!-- EXIF -->
     <section data-s="exif">
       <div class="ph">
-        <div><div class="ph-title">EXIF Metadata</div><div class="ph-sub">Camera and capture data stored for every photo</div></div>
+        <div><div class="ph-title">Photo information</div><div class="ph-sub">See when, where and how each photo was taken</div></div>
         <button class="bp" id="btn-exif-run" onclick="runExifExtraction()">
           <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M5 19h14"/></svg>
-          Extract EXIF
+          Read photo information
         </button>
       </div>
       <div class="stats" style="margin-bottom:16px">
@@ -1046,65 +1148,105 @@ select.inp{cursor:pointer}
       <div id="exif-message" class="msg"></div>
     </section>
 
+    <!-- SETTINGS -->
+    <section data-s="settings">
+      <div class="ph">
+        <div><div class="ph-title">Settings</div><div class="ph-sub">Choose what you want to set up or change</div></div>
+      </div>
+      <div class="plain-guide">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg>
+        <div><b>You do not need to configure everything.</b> Start with your phone and a storage location. Remote storage is optional and intended for a home server or NAS.</div>
+      </div>
+      <div class="settings-grid">
+        <button class="settings-choice" onclick="openSection('webdav')">
+          <span class="settings-choice-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M10 18h4"/></svg></span>
+          <span class="settings-choice-copy"><b>Phone import</b><span>Copy photos from your phone over your home Wi-Fi.</span></span>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        <button class="settings-choice" onclick="openSection('folders')">
+          <span class="settings-choice-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></span>
+          <span class="settings-choice-copy"><b>Storage locations</b><span>Choose where photos are found and where organized copies are saved.</span></span>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        <button class="settings-choice" onclick="openSection('ssh')">
+          <span class="settings-choice-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 15l3-3-3-3m7 6h3"/></svg></span>
+          <span class="settings-choice-copy"><b>Remote storage</b><span>Connect a home server or NAS. This is an advanced, optional setup.</span></span>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        <button class="settings-choice" onclick="openSection('users')">
+          <span class="settings-choice-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg></span>
+          <span class="settings-choice-copy"><b>People and access</b><span>Decide who can view photos and who can change settings.</span></span>
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+    </section>
+
     <!-- PIPELINE -->
     <section data-s="pipeline">
-      <div class="ph"><div><div class="ph-title">Pipeline</div><div class="ph-sub">Sync, organize, classify and upload</div></div></div>
+      <div class="ph"><div><div class="ph-title">Organize and back up</div><div class="ph-sub">Let Photos Sync sort, understand and protect your library</div></div></div>
+      <div class="plain-guide"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg><div><b>Recommended:</b> choose “Organize everything”. Photos Sync will run the steps in the correct order. Use individual steps only when you know exactly what needs updating.</div></div>
       <div class="card" style="margin-bottom:12px">
         <div id="paso-checks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-bottom:14px"></div>
         <div style="display:flex;gap:7px">
-          <button class="bp" id="btn-run-sel" onclick="runPipeline(false)"><svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run selected</button>
-          <button class="bg" id="btn-run-all" onclick="runPipeline(true)" style="display:inline-flex;align-items:center;gap:5px"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Run ALL</button>
+          <button class="bg" id="btn-run-sel" onclick="runPipeline(false)"><svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run selected steps</button>
+          <button class="bp" id="btn-run-all" onclick="runPipeline(true)" style="display:inline-flex;align-items:center;gap:5px"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Organize everything</button>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">
         <div id="spinner" style="display:none;width:12px;height:12px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div>
         <span id="pipeline-status" style="font-size:12px;color:var(--ink4);font-weight:500;font-family:'JetBrains Mono',monospace">Ready.</span>
       </div>
-      <div class="log-bar"><div class="log-dot" style="background:#ef4444"></div><div class="log-dot" style="background:#f59e0b"></div><div class="log-dot" style="background:#22c55e"></div><span style="font-size:10px;color:var(--ink5);font-weight:600;margin-left:6px;font-family:'JetBrains Mono',monospace">Terminal</span></div>
+      <div class="log-bar"><div class="log-dot" style="background:#ef4444"></div><div class="log-dot" style="background:#f59e0b"></div><div class="log-dot" style="background:#22c55e"></div><span style="font-size:10px;color:var(--ink5);font-weight:600;margin-left:6px;font-family:'JetBrains Mono',monospace">Detailed activity</span></div>
       <div id="log-box"></div>
     </section>
 
     <!-- SSH -->
     <section data-s="ssh">
-      <div class="ph"><div><div class="ph-title">SSH Connections</div><div class="ph-sub">Remote servers for source and destination</div></div></div>
+      <button class="settings-back" onclick="openSection('settings')"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Back to settings</button>
+      <div class="ph"><div><div class="ph-title">Remote storage</div><div class="ph-sub">Connect a home server or NAS for importing or backing up photos</div></div></div>
+      <div class="plain-guide"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg><div><b>This setup is optional and advanced.</b> Ask the person who manages your server for its address, username and photo folder. The standard port is already filled in.</div></div>
       <div class="card" style="margin-bottom:12px">
-        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/></svg>New connection</div>
-        <div class="fg3" style="gap:8px">
-          <div><label class="lbl">Alias</label><input id="ssh-alias" placeholder="home-nas" class="inp"></div>
-          <div><label class="lbl">Host / IP</label><input id="ssh-host" placeholder="192.168.1.50" class="inp"></div>
-          <div><label class="lbl">Port</label><input id="ssh-puerto" value="22" type="number" class="inp"></div>
+        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/></svg>Add remote storage</div>
+        <div class="fg2" style="gap:8px">
+          <div><label class="lbl">Name</label><input id="ssh-alias" placeholder="Home server" class="inp"><div class="friendly-field-hint">A name you will recognize later.</div></div>
+          <div><label class="lbl">Server address</label><input id="ssh-host" placeholder="192.168.1.50" class="inp"><div class="friendly-field-hint">Usually a local IP address or domain name.</div></div>
         </div>
         <div class="fg2" style="gap:8px;margin-top:8px">
-          <div><label class="lbl">User</label><input id="ssh-usuario" placeholder="juan" class="inp"></div>
-          <div><label class="lbl">Remote path (source)</label><input id="ssh-ruta" placeholder="/home/juan/fotos" class="inp"></div>
+          <div><label class="lbl">Username</label><input id="ssh-usuario" placeholder="photo-user" class="inp"></div>
+          <div><label class="lbl">Photo folder on server</label><input id="ssh-ruta" placeholder="/home/photo-user/photos" class="inp"></div>
         </div>
-        <div class="fg2" style="gap:8px;margin-top:8px">
-          <div><label class="lbl">Remote path (dest)</label><input id="ssh-ruta-dest" placeholder="only if role=ambos" disabled class="inp"><div id="ssh-ruta-dest-hint" style="font-size:10px;color:var(--ink5);margin-top:3px"></div></div>
-          <div><label class="lbl">Private key</label><input id="ssh-clave" placeholder="~/.ssh/id_rsa (optional)" class="inp"></div>
-        </div>
-        <div style="display:grid;grid-template-columns:180px 1fr;gap:8px;margin-top:8px">
-          <div><label class="lbl">Role</label><select id="ssh-rol" onchange="onRolChange()" class="inp"></select><div id="ssh-rol-hint" style="font-size:10px;color:var(--ink5);margin-top:3px"></div></div>
-        </div>
+        <details class="settings-advanced">
+          <summary>Advanced connection options</summary>
+          <div class="fg2" style="gap:8px">
+            <div><label class="lbl">Connection port</label><input id="ssh-puerto" value="22" type="number" class="inp"></div>
+            <div><label class="lbl">Connection purpose</label><select id="ssh-rol" onchange="onRolChange()" class="inp"></select><div id="ssh-rol-hint" class="friendly-field-hint"></div></div>
+          </div>
+          <div class="fg2" style="gap:8px;margin-top:8px">
+            <div><label class="lbl">Backup folder on server</label><input id="ssh-ruta-dest" placeholder="Optional backup folder" disabled class="inp"><div id="ssh-ruta-dest-hint" class="friendly-field-hint"></div></div>
+            <div><label class="lbl">Private key file</label><input id="ssh-clave" placeholder="Optional key file" class="inp"></div>
+          </div>
+        </details>
         <div style="display:flex;gap:7px;margin-top:14px"><button class="bp" onclick="guardarSSH()">Save connection</button><button class="bg" onclick="limpiarFormSSH()">Clear</button></div>
         <div id="ssh-msg" class="msg"></div>
       </div>
-      <div class="card"><div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Saved connections</div><div style="overflow-x:auto"><table id="ssh-table" class="tbl"><thead><tr><th>Alias</th><th>Host</th><th>User</th><th>Source</th><th>Dest</th><th>Role</th><th></th></tr></thead><tbody></tbody></table></div></div>
+      <div class="card"><div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Saved remote storage</div><div style="overflow-x:auto"><table id="ssh-table" class="tbl"><thead><tr><th>Name</th><th>Address</th><th>Username</th><th>Photo folder</th><th>Backup folder</th><th>Purpose</th><th></th></tr></thead><tbody></tbody></table></div></div>
     </section>
 
     <!-- WEBDAV -->
     <section data-s="webdav">
-      <div class="ph"><div><div class="ph-title">WebDAV</div><div class="ph-sub">Connect to your phone over Wi-Fi</div></div></div>
+      <div class="ph"><div><div class="ph-title">Add photos from your phone</div><div class="ph-sub">Copy photos safely while your phone and this computer use the same Wi-Fi</div></div></div>
+      <div class="plain-guide"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg><div><b>Before you begin:</b> open a WebDAV sharing app on your phone and keep it open. Enter the address shown by the app below. Photos Sync will check the connection before copying anything.</div></div>
 
       <!-- Mode toggle -->
       <div class="filter-bar" style="margin-bottom:16px">
         <div class="ftabs">
           <button class="ftab on" id="wd-tab-direct" onclick="wdMode('direct',this)">
             <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="margin-right:4px"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"/></svg>
-            Direct download
+            Recommended import
           </button>
           <button class="ftab" id="wd-tab-netuse" onclick="wdMode('netuse',this)">
             <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="margin-right:4px"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
-            Mount drive (Windows)
+            Advanced Windows connection
           </button>
         </div>
         <span id="wd-mode-hint" style="font-size:11px;color:var(--ink4)">Works on Docker, Linux and Windows</span>
@@ -1115,39 +1257,37 @@ select.inp{cursor:pointer}
         <div class="card" style="margin-bottom:12px">
           <div class="card-title">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download photos directly from phone
+            Connect and copy photos
           </div>
           <p style="font-size:12px;color:var(--ink3);margin:-8px 0 14px;line-height:1.6">
-            Connects directly to your phone's WebDAV server via HTTP and downloads photos to the server.<br>
-            <b>No drive letter needed.</b> Works on Docker, Linux and Windows.
+            Enter the address displayed by the sharing app on your phone.<br>
+            <b>This is the recommended option.</b> It works on all supported systems.
           </p>
           <div style="display:grid;grid-template-columns:minmax(0,2fr) 80px;gap:8px;margin-bottom:8px">
-            <div><label class="lbl">Phone IP</label><input id="wd-dl-ip" placeholder="192.168.1.133" class="inp"></div>
-            <div><label class="lbl">Port</label><input id="wd-dl-port" value="8080" class="inp"></div>
+            <div><label class="lbl">Phone address</label><input id="wd-dl-ip" placeholder="For example: 192.168.1.133" class="inp"><div class="friendly-field-hint">Copy the numbers shown in your phone app.</div></div>
+            <div><label class="lbl">Port</label><input id="wd-dl-port" value="8080" class="inp"><div class="friendly-field-hint">Usually 8080.</div></div>
           </div>
           <div style="margin-bottom:8px">
-            <label class="lbl">Save to folder <span style="text-transform:none;font-weight:400;color:var(--ink5)">(leave blank for default: /data/incoming)</span></label>
+            <label class="lbl">Temporary import folder <span style="font-weight:400;color:var(--ink5)">(optional)</span></label>
             <input id="wd-dl-dest" placeholder="/data/incoming" class="inp">
+            <div class="friendly-field-hint">Leave this blank to use the recommended location.</div>
           </div>
           <label style="display:flex;align-items:center;gap:8px;margin:2px 0 12px;font-size:12px;color:var(--ink3);cursor:pointer">
             <input id="wd-include-videos" type="checkbox" style="accent-color:var(--b)">
-            Download videos (.mp4)
+            Include videos
             <span style="color:var(--ink5)">— disabled by default for faster photo sync</span>
           </label>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="bg" onclick="wdScan()">
               <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              Scan
+              Check phone
             </button>
             <button class="bp" id="btn-wd-download" onclick="wdDownload()">
               <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Download all photos
-            </button>
-            <button class="bg" onclick="fixDates()" title="Recompute capture dates from filenames (e.g. Screenshot_20250629-133659.png → 29 Jun 2025)">
-              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14l3 3 5-5"/></svg>
-              Fix dates
+              Copy all photos
             </button>
           </div>
+          <details class="settings-advanced"><summary>Photo date repair</summary><button class="bg" onclick="fixDates()" style="margin-top:8px"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 14l3 3 5-5"/></svg>Repair dates from filenames</button></details>
           <div id="wd-dl-scan-result" style="margin-top:10px;font-size:12px;color:var(--ink3)"></div>
           <div id="wd-dl-msg" class="msg"></div>
         </div>
@@ -1202,21 +1342,23 @@ select.inp{cursor:pointer}
 
     <!-- FOLDERS -->
     <section data-s="folders">
-      <div class="ph"><div><div class="ph-title">Folders</div><div class="ph-sub">Source and destination directories</div></div></div>
+      <button class="settings-back" onclick="openSection('settings')"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Back to settings</button>
+      <div class="ph"><div><div class="ph-title">Storage locations</div><div class="ph-sub">Choose where Photos Sync finds photos and saves organized copies</div></div></div>
+      <div class="plain-guide"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg><div><b>Source folders</b> are places that already contain photos. The <b>organized library</b> is where Photos Sync stores the sorted result.</div></div>
       <div class="card" style="margin-bottom:12px">
-        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Source folders</div>
-        <p style="font-size:11px;color:var(--ink5);margin:-8px 0 10px">Directories scanned for captures.</p>
+        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Where should photos be found?</div>
+        <p style="font-size:12px;color:var(--ink4);margin:-8px 0 10px">Add folders that Photos Sync should check for new photos.</p>
         <div id="carpetas-origen-list" style="display:flex;flex-wrap:wrap;gap:5px"></div>
         <div style="display:flex;gap:7px;margin-top:10px"><input id="nueva-carpeta" placeholder="/mnt/DCIM  or  Z:\DCIM" class="inp" style="flex:1" onkeydown="if(event.key==='Enter')addCarpeta()"><button class="bp" onclick="addCarpeta()">Add</button></div>
         <div id="carpetas-msg" class="msg"></div>
       </div>
       <div class="card">
-        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Destination</div>
-        <p style="font-size:11px;color:var(--ink5);margin:-8px 0 10px">Where organized files are stored.</p>
+        <div class="card-title"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Where should organized photos be saved?</div>
+        <p style="font-size:12px;color:var(--ink4);margin:-8px 0 10px">For most people, a local folder is the simplest choice.</p>
         <div class="fg2" style="gap:8px;margin-bottom:10px;align-items:start">
-          <div><label class="lbl">Type</label><select id="dest-tipo" onchange="destTipoChange()" class="inp"><option value="local">Local folder</option><option value="ssh">SSH server</option></select></div>
-          <div id="dest-local-wrap"><label class="lbl">Path</label><input id="dest-ruta" placeholder="/home/user/photos  or  C:\Photos" class="inp"></div>
-          <div id="dest-ssh-wrap" style="display:none"><label class="lbl">Server</label><select id="dest-ssh-alias" class="inp"><option value="">— loading… —</option></select><div id="dest-ssh-hint" style="font-size:10px;color:var(--ink5);margin-top:3px"></div></div>
+          <div><label class="lbl">Storage type</label><select id="dest-tipo" onchange="destTipoChange()" class="inp"><option value="local">Folder on this computer</option><option value="ssh">Remote storage or NAS</option></select></div>
+          <div id="dest-local-wrap"><label class="lbl">Library folder</label><input id="dest-ruta" placeholder="For example: C:\Photos" class="inp"></div>
+          <div id="dest-ssh-wrap" style="display:none"><label class="lbl">Remote storage</label><select id="dest-ssh-alias" class="inp"><option value="">— loading… —</option></select><div id="dest-ssh-hint" class="friendly-field-hint"></div></div>
         </div>
         <div style="display:flex;gap:7px"><button class="bp" onclick="guardarDestino()">Save destination</button><button class="bd" onclick="quitarDestino()">Remove</button></div>
         <div id="destino-msg" class="msg"></div>
@@ -1225,20 +1367,21 @@ select.inp{cursor:pointer}
 
     <!-- USERS -->
     <section data-s="users">
+      <button class="settings-back" onclick="openSection('settings')"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Back to settings</button>
       <div class="ph">
         <div>
-          <div class="ph-title">Users</div>
-          <div class="ph-sub">Manage who can access Photos Sync</div>
+          <div class="ph-title">People and access</div>
+          <div class="ph-sub">Choose who can view photos and who can change settings</div>
         </div>
         <button class="bp" onclick="openNewUser()">
           <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Register user
+          Add person
         </button>
       </div>
       <div class="card">
         <div style="overflow-x:auto">
           <table class="tbl" id="users-table">
-            <thead><tr><th>Username</th><th>Role</th><th>Created</th><th></th></tr></thead>
+            <thead><tr><th>Username</th><th>Access level</th><th>Added</th><th></th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -1249,8 +1392,8 @@ select.inp{cursor:pointer}
     <section data-s="trash">
       <div class="ph">
         <div>
-          <div class="ph-title">Trash</div>
-          <div class="ph-sub">Deleted photos — restore them or remove permanently</div>
+          <div class="ph-title">Recycle bin</div>
+          <div class="ph-sub">Restore photos you still need or remove them permanently</div>
         </div>
         <button class="bd" id="btn-empty-trash" onclick="emptyTrash()" style="display:none">
           <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
@@ -1273,7 +1416,7 @@ select.inp{cursor:pointer}
       </div>
       <div id="trash-empty" style="display:none;text-align:center;padding:56px 20px;color:var(--ink4)">
         <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1" style="margin:0 auto 14px;display:block;color:var(--ink5)"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/></svg>
-        <div style="font-size:15px;font-weight:700;color:var(--ink3);margin-bottom:6px">Trash is empty</div>
+        <div style="font-size:15px;font-weight:700;color:var(--ink3);margin-bottom:6px">Recycle bin is empty</div>
         <div style="font-size:12px">Deleted photos appear here. You can restore them or remove them permanently.</div>
       </div>
       <div id="trash-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px"></div>
@@ -1286,25 +1429,24 @@ select.inp{cursor:pointer}
 <!-- ── Day gallery panel ─────────────────────────────────── -->
 <div id="gallery-panel">
   <div class="gph">
-    <div>
-      <div id="gp-title" style="font-size:13px;font-weight:700;color:var(--ink)">—</div>
-      <div id="gp-sub" style="font-size:11px;color:var(--ink4);margin-top:1px;font-family:'JetBrains Mono',monospace"></div>
+    <button class="gph-close" type="button" onclick="closeGallery()"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Back</button>
+    <div class="gph-copy">
+      <div id="gp-title" class="gph-title">—</div>
+      <div id="gp-sub" class="gph-sub"></div>
     </div>
-    <!-- Add photos button — only shown when viewing an album -->
-    <button id="gp-add-btn" class="gph-add" onclick="openAddPhotosToAlbum()" title="Add photos to this album">
-      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    </button>
-    <button class="gph-close" onclick="closeGallery()">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-    </button>
+    <div class="gph-actions">
+      <button id="gp-add-btn" class="gph-add" onclick="openAddPhotosToAlbum()" title="Add photos to this album" aria-label="Add photos to this album"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button class="bg gp-day-download" type="button" onclick="downloadCurrentDay(this)"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 19h16"/></svg>Download day</button>
+      <button id="gp-select-button" class="bg gp-select-button" type="button" aria-pressed="false" onclick="toggleGallerySelection()">Select photos</button>
+    </div>
   </div>
   <div class="gpf">
     <button class="gpfb on" onclick="setFilter('all',this)">All</button>
-    <button class="gpfb" onclick="setFilter('favourites',this)">❤ Favourites</button>
-    <div id="gp-tag-btns-inner" style="display:contents"></div>
+    <button class="gpfb" onclick="setFilter('favourites',this)">Favourites</button>
+    <button class="bg gp-tags-toggle" id="gp-tags-toggle" type="button" aria-expanded="false" onclick="toggleGalleryTags()">Tags</button>
     <span id="gp-count" style="margin-left:auto;font-size:10px;color:var(--ink5);font-weight:600;font-family:'JetBrains Mono',monospace;padding-left:8px"></span>
   </div>
-  <div id="gp-tags" style="display:none;padding:6px 16px 8px;border-bottom:1px solid var(--brd);flex-shrink:0">
+  <div id="gp-tags" style="display:none;padding:10px 18px;border-bottom:1px solid var(--brd);flex-shrink:0;background:var(--bg)">
     <div id="gp-tag-btns-inner2" style="display:flex;gap:4px;flex-wrap:wrap"></div>
   </div>
   <div class="gp-grid" id="gp-grid"></div>
@@ -1359,7 +1501,7 @@ select.inp{cursor:pointer}
 
 <!-- ── Modal (new album / add to album) ─────────────────── -->
 <div id="modal">
-  <div class="modal-card">
+  <div class="modal-card" id="modal-card">
     <div class="modal-head">
       <div class="modal-title" id="modal-title">—</div>
       <div class="modal-sub" id="modal-sub"></div>
@@ -1374,11 +1516,29 @@ select.inp{cursor:pointer}
 const $=id=>document.getElementById(id);
 async function api(p,o={}){const r=await fetch(p,{headers:{'Content-Type':'application/json'},...o,body:o.body!==undefined?JSON.stringify(o.body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||`HTTP ${r.status}`);return d}
 function showMsg(id,t,ok){const e=$(id);e.className='msg '+(ok?'msg-ok':'msg-err');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',5000)}
-const SNAMES={overview:'Overview',gallery:'Gallery',albums:'Albums',exif:'EXIF',pipeline:'Pipeline',ssh:'SSH Servers',webdav:'WebDAV',folders:'Folders',users:'Users',trash:'Trash'};
+const SNAMES={overview:'Home',gallery:'All photos',albums:'Albums',exif:'Photo information',pipeline:'Organize & backup',settings:'Settings',ssh:'Remote storage',webdav:'Add from phone',folders:'Storage locations',users:'People and access',trash:'Recycle bin'};
 const SECTION_LOADERS={overview:loadOverview,gallery:loadDays,albums:loadAlbums,exif:()=>loadExif(true),ssh:initSSH,webdav:initWebDAV,folders:initCarpetas,users:loadUsers,trash:loadTrash};
-function tab(id,b){document.querySelectorAll('[data-s]').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));document.querySelector(`[data-s="${id}"]`).classList.add('on');b.classList.add('on');$('bc-section').textContent=SNAMES[id]||id;$('bc-sep2').style.display='none';$('bc-page').style.display='none';closeGallery();SECTION_LOADERS[id]?.();}
+const SETTINGS_SECTIONS=['ssh','folders','users'];
+function toggleMobileNav(force){
+  const sidebar=document.querySelector('.sb'),button=$('mobile-nav-button'),backdrop=$('mobile-nav-backdrop');
+  const open=typeof force==='boolean'?force:!sidebar.classList.contains('mobile-open');
+  sidebar.classList.toggle('mobile-open',open);backdrop.classList.toggle('mobile-open',open);
+  button.setAttribute('aria-expanded',String(open));button.setAttribute('aria-label',open?'Close navigation':'Open navigation');
+}
+function tab(id,b){
+  document.querySelectorAll('[data-s]').forEach(section=>section.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(button=>button.classList.remove('on'));
+  document.querySelector(`[data-s="${id}"]`).classList.add('on');
+  const activeButton=SETTINGS_SECTIONS.includes(id)?document.querySelector(`.nb[onclick*="'settings'"]`):b;
+  activeButton?.classList.add('on');
+  $('global-photo-search').style.display=id==='gallery'?'flex':'none';
+  $('bc-section').textContent=SNAMES[id]||id;$('bc-sep2').style.display='none';$('bc-page').style.display='none';
+  toggleMobileNav(false);closeGallery();SECTION_LOADERS[id]?.();
+}
 function openSection(id){const button=document.querySelector(`.nb[onclick*="'${id}'"]`);if(button)tab(id,button)}
 function refreshCurrentSection(){const section=document.querySelector('[data-s].on');if(section)SECTION_LOADERS[section.dataset.s]?.()}
+document.addEventListener('keydown',event=>{if(event.key==='Escape')toggleMobileNav(false)});
+window.addEventListener('resize',()=>{if(window.innerWidth>767)toggleMobileNav(false)});
 
 const escapeHtml=value=>{const node=document.createElement('div');node.textContent=value==null?'':String(value);return node.innerHTML};
 
@@ -1497,10 +1657,12 @@ function exifDetailItem(label,value){return `<div class="exif-detail-item"><span
 async function openExif(captureId){
   try{
     const record=await api(`/api/exif/${encodeURIComponent(captureId)}`),camera=[record.camera_make,record.camera_model].filter(Boolean).join(' ')||'-';
-    $('modal-title').textContent=record.filename;$('modal-sub').textContent='Complete stored EXIF metadata';
+    $('modal-card').classList.add('exif-detail-modal');$('modal-title').textContent=record.filename;$('modal-sub').textContent='Complete photo and stored EXIF metadata';
     const values=[['Status',record.error||(['Pending','No EXIF','EXIF'][record.has_exif===null?0:record.has_exif?2:1])],['Camera',camera],['Lens',record.lens_model],['Original date',record.date_time_original],['UTC offset',record.offset_time_original],['Resolution',record.width&&record.height?`${record.width} x ${record.height}`:null],['Exposure',record.exposure_time],['Aperture',record.f_number!=null?`f/${record.f_number}`:null],['ISO',record.iso_speed],['Focal length',record.focal_length_mm!=null?`${record.focal_length_mm} mm`:null],['Orientation',record.orientation],['Flash',record.flash],['White balance',record.white_balance],['Metering mode',record.metering_mode],['Exposure program',record.exposure_program],['Software',record.software],['Artist',record.artist],['Copyright',record.copyright],['GPS',record.gps_lat!=null?`${record.gps_lat}, ${record.gps_lon}`:null],['Altitude',record.gps_altitude_m!=null?`${record.gps_altitude_m} m`:null],['Extracted',record.extracted_at]];
     const raw=Object.entries(record.raw||{}).map(([key,value])=>`<div class="exif-raw-row"><code>${escapeHtml(key)}</code><div>${escapeHtml(typeof value==='object'?JSON.stringify(value):value)}</div></div>`).join('');
-    $('modal-body').innerHTML=`<div class="exif-detail-grid">${values.map(([label,value])=>exifDetailItem(label,value)).join('')}</div><div style="font-size:10px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.08em;margin-top:14px">Additional EXIF tags</div><div class="exif-raw">${raw||'<div style="padding:12px;color:var(--ink4);font-size:11px">No additional tags stored.</div>'}</div>`;
+    const previewUrl=record.photo_url||record.thumbnail_url||'';
+    const preview=previewUrl?`<div class="exif-preview"><img src="${escapeHtml(previewUrl)}" alt="${escapeHtml(record.filename||'Photo')}"></div>`:'';
+    $('modal-body').innerHTML=`${preview}<div class="exif-detail-grid">${values.map(([label,value])=>exifDetailItem(label,value)).join('')}</div><div style="font-size:10px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.08em;margin-top:14px">Additional EXIF tags</div><div class="exif-raw">${raw||'<div style="padding:12px;color:var(--ink4);font-size:11px">No additional tags stored.</div>'}</div>`;
     $('modal-foot').innerHTML='<button class="bg" onclick="_closeModal()">Close</button>';$('modal').style.display='';$('modal').classList.add('open');
   }catch(error){showMsg('exif-message',error.message,false)}
 }
@@ -1510,8 +1672,8 @@ async function runExifExtraction(){
     const steps=await api('/api/pasos'),step=steps.find(item=>String(item.nombre).includes('EXIF'));
     if(!step)throw new Error('EXIF pipeline step is unavailable');
     await api('/api/pipeline/ejecutar',{method:'POST',body:{pasos:[step.id]}});button.textContent='Extracting...';
-    clearTimeout(_exifPollTimer);const poll=async()=>{const state=await api('/api/pipeline/estado');if(state.corriendo){_exifPollTimer=setTimeout(poll,1500);return}button.disabled=false;button.textContent='Extract EXIF';await loadExif(true)};_exifPollTimer=setTimeout(poll,1000);
-  }catch(error){button.disabled=false;button.textContent='Extract EXIF';showMsg('exif-message',error.message,false)}
+    clearTimeout(_exifPollTimer);const poll=async()=>{const state=await api('/api/pipeline/estado');if(state.corriendo){_exifPollTimer=setTimeout(poll,1500);return}button.disabled=false;button.textContent='Read photo information';await loadExif(true)};_exifPollTimer=setTimeout(poll,1000);
+  }catch(error){button.disabled=false;button.textContent='Read photo information';showMsg('exif-message',error.message,false)}
 }
 
 const logBox=$('log-box');let ws;
@@ -1548,6 +1710,17 @@ function _ensureDayCoverObserver(){
 
 function filterDays(q){const g=$('days-grid');_resetDayCoverObserver();g.innerHTML='';const f=q.toLowerCase();const days=f?_allDays.filter(d=>`${d.fecha} ${MN[parseInt(d.mes,10)]} ${d.anio}`.toLowerCase().includes(f)):_allDays;if(!days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--ink4);font-size:13px">${f?'No matches':'No photos yet'}</div>`;return}renderDayCards(days,g);}
 
+function downloadDays(dates,button){
+  if(!_allDays.length)return;
+  const requested=Array.isArray(dates)&&dates.length?dates.join(','):'all';
+  const target=button||$('download-all-days'),original=target?.innerHTML;
+  if(target){target.disabled=true;target.textContent='Preparing ZIP...';}
+  const link=document.createElement('a');link.href=`/api/days/download-zip?dates=${encodeURIComponent(requested)}`;link.download='';link.style.display='none';
+  document.body.appendChild(link);link.click();setTimeout(()=>{link.remove();if(target){target.disabled=false;target.innerHTML=original;}},1500);
+}
+
+function downloadCurrentDay(button){if(_gpDate)downloadDays([_gpDate],button)}
+
 function renderDayCards(days,g){
   const coverObserver=_ensureDayCoverObserver();
   days.forEach((d,i)=>{
@@ -1571,8 +1744,10 @@ function renderDayCards(days,g){
           <b>${MN[m]} ${parseInt(d.dia,10)}, ${d.anio}</b>
           ${d.cantidad_fotos} photos · ${d.tamano_total_mb} MB${d.ruta_zip?` <span class="dcard-zip"><svg width="8" height="8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>zip</span>`:''}
         </div>
+        <button class="dcard-download" type="button" aria-label="Download this day as a ZIP archive"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 19h16"/></svg>ZIP</button>
       </div>`;
     card.onclick=()=>openDayGallery(d);
+    const downloadButton=card.querySelector('.dcard-download');downloadButton.onclick=event=>{event.stopPropagation();downloadDays([d.fecha],downloadButton)};
     g.appendChild(card);
     if(d.cover_path){
       const img=document.getElementById(`cimg-${d.fecha}`);
@@ -1590,6 +1765,7 @@ async function loadDays(){
   try{
     const d=await api('/api/days');const f=await api('/api/favourites');const tg=await api('/api/tags').catch(()=>({tags:[]}));
     _allDays=d.days;
+    const downloadAllButton=$('download-all-days');downloadAllButton.disabled=!d.days.length;
     $('stat-days').textContent=d.total_days;$('stat-days-sub').textContent=d.total_days+' days';
     $('stat-photos').textContent=d.total_photos.toLocaleString();$('stat-photos-sub').textContent=d.total_photos.toLocaleString()+' files';
     const favCount=(f.favourites||[]).length;$('stat-favs').textContent=favCount;$('stat-favs-sub').textContent=favCount+' saved';
@@ -1600,7 +1776,7 @@ async function loadDays(){
     $('storage-val').textContent=d.total_mb.toLocaleString()+' MB';
     $('day-filter').value='';$('view-count').textContent=d.total_days+' days';
     const g=$('days-grid');_resetDayCoverObserver();g.innerHTML='';
-    if(!d.days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:72px 20px;color:var(--ink4)"><svg style="width:48px;height:48px;margin:0 auto 14px;color:var(--ink5)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><div style="font-weight:700;font-size:14px;color:var(--ink3);margin-bottom:4px">No photos organized yet</div><div style="font-size:12px">Run the Pipeline to scan and organize.</div></div>`;return;}
+    if(!d.days.length){g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:72px 20px;color:var(--ink4)"><svg style="width:48px;height:48px;margin:0 auto 14px;color:var(--ink5)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 00-2-2z"/></svg><div style="font-weight:700;font-size:14px;color:var(--ink3);margin-bottom:4px">No photos organized yet</div><div style="font-size:12px">Add photos from your phone, then choose Organize &amp; backup.</div></div>`;return;}
     renderDayCards(d.days,g);
     const cloud=$('tag-cloud');cloud.innerHTML='';(tg.tags||[]).slice(0,20).forEach(({tag,count})=>{const b=document.createElement('div');b.className='tc';b.textContent=`${tag} ${count}`;cloud.appendChild(b);});
   }catch(e){$('days-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--red)"><div style="font-weight:700;font-size:14px;margin-bottom:6px">Could not load gallery</div><div style="font-size:12px;color:var(--ink4);margin-bottom:12px">${e.message}</div><button onclick="loadDays()" class="bg" style="font-size:11px">Retry</button></div>`;}
@@ -1706,7 +1882,7 @@ function showApp(){
 function applyRoleVisibility(){
   const isAdmin=_currentUser&&_currentUser.role==='admin';
   // Admin-only nav sections
-  ['webdav','ssh','folders','pipeline','users'].forEach(sec=>{
+  ['webdav','ssh','folders','pipeline','users','settings'].forEach(sec=>{
     document.querySelectorAll(`.nb[onclick*="'${sec}'"]`).forEach(b=>{
       b.style.display=isAdmin?'':'none';
     });
@@ -1717,7 +1893,7 @@ function applyRoleVisibility(){
   // User menu header
   if(_currentUser){
     const label=$('user-menu-label');if(label)label.textContent=_currentUser.username;
-    const role=$('user-menu-role');if(role)role.textContent=_currentUser.role;
+    const role=$('user-menu-role');if(role)role.textContent=_currentUser.role==='admin'?'Administrator':'Viewer';
     const ini=$('user-menu-initials');if(ini)ini.textContent=_currentUser.username.slice(0,2).toUpperCase();
   }
 }
@@ -1743,8 +1919,8 @@ async function loadUsers(){
         const tr=document.createElement('tr');
         const isMe=_currentUser&&u.id===_currentUser.id;
         const roleBadge=u.role==='admin'
-          ? `<span style="background:rgba(127,170,145,.15);color:var(--b3);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">ADMIN</span>`
-          : `<span style="background:var(--bg3);color:var(--ink4);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600">USER</span>`;
+          ? `<span style="background:rgba(127,170,145,.15);color:var(--b2);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">ADMINISTRATOR</span>`
+          : `<span style="background:var(--bg3);color:var(--ink4);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600">VIEWER</span>`;
         const canDelete=!isMe&&u.role!=='admin';
         tr.innerHTML=`
           <td style="font-weight:600;color:var(--ink)">${u.username}${isMe?' <span style="font-size:10px;color:var(--ink5)">(you)</span>':''}</td>
@@ -1760,16 +1936,16 @@ async function loadUsers(){
 }
 
 function openNewUser(){
-  _openModal('Register user','Create a new account');
+  _openModal('Add person','Create a new account');
   $('modal-body').innerHTML=`
     <label class="lbl">Username</label>
     <input id="nu-username" class="inp" placeholder="username" style="margin-bottom:12px">
     <label class="lbl">Password</label>
     <input id="nu-password" type="password" class="inp" placeholder="At least 8 characters" style="margin-bottom:12px">
-    <label class="lbl">Role</label>
-    <select id="nu-role" class="inp"><option value="user">User (view only)</option><option value="admin">Administrator</option></select>
-    <p style="font-size:10px;color:var(--ink5);margin-top:6px">Only one administrator is allowed. Choosing Admin will fail if one already exists.</p>`;
-  $('modal-foot').innerHTML=`<button class="bg" onclick="_closeModal()">Cancel</button><button class="bp" onclick="submitNewUser()">Create user</button>`;
+    <label class="lbl">Access level</label>
+    <select id="nu-role" class="inp"><option value="user">Viewer — can browse and organize photos</option><option value="admin">Administrator — can also change settings</option></select>
+    <p style="font-size:10px;color:var(--ink5);margin-top:6px">Only one administrator account is allowed.</p>`;
+  $('modal-foot').innerHTML=`<button class="bg" onclick="_closeModal()">Cancel</button><button class="bp" onclick="submitNewUser()">Add person</button>`;
   setTimeout(()=>{const i=$('nu-username');if(i)i.focus();},50);
 }
 
@@ -2049,7 +2225,7 @@ function _renderTlSection(day,photos,tv){
 }
 
 let _gpPhotos=[],_gpFilter='all',_gpTagFilter='',_gpDate='',_gpAlbumId=null;
-const GP_BATCH_SIZE=24,GP_THUMB_SIZE=220,GP_PAGE_SIZE=48;
+const GP_BATCH_SIZE=24,GP_THUMB_SIZE=480,GP_PAGE_SIZE=48;
 let _gpImgObserver=null,_gpBatchObserver=null,_gpRenderToken=0;
 let _gpHasMore=false,_gpNextOffset=null,_gpTotal=0,_gpLoadingPage=false,_gpLoadToken=0;
 function _resetGpObservers(){
@@ -2075,11 +2251,14 @@ async function openDayGallery(day){
   _gpPhotos=[];_gpHasMore=false;_gpNextOffset=null;_gpTotal=0;_gpLoadingPage=false;
   _gpDate=day.fecha;_gpAlbumId=null;_gpFilter='all';_gpTagFilter='';
   document.querySelectorAll('.gpfb').forEach(b=>b.classList.remove('on'));document.querySelector('.gpfb').classList.add('on');
-  $('gp-title').textContent=`${MN[parseInt(day.mes,10)]} ${parseInt(day.dia,10)}, ${day.anio}`;$('gp-sub').textContent='Loading…';
+  const dayTitle=day.fecha==='undated'?'Undated photos':new Date(`${day.fecha}T12:00:00`).toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'});
+  $('gp-title').textContent=dayTitle;$('gp-sub').textContent='Loading…';
   $('gp-add-btn').classList.remove('visible'); // hide album-add button for day view
+  $('gallery-panel').classList.add('day-view');$('gallery-panel').classList.remove('album-view');
+  closeGalleryTags();selClear();
   $('gp-grid').innerHTML='<div style="grid-column:1/-1;display:flex;justify-content:center;padding:40px"><div style="width:18px;height:18px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div></div>';
   $('gallery-panel').classList.add('open');
-  $('bc-sep2').style.display='';$('bc-page').style.display='';$('bc-page').textContent=`${MN[parseInt(day.mes,10)]} ${parseInt(day.dia,10)}`;
+  $('bc-sep2').style.display='';$('bc-page').style.display='';$('bc-page').textContent=dayTitle;
   try{
     const d=await api(`/api/days/${encodeURIComponent(day.fecha)}/photos?offset=0&limit=${GP_PAGE_SIZE}`);
     if(loadToken!==_gpLoadToken||_gpDate!==day.fecha||_gpAlbumId)return;
@@ -2110,7 +2289,7 @@ async function _reloadAlbumGrid(){
   if(!_gpAlbumId)return;
   try{
     const d=await api(`/api/albums/${_gpAlbumId}`);_gpPhotos=d.photos;
-    $('gp-sub').textContent=d.count>0?`${d.count} photos · click to select`:'Empty — press ＋ to add photos';
+    $('gp-sub').textContent=d.count>0?`${d.count} photos · click a photo to view it`:'Empty — use Add photos to begin';
     if(!d.count){
       $('gp-grid').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--ink4);font-size:12px">
         <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2" style="margin:0 auto 10px;display:block;color:var(--ink5)"><path d="M4 5a2 2 0 012-2h9l3 3M4 5v14a2 2 0 002 2h12a2 2 0 002-2V8M4 5h11"/></svg>
@@ -2256,6 +2435,8 @@ async function openAlbumView(album){
   // Show the "+" add-photos button, hide when viewing a day
   $('gp-add-btn').classList.add('visible');
   $('gp-add-btn').style.marginLeft='auto';
+  $('gallery-panel').classList.remove('day-view');$('gallery-panel').classList.add('album-view');
+  closeGalleryTags();selClear();
   $('gp-grid').innerHTML='<div style="grid-column:1/-1;display:flex;justify-content:center;padding:40px"><div style="width:18px;height:18px;border:2px solid var(--brd);border-top-color:var(--b);border-radius:50%;animation:spin .65s linear infinite"></div></div>';
   $('gallery-panel').classList.add('open');
   $('bc-section').textContent='Albums';$('bc-sep2').style.display='';$('bc-page').style.display='';$('bc-page').textContent=album.name;
@@ -2263,13 +2444,18 @@ async function openAlbumView(album){
 }
 function _buildGpTags(photos){
   const allTags=[...new Set(photos.flatMap(p=>p.tags||[]))].sort();
-  const tb=$('gp-tag-btns-inner2');tb.innerHTML='';const gt=$('gp-tags');
-  if(allTags.length){gt.style.display='flex';allTags.forEach(t=>{const b=document.createElement('button');b.className='gpfb'+(t===_gpTagFilter?' on':'');b.textContent=t;b.style.fontSize='10px';b.onclick=()=>{if(b.classList.contains('on')){b.classList.remove('on');_gpTagFilter='';}else{document.querySelectorAll('#gp-tag-btns-inner2 .gpfb').forEach(x=>x.classList.remove('on'));b.classList.add('on');_gpTagFilter=t;}renderGpGrid();};tb.appendChild(b);});}else{gt.style.display='none';}
+  const tb=$('gp-tag-btns-inner2');tb.innerHTML='';const toggle=$('gp-tags-toggle');
+  toggle.style.display=allTags.length?'inline-flex':'none';
+  if(!allTags.length){closeGalleryTags();return;}
+  allTags.forEach(t=>{const b=document.createElement('button');b.className='gpfb'+(t===_gpTagFilter?' on':'');b.textContent=t;b.style.fontSize='10px';b.onclick=()=>{if(b.classList.contains('on')){b.classList.remove('on');_gpTagFilter='';}else{document.querySelectorAll('#gp-tag-btns-inner2 .gpfb').forEach(x=>x.classList.remove('on'));b.classList.add('on');_gpTagFilter=t;}renderGpGrid();};tb.appendChild(b);});
 }
+function closeGalleryTags(){$('gp-tags').style.display='none';$('gp-tags-toggle').setAttribute('aria-expanded','false')}
+function toggleGalleryTags(){const open=$('gp-tags').style.display!=='none';$('gp-tags').style.display=open?'none':'flex';$('gp-tags-toggle').setAttribute('aria-expanded',String(!open))}
 function closeGallery(){
   _resetGpObservers();
   ++_gpLoadToken;_gpHasMore=false;_gpNextOffset=null;_gpTotal=0;_gpLoadingPage=false;
   $('gallery-panel').classList.remove('open');
+  $('gallery-panel').classList.remove('day-view','album-view');closeGalleryTags();
   _gpPhotos=[];_gpDate=null;_gpAlbumId=null;
   $('gp-add-btn').classList.remove('visible');
   $('bc-sep2').style.display='none';$('bc-page').style.display='none';
@@ -2309,10 +2495,13 @@ function renderGpGrid(){
       img.onload=()=>img.classList.replace('loading','loaded');
       img.onerror=()=>{img.classList.replace('loading','loaded');img.alt='Photo unavailable';};
       img.dataset.src=`/api/thumb?path=${encodeURIComponent(p.id)}&size=${GP_THUMB_SIZE}`;imgObs.observe(img);
-      const favBtn=document.createElement('button');favBtn.className='gp-photo-fav'+(p.favourite?' fav':'');favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
-      favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(p);favBtn.classList.toggle('fav',p.favourite)};
-      const delBtn=document.createElement('button');delBtn.className='gp-photo-del';
+      const favBtn=document.createElement('button');favBtn.type='button';favBtn.className='gp-photo-fav'+(p.favourite?' fav':'');
+      const updateFavouriteLabel=()=>{favBtn.title=p.favourite?'Remove from favourites':'Add to favourites';favBtn.setAttribute('aria-label',favBtn.title)};updateFavouriteLabel();
+      favBtn.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`;
+      favBtn.onclick=async(e)=>{e.stopPropagation();await toggleFav(p);favBtn.classList.toggle('fav',p.favourite);updateFavouriteLabel()};
+      const delBtn=document.createElement('button');delBtn.type='button';delBtn.className='gp-photo-del';
       delBtn.title=_gpAlbumId?'Remove from album':'Move to trash';
+      delBtn.setAttribute('aria-label',delBtn.title);
       delBtn.innerHTML=_gpAlbumId
         ? `<svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>`
         : `<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6m4-6v6"/></svg>`;
@@ -2328,13 +2517,13 @@ function renderGpGrid(){
         }else await _deletePhoto(p.id,'panel',div);
       };
       const chk=document.createElement('div');chk.className='sel-check';
-      const albBtn=document.createElement('button');albBtn.className='gp-photo-alb';albBtn.title='Add to album';
+      const albBtn=document.createElement('button');albBtn.type='button';albBtn.className='gp-photo-alb';albBtn.title='Add to album';albBtn.setAttribute('aria-label',albBtn.title);
       albBtn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 5a2 2 0 012-2h9l3 3M4 5v14a2 2 0 002 2h12a2 2 0 002-2V8M4 5h11"/><line x1="12" y1="13" x2="12" y2="19"/><line x1="9" y1="16" x2="15" y2="16"/></svg>`;
       albBtn.onclick=async(e)=>{e.stopPropagation();await _addPhotoToAlbum(p.id);};
       div.appendChild(img);div.appendChild(favBtn);div.appendChild(delBtn);if(!_gpAlbumId)div.appendChild(albBtn);div.appendChild(chk);
       div.onclick=(e)=>{
         if(e.target===favBtn||favBtn.contains(e.target))return;
-        if(_gpAlbumId||_selMode){if(_selThumb(div,p,e))return;}else if(e.shiftKey){if(_selThumb(div,p,e))return;}
+        if(_selMode){if(_selThumb(div,p,e))return;}else if(e.shiftKey){if(_selThumb(div,p,e))return;}
         const idx=_gpFilter==='favourites'?_gpPhotos.filter(x=>x.favourite).indexOf(p):_gpPhotos.indexOf(p);openLightbox(idx);
       };
       div.oncontextmenu=(e)=>{e.preventDefault();_selMode=true;_selThumb(div,p,{shiftKey:false});};
@@ -2477,19 +2666,22 @@ function _triggerDownload(paths, defaultFilename){
 }
 document.addEventListener('keydown',e=>{if(!$('lightbox').classList.contains('open'))return;if(e.key==='ArrowLeft'){e.preventDefault();lbNav(-1);}if(e.key==='ArrowRight'){e.preventDefault();lbNav(1);}if(e.key==='Escape')closeLightbox();if(e.key===' '){e.preventDefault();lbToggleFav();}if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();lbDelete();}});
 
-let _selPaths=new Set(),_selMode=false,_lastSelEl=null;
+let _selPaths=new Set(),_selMode=false,_lastSelEl=null,_gallerySelectionRequested=false;
+function updateGallerySelectionButton(){const button=$('gp-select-button');if(!button)return;const count=_selPaths.size;button.setAttribute('aria-pressed',String(_gallerySelectionRequested));button.textContent=_gallerySelectionRequested?(count?`Done (${count})`:'Done selecting'):'Select photos'}
+function toggleGallerySelection(){if(_gallerySelectionRequested){selClear();return}_gallerySelectionRequested=true;_selMode=true;$('gallery-panel').classList.add('selection-mode');updateGallerySelectionButton()}
 function _selThumb(div,ph,e){if(!_selMode&&!e.shiftKey)return false;_selMode=true;if(e.shiftKey&&_lastSelEl){const all=[...document.querySelectorAll('.tl-thumb,.gp-photo')];const a=all.indexOf(_lastSelEl),b=all.indexOf(div);const[lo,hi]=[Math.min(a,b),Math.max(a,b)];all.slice(lo,hi+1).forEach(el=>{const id=el.dataset.photoId;if(id){_selPaths.add(id);el.classList.add('selected');}});}else{if(_selPaths.has(ph.id)){_selPaths.delete(ph.id);div.classList.remove('selected');}else{_selPaths.add(ph.id);div.classList.add('selected');}_lastSelEl=div;}_selUpdateToolbar();return true;}
 function _selUpdateToolbar(){
   const n=_selPaths.size;
   $('bulk-count').textContent=n+' selected';
   $('bulk-toolbar').classList.toggle('show',n>0);
-  if(n===0){_selMode=false;_lastSelEl=null;return;}
+  updateGallerySelectionButton();
+  if(n===0){_selMode=_gallerySelectionRequested;_lastSelEl=null;return;}
   // Context-aware buttons: in album view show "Remove from album", hide "Add to album"
   const inAlbum=!!_gpAlbumId;
   $('tbb-remove-alb').style.display=inAlbum?'inline-flex':'none';
   $('tbb-add-alb').style.display=inAlbum?'none':'inline-flex';
 }
-function selClear(){_selPaths.clear();_selMode=false;_lastSelEl=null;document.querySelectorAll('.tl-thumb.selected,.gp-photo.selected').forEach(el=>el.classList.remove('selected'));$('bulk-toolbar').classList.remove('show');}
+function selClear(){_selPaths.clear();_selMode=false;_lastSelEl=null;_gallerySelectionRequested=false;$('gallery-panel')?.classList.remove('selection-mode');updateGallerySelectionButton();document.querySelectorAll('.tl-thumb.selected,.gp-photo.selected').forEach(el=>el.classList.remove('selected'));$('bulk-toolbar').classList.remove('show');}
 async function bulkAction(action){if(!_selPaths.size)return;const paths=[..._selPaths];if(action==='delete'&&!confirm(`Move ${paths.length} photo(s) to trash?`))return;try{await api('/api/photos/bulk',{method:'POST',body:{paths,action}});if(action==='delete'){paths.forEach(id=>{document.querySelectorAll(`[data-photo-id="${CSS.escape(id)}"]`).forEach(el=>el.closest('.tl-thumb,.gp-photo')?.remove());_tlPhotos=_tlPhotos.filter(x=>x.id!==id);_gpPhotos=_gpPhotos.filter(x=>x.id!==id);});await loadDays();}else{paths.forEach(id=>{const isFav=action==='favourite';document.querySelectorAll(`[data-photo-id="${CSS.escape(id)}"]`).forEach(el=>{const btn=el.closest('.tl-thumb,.gp-photo')?.querySelector('.tl-thumb-fav,.gp-photo-fav');if(btn)btn.classList.toggle('fav',isFav);});[_tlPhotos,_gpPhotos].forEach(arr=>{const ph=arr.find(x=>x.id===id);if(ph)ph.favourite=isFav;});});}selClear();}catch(err){alert('Action failed: '+err.message);}}
 
 /* ─── Albums ─── */
@@ -2531,8 +2723,9 @@ async function loadAlbums(){
 async function deleteAlbum(id,name){if(!confirm(`Delete album "${name}"? Photos on disk are never deleted.`))return;try{await api(`/api/albums/${id}`,{method:'DELETE'});loadAlbums();}catch(e){alert(e.message);}}
 
 /* ─── Modal helpers ─── */
-function _closeModal(){$('modal').classList.remove('open');$('modal').style.display='none';}
+function _closeModal(){$('modal').classList.remove('open');$('modal').style.display='none';$('modal-card').classList.remove('exif-detail-modal');}
 function _openModal(title,sub){
+  $('modal-card').classList.remove('exif-detail-modal');
   $('modal-title').textContent=title;
   $('modal-sub').textContent=sub||'';
   $('modal-body').innerHTML='';$('modal-foot').innerHTML='';
@@ -2578,13 +2771,15 @@ async function openAddToAlbum(ev){
 // Close modal on click outside
 $('modal').addEventListener('click',e=>{if(e.target===$('modal'))_closeModal();});
 
-async function initPipeline(){const p=await api('/api/pasos');const g=$('paso-checks');g.innerHTML='';p.forEach(x=>{const l=document.createElement('label');l.className='step-card';l.innerHTML=`<input type="checkbox" value="${x.id}" checked><span>${x.nombre}</span>`;g.appendChild(l)});pollEstado()}initPipeline();
+const PIPELINE_STEP_LABELS={'Sync & save captures':'Find and copy new photos','Organize by date':'Sort photos by date','Classify photos & extract EXIF':'Read photo information','Compress by day':'Prepare daily backup files','Generate summary':'Update the library summary','Upload to SSH':'Copy backup to remote storage'};
+async function initPipeline(){const p=await api('/api/pasos');const g=$('paso-checks');g.innerHTML='';p.forEach(x=>{const l=document.createElement('label');l.className='step-card';l.innerHTML=`<input type="checkbox" value="${x.id}" checked><span>${PIPELINE_STEP_LABELS[x.nombre]||x.nombre}</span>`;g.appendChild(l)});pollEstado()}initPipeline();
 let pt;async function pollEstado(){const{corriendo}=await api('/api/pipeline/estado');setPipelineUI(corriendo);if(corriendo)pt=setTimeout(pollEstado,1500)}
 async function runPipeline(a){const c=[...document.querySelectorAll('#paso-checks input:checked')];const p=a?null:c.map(x=>+x.value);if(!a&&p.length===0)return;try{await api('/api/pipeline/ejecutar',{method:'POST',body:{pasos:p}});setPipelineUI(true);pt=setTimeout(pollEstado,1500)}catch(e){$('pipeline-status').textContent=e.message}}
-function setPipelineUI(r){$('spinner').style.display=r?'block':'none';$('pipeline-status').textContent=r?'Running pipeline…':'Ready.';$('btn-run-sel').disabled=r;$('btn-run-all').disabled=r;const d=$('dot-pipeline');if(d){d.className='nb-dot'+(r?' live':'');d.style.display=r?'block':'none'}}
+function setPipelineUI(r){$('spinner').style.display=r?'block':'none';$('pipeline-status').textContent=r?'Organizing your photos…':'Ready to organize.';$('btn-run-sel').disabled=r;$('btn-run-all').disabled=r;const d=$('dot-pipeline');if(d){d.className='nb-dot'+(r?' live':'');d.style.display=r?'block':'none'}}
 
-let _sr={};async function initSSH(){_sr=await api('/api/ssh/roles');const s=$('ssh-rol');s.innerHTML='';_sr.roles.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;s.appendChild(o)});onRolChange();await renderSSH()}
-async function renderSSH(){const l=await api('/api/ssh');const tb=document.querySelector('#ssh-table tbody');tb.innerHTML='';if(!l.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--ink4);font-size:12px">No SSH connections yet</td></tr>';return}l.forEach(c=>{const tc={origen:'tag-origen',destino:'tag-destino',ambos:'tag-ambos'}[c.rol]||'';const tr=document.createElement('tr');tr.innerHTML=`<td><a href="#" onclick="editSSH(${JSON.stringify(c).replace(/"/g,'&quot;')});return false" style="color:var(--b);font-weight:600;text-decoration:none">${c.alias}</a></td><td>${c.host}:${c.puerto}</td><td>${c.usuario}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink4)">${c.ruta_remota}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink4)">${c.ruta_remota_destino||'—'}</td><td><span class="tag ${tc}">${c.rol}</span></td><td><button onclick="borrarSSH('${c.alias}')" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;font-weight:600">Delete</button></td>`;tb.appendChild(tr)})}
+const SSH_ROLE_LABELS={origen:'Import photos',destino:'Store backups',ambos:'Import and back up'};
+let _sr={};async function initSSH(){_sr=await api('/api/ssh/roles');const s=$('ssh-rol');s.innerHTML='';_sr.roles.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=SSH_ROLE_LABELS[r]||r;s.appendChild(o)});onRolChange();await renderSSH()}
+async function renderSSH(){const l=await api('/api/ssh');const tb=document.querySelector('#ssh-table tbody');tb.innerHTML='';if(!l.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--ink4);font-size:12px">No remote storage has been added yet</td></tr>';return}l.forEach(c=>{const tc={origen:'tag-origen',destino:'tag-destino',ambos:'tag-ambos'}[c.rol]||'';const tr=document.createElement('tr');tr.innerHTML=`<td><a href="#" onclick="editSSH(${JSON.stringify(c).replace(/"/g,'&quot;')});return false" style="color:var(--b);font-weight:600;text-decoration:none">${c.alias}</a></td><td>${c.host}:${c.puerto}</td><td>${c.usuario}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink4)">${c.ruta_remota}</td><td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink4)">${c.ruta_remota_destino||'—'}</td><td><span class="tag ${tc}">${SSH_ROLE_LABELS[c.rol]||c.rol}</span></td><td><button onclick="borrarSSH('${c.alias}')" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;font-weight:600">Delete</button></td>`;tb.appendChild(tr)})}
 function onRolChange(){const r=$('ssh-rol').value,d=$('ssh-ruta-dest'),s=_sr;d.disabled=!(s.requiere_ruta_destino||[]).includes(r);$('ssh-rol-hint').textContent=(s.descripcion||{})[r]||'';const o=(s.ruta_destino_obligatoria||[]).includes(r);d.placeholder=o?'REQUIRED: different from source':'optional';$('ssh-ruta-dest-hint').textContent=o?'Must differ from source.':''}
 function editSSH(c){$('ssh-alias').value=c.alias;$('ssh-host').value=c.host;$('ssh-puerto').value=c.puerto;$('ssh-usuario').value=c.usuario;$('ssh-ruta').value=c.ruta_remota;$('ssh-ruta-dest').value=c.ruta_remota_destino||'';$('ssh-clave').value='';$('ssh-clave').placeholder=c.tiene_clave?'(configured)':'~/.ssh/id_rsa';$('ssh-rol').value=c.rol;onRolChange();document.querySelector('[data-s="ssh"] .card').scrollIntoView({behavior:'smooth'})}
 async function guardarSSH(){try{await api('/api/ssh',{method:'POST',body:{alias:$('ssh-alias').value.trim(),host:$('ssh-host').value.trim(),puerto:+$('ssh-puerto').value||22,usuario:$('ssh-usuario').value.trim(),ruta_remota:$('ssh-ruta').value.trim(),ruta_remota_destino:$('ssh-ruta-dest').value.trim(),clave_privada:$('ssh-clave').value.trim(),rol:$('ssh-rol').value}});showMsg('ssh-msg','Connection saved.',true);limpiarFormSSH();renderSSH()}catch(e){showMsg('ssh-msg',e.message,false)}}
@@ -2613,16 +2808,16 @@ function wdMode(mode,btn){
   const active=mode==='direct'?$('wd-tab-direct'):$('wd-tab-netuse');
   if(active)active.classList.add('on');
   const hint=$('wd-mode-hint');
-  if(hint)hint.textContent=mode==='direct'?'Works on Docker, Linux and Windows':'Windows only — mounts drive letter';
+  if(hint)hint.textContent=mode==='direct'?'Recommended for everyone':'Advanced option for Windows only';
 }
 
 async function wdScan(){
   const ip=($('wd-dl-ip')||{}).value||'';
   const port=($('wd-dl-port')||{}).value||'8080';
   const includeVideos=!!($('wd-include-videos')||{}).checked;
-  if(!ip.trim()){showMsg('wd-dl-msg','Enter the phone IP address',false);return;}
+  if(!ip.trim()){showMsg('wd-dl-msg','Enter the address shown by your phone app',false);return;}
   const res=$('wd-dl-scan-result');
-  if(res)res.textContent='Scanning…';
+  if(res)res.textContent='Checking your phone…';
   try{
     const d=await api('/api/webdav/scan',{method:'POST',body:{ip:ip.trim(),port:port.trim(),include_videos:includeVideos}});
     const excluded=d.excluded_videos?` <b>${d.excluded_videos}</b> MP4 videos excluded.`:'';
